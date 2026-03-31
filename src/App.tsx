@@ -6,7 +6,9 @@ import Success from './pages/Success';
 import Auth from './pages/Auth';
 import AddVehicleOnboarding from './pages/AddVehicleOnboarding';
 import AppLayout from './components/layout/AppLayout';
+import PlainAppLayout from './components/layout/PlainAppLayout';
 import PublicFlowLayout from './components/layout/PublicFlowLayout';
+
 
 // App Routes
 import Home from './pages/app/Home';
@@ -37,20 +39,26 @@ function App() {
             <Route path="/vehicle/add-onboarding" element={<AddVehicleOnboarding />} />
           </Route>
 
+          {/* Main App with Bottom Nav */}
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Navigate to="/app/home" replace />} />
             <Route path="home" element={<Home />} />
+            <Route path="vehicles" element={<Vehicles />} />
+            <Route path="incidents" element={<Incidents />} />
+            <Route path="leaderboard" element={<Leaderboard />} />
+            <Route path="profile" element={<Profile />} />
+          </Route>
+
+          {/* Secondary Screens WITHOUT Bottom Nav */}
+          <Route path="/app" element={<PlainAppLayout />}>
             <Route path="reports" element={<ReportDetails />} />
             <Route path="report-details" element={<ReportDetails />} />
-            <Route path="vehicles" element={<Vehicles />} />
             <Route path="vehicles/add" element={<AddVehicle />} />
             <Route path="vehicles/:id/edit" element={<EditVehicle />} />
-            <Route path="incidents" element={<Incidents />} />
             <Route path="incidents/:id" element={<IncidentDetails />} />
-            <Route path="profile" element={<Profile />} />
             <Route path="profile/edit" element={<EditProfile />} />
-            <Route path="leaderboard" element={<Leaderboard />} />
           </Route>
+
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
