@@ -1,0 +1,63 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Onboarding from './pages/Onboarding';
+import ReportDetails from './pages/ReportDetails';
+import Verify from './pages/Verify';
+import Success from './pages/Success';
+import Auth from './pages/Auth';
+import AddVehicleOnboarding from './pages/AddVehicleOnboarding';
+import AppLayout from './components/layout/AppLayout';
+import PublicFlowLayout from './components/layout/PublicFlowLayout';
+
+// App Routes
+import Home from './pages/app/Home';
+import Vehicles from './pages/app/Vehicles';
+import AddVehicle from './pages/app/AddVehicle';
+import EditVehicle from './pages/app/EditVehicle';
+import Incidents from './pages/app/Incidents';
+import IncidentDetails from './pages/app/IncidentDetails';
+import Profile from './pages/app/Profile';
+import EditProfile from './pages/app/EditProfile';
+import Leaderboard from './pages/app/Leaderboard';
+import CompleteProfile from './pages/CompleteProfile';
+
+import { StoreProvider } from './utils/store';
+
+function App() {
+  return (
+    <StoreProvider>
+      <Router>
+        <Routes>
+          {/* Public Flow */}
+          <Route element={<PublicFlowLayout />}>
+            <Route path="/" element={<Onboarding />} />
+            <Route path="/verify" element={<Verify />} />
+            <Route path="/success" element={<Success />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
+            <Route path="/vehicle/add-onboarding" element={<AddVehicleOnboarding />} />
+          </Route>
+
+          <Route path="/app" element={<AppLayout />}>
+            <Route index element={<Navigate to="/app/home" replace />} />
+            <Route path="home" element={<Home />} />
+            <Route path="reports" element={<ReportDetails />} />
+            <Route path="report-details" element={<ReportDetails />} />
+            <Route path="vehicles" element={<Vehicles />} />
+            <Route path="vehicles/add" element={<AddVehicle />} />
+            <Route path="vehicles/:id/edit" element={<EditVehicle />} />
+            <Route path="incidents" element={<Incidents />} />
+            <Route path="incidents/:id" element={<IncidentDetails />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/edit" element={<EditProfile />} />
+            <Route path="leaderboard" element={<Leaderboard />} />
+          </Route>
+
+          {/* Catch all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </StoreProvider>
+  );
+}
+
+export default App;

@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply min-h-screen font-sans antialiased;
+  }
+
+  body {
+    @apply m-0 bg-appBg text-appText;
+    font-family: 'Inter', sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+}
+
+@layer components {
+  .app-container {
+    @apply relative mx-auto flex w-full max-w-md flex-col overflow-hidden bg-appBg transition-all;
+    min-height: 100dvh;
+  }
+
+  .waze-card {
+    @apply rounded-[28px] border border-appBorder bg-appSurface p-5 shadow-waze transition-all;
+  }
+
+  .waze-btn-primary {
+    @apply flex w-full items-center justify-center gap-2 rounded-[18px] bg-primary px-6 py-3.5 text-white font-semibold shadow-sm transition active:scale-[0.97];
+  }
+
+  .waze-btn-secondary {
+    @apply flex w-full items-center justify-center gap-2 rounded-[18px] border border-appBorder bg-appSurface px-6 py-3.5 text-primary font-semibold transition active:scale-[0.97];
+  }
+
+  .waze-input {
+    @apply w-full rounded-xl border border-appBorder px-4 py-3 text-appText bg-white focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+
+  .surface-card {
+    @apply rounded-[32px] border border-appBorder bg-appSurface p-6 shadow-waze transition-all;
+  }
+
+  .screen-bg {
+    @apply bg-appBg min-h-screen;
+  }
+}
