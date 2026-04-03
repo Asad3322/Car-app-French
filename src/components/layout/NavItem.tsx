@@ -1,53 +1,45 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { motion } from 'framer-motion';
 
-interface NavItemProps {
+type NavIconProps = {
+  active?: boolean;
+};
+
+type NavItemProps = {
   to: string;
-  icon: React.ComponentType<{ active?: boolean; isPrimary?: boolean }>;
-  label?: string;
-  isPrimary?: boolean;
-}
+  icon: React.ComponentType<NavIconProps>;
+  label: string;
+};
 
-const NavItem: React.FC<NavItemProps> = ({
-  to,
-  icon: Icon,
-  label,
-  isPrimary = false,
-}) => {
+const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label }) => {
   return (
     <NavLink
       to={to}
-      className={`flex flex-col items-center justify-center ${
-        isPrimary ? 'relative min-w-[72px]' : 'min-w-[58px]'
-      }`}
+      className={({ isActive }) =>
+        `flex flex-col items-center justify-center text-xs transition-all duration-200 ${
+          isActive ? 'text-[#62D8FF]' : 'text-white/50'
+        }`
+      }
     >
       {({ isActive }) => (
-        <>
-          <motion.div
-            initial={false}
-            animate={{
-              y: 0,
-              scale: isActive ? 1.05 : 1,
-            }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="flex items-center justify-center relative h-[44px] w-[58px] transition-all duration-200"
-          >
-            <div className="relative z-10 flex items-center justify-center">
-              <Icon active={isActive} isPrimary={isPrimary} />
-            </div>
-          </motion.div>
+        <div
+          className={`
+            flex flex-col items-center gap-1
+            rounded-xl px-3 py-1.5
+            transition-all duration-200
+            ${
+              isActive
+                ? 'bg-white/5 text-[#62D8FF]'
+                : 'text-white/50'
+            }
+          `}
+        >
+          <Icon active={isActive} />
 
-          {label && (
-            <span
-              className={`mt-1 text-[10px] font-medium transition-colors ${
-                isActive ? 'text-[#1A516E] font-bold' : 'text-[#94A3B8]'
-              }`}
-            >
-              {label}
-            </span>
-          )}
-        </>
+          <span className="text-[10px] font-medium tracking-wide">
+            {label}
+          </span>
+        </div>
       )}
     </NavLink>
   );

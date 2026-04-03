@@ -2,11 +2,6 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../utils/store';
 import {
-  ShieldAlert,
-  ChevronRight,
-  Clock,
-  CheckCircle2,
-  Eye,
   Navigation,
   FileText
 } from 'lucide-react';
@@ -22,34 +17,38 @@ const Incidents = () => {
   );
   const [activeFilter, setActiveFilter] = useState<Status | 'all'>('all');
 
-  const groupedIncidents = incidents.filter(i => {
+  const groupedIncidents = incidents.filter((i) => {
     if (activeGroup === 'sent') return i.reporterId === user.id;
-    return vehicles.some(v => v.plate === i.plate);
+    return vehicles.some((v) => v.plate === i.plate);
   });
 
-  const filtered = activeFilter === 'all' 
-    ? groupedIncidents 
-    : groupedIncidents.filter(i => i.status === activeFilter);
+  const filtered =
+    activeFilter === 'all'
+      ? groupedIncidents
+      : groupedIncidents.filter((i) => i.status === activeFilter);
 
   const getStatusStyle = (status: Status) => {
     switch (status) {
-      case 'reported': return 'bg-blue-50 text-blue-500 border-blue-100';
-      case 'seen': return 'bg-indigo-50 text-indigo-500 border-indigo-100';
-      case 'resolved': return 'bg-emerald-50 text-emerald-500 border-emerald-100';
-      default: return 'bg-slate-50 text-slate-500 border-slate-100';
+      case 'reported':
+        return 'bg-silicon-cyan/10 text-silicon-cyan border-silicon-cyan/20';
+      case 'seen':
+        return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+      case 'resolved':
+        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      default:
+        return 'bg-white/5 text-white/40 border-white/10';
     }
   };
 
   return (
-    <div className="flex h-full flex-col bg-[#F8FAFC] px-6 pt-10 pb-10 overflow-y-auto scrollbar-hide">
-      <header className="mb-6">
-        <h1 className="text-[22px] font-black tracking-tight text-appText uppercase">
+    <div className="flex h-full flex-col bg-charcoal px-6 pt-10 pb-10 overflow-y-auto scrollbar-hide">
+      <header className="mb-8">
+        <h1 className="text-[20px] font-black text-white uppercase">
           INCIDENT REPORTS
         </h1>
       </header>
 
-      {/* Segmented Toggle */}
-      <div className="mb-8 flex p-1.5 bg-[#EEF2F6] rounded-[32px]">
+      <div className="mb-8 flex rounded-[32px] border border-white/5 bg-[#11161D] p-1">
         {(['sent', 'received'] as const).map((group) => (
           <button
             key={group}
@@ -57,29 +56,28 @@ const Incidents = () => {
               setActiveGroup(group);
               setActiveFilter('all');
             }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-[28px] text-[11px] font-black uppercase tracking-widest transition-all ${
-              activeGroup === group 
-                ? 'bg-white text-appText shadow-sm' 
-                : 'text-appTextSecondary/40'
+            className={`flex flex-1 items-center justify-center gap-2 rounded-[28px] py-4 text-[11px] font-black uppercase ${
+              activeGroup === group
+                ? 'bg-[#62D8FF] text-black'
+                : 'text-white/30'
             }`}
           >
-            {group === 'sent' ? <Navigation size={14} className={activeGroup === 'sent' ? 'text-appText' : 'text-appTextSecondary/40'} /> : <FileText size={14} className={activeGroup === 'received' ? 'text-appText' : 'text-appTextSecondary/40'} />}
+            {group === 'sent' ? <Navigation size={14} /> : <FileText size={14} />}
             {group}
           </button>
         ))}
       </div>
 
-      {/* Filter Pills - Only for Sent Tab */}
       {activeGroup === 'sent' && (
-        <div className="mb-8 flex gap-3 overflow-x-auto scrollbar-hide">
+        <div className="mb-8 flex gap-3 overflow-x-auto">
           {['all', 'reported', 'seen', 'resolved'].map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter as Status | 'all')}
-              className={`whitespace-nowrap px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${
+              className={`rounded-full border px-5 py-2 text-[10px] font-black uppercase ${
                 activeFilter === filter
-                  ? 'bg-[#1A1C1E] text-white border-[#1A1C1E] shadow-md'
-                  : 'bg-white text-appTextSecondary/60 border-slate-100'
+                  ? 'bg-[#62D8FF] text-black'
+                  : 'border-white/10 bg-white/5 text-white/40'
               }`}
             >
               {filter}
@@ -88,76 +86,65 @@ const Incidents = () => {
         </div>
       )}
 
-      {/* Results List */}
       <div className="flex flex-col gap-6 pb-24">
         {filtered.length === 0 ? (
-          <div className="mt-10 flex flex-col items-center justify-center p-12 text-center rounded-[40px] border-2 border-dashed border-appBorder bg-slate-50/50">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[32px] bg-white border border-appBorder shadow-sm text-appTextSecondary/20">
-              <ShieldAlert size={36} />
-            </div>
-            <h2 className="text-lg font-black text-appText">No {activeGroup} reports</h2>
-            <p className="mt-2 text-sm font-bold text-appTextSecondary/60 leading-relaxed">
-              {activeGroup === 'sent' 
-                ? "You haven't reported any incidents yet." 
-                : "None of your vehicles have received reports."}
-            </p>
+          <div className="mt-10 text-center text-white/40">
+            No {activeGroup} reports
           </div>
         ) : (
           filtered.map((incident) => (
             <div
               key={incident.id}
               onClick={() => navigate(`/app/incidents/${incident.id}`)}
-              className="group rounded-[32px] bg-white p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)] border border-slate-50 transition-all hover:shadow-lg cursor-pointer active:scale-[0.98]"
+              className="rounded-[28px] border border-white/10 bg-white/5 p-6 active:scale-[0.98]"
             >
-              <div className="flex items-start justify-between mb-5">
-                <div className="bg-[#F1F5F9] px-3.5 py-1.5 rounded-lg border border-slate-100">
-                  <span className="text-[11px] font-bold text-slate-500 tracking-wider">
-                    {incident.plate.replace('-', ' ')}
-                  </span>
-                </div>
-                
+              <div className="mb-4 flex justify-between">
+                <span className="text-sm text-white/60">{incident.plate}</span>
+
                 {activeGroup === 'sent' && (
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${getStatusStyle(incident.status)}`}>
-                    {incident.status === 'seen' && <Eye size={12} strokeWidth={3} />}
-                    {incident.status === 'reported' && <Clock size={12} strokeWidth={3} />}
-                    {incident.status === 'resolved' && <CheckCircle2 size={12} strokeWidth={3} />}
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs ${getStatusStyle(
+                      incident.status
+                    )}`}
+                  >
                     {incident.status}
-                  </div>
+                  </span>
                 )}
               </div>
 
-              <div className="mb-6">
-                <div className="flex items-center gap-1.5 mb-2.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">
-                    {incident.incidentType}
-                  </span>
-                </div>
-                <h3 className="text-[15px] font-black text-appText leading-snug mb-1">
-                  {incident.description.split('.')[0]}
-                </h3>
-                <p className="text-[12px] font-medium text-slate-400 line-clamp-2 leading-relaxed">
-                  {incident.description}
-                </p>
-              </div>
+              <h3 className="mb-2 font-bold text-white">
+                {incident.description.split('.')[0]}
+              </h3>
 
-              <div className="flex items-center justify-between pt-5 border-t border-slate-50">
-                {activeGroup === 'received' && (
-                  <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+              <p className="mb-4 text-sm text-white/50">
+                {incident.description}
+              </p>
+
+              <div className="flex items-center justify-between">
+                {activeGroup === 'received' ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="rounded-lg bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400"
+                    >
                       Thank you
                     </button>
-                    <button className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-[9px] font-black uppercase tracking-widest border border-red-100">
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="rounded-lg bg-red-500/10 px-3 py-1 text-xs text-red-400"
+                    >
                       Bad report
                     </button>
                   </div>
-                )}
-                
-                <div className="flex items-center gap-1 text-[10px] font-black text-slate-400">
-                  <span className="uppercase tracking-widest">
-                    {new Date(incident.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                  </span>
-                  <ChevronRight size={14} className="text-slate-300" />
+                ) : null}
+
+                <div className="text-xs text-white/40">
+                  {new Date(incident.date).toLocaleDateString()}
                 </div>
               </div>
             </div>

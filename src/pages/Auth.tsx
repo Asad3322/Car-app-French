@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck, Mail, Phone, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Mail, Phone } from 'lucide-react';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const role = searchParams.get('role') || 'reporter';
   const navigate = useNavigate();
-  
+
   const [contact, setContact] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [countdown, setCountdown] = useState(30);
@@ -15,86 +15,125 @@ const Auth = () => {
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contact) return;
-    
+    if (!contact.trim()) return;
+
     setIsVerifying(true);
-    
-    // Simulate prep/sending of code for prototype
+
     setTimeout(() => {
       setIsVerifying(false);
       navigate('/verify', { state: { contact, role } });
-    }, 1500);
+    }, 1200);
   };
 
   useEffect(() => {
     if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      const timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
       return () => clearTimeout(timer);
     }
   }, [countdown]);
 
   return (
-    <div className="flex flex-col h-full bg-public-bg relative pb-4 sm:rounded-[40px] px-6">
-      
+    <div className="flex h-full flex-col bg-charcoal px-6 py-10 text-white">
       {/* Header */}
-      <div className="pt-16 pb-12 flex flex-col items-center">
-        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center text-primary-dark mb-6 shadow-sm">
-          <ShieldCheck size={32} />
+      <div className="mt-10 mb-12 flex flex-col items-center">
+        <div
+          className="
+            mb-6 flex h-20 w-20 items-center justify-center rounded-full
+            border border-[#62D8FF]/30 bg-[#62D8FF]/10
+            shadow-[0_0_30px_rgba(98,216,255,0.15)]
+          "
+        >
+          <ShieldCheck size={32} className="text-[#62D8FF]" />
         </div>
-        <h1 className="text-3xl font-black text-public-textPrimary tracking-tight">
-          CARAPP
-        </h1>
-        <p className="text-public-textSecondary font-medium mt-2 text-center text-sm px-4">
-          {isEmail ? "Secure your rewards and track your latest reports." : "Register your vehicle to claim reports and get alerts."}
+
+        <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
+
+        <p className="mt-2 max-w-[260px] text-center text-sm text-white/60">
+          {isEmail
+            ? 'Enter your email to continue'
+            : 'Enter your phone number to continue'}
         </p>
       </div>
 
-      {/* Form Area */}
-      <div className="w-full bg-public-surface rounded-3xl p-6 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-public-border flex-1 flex flex-col pt-8">
-        <form onSubmit={handleVerify} className="flex flex-col flex-1">
-          <label className="text-base font-black mb-3 text-public-textSecondary uppercase tracking-wider ml-1">
-            Enter your contact mode
-          </label>
-          
-          <div className="relative mb-6">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-public-textSecondary">
-              {isEmail ? <Mail size={20} /> : <Phone size={20} />}
-            </span>
-            <input 
-              type={isEmail ? "email" : "tel"}
-              placeholder={isEmail ? "name@example.com" : "+1 (555) 000-0000"}
-              className="w-full bg-public-bg border-2 border-public-border rounded-2xl pl-12 pr-4 py-4 font-bold text-public-textPrimary placeholder:text-public-textSecondary focus:outline-none focus:border-primary transition-all shadow-inner"
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              autoFocus
-            />
-          </div>
+      {/* Form */}
+      <form onSubmit={handleVerify} className="flex flex-1 flex-col">
+        <label className="mb-3 ml-1 text-[11px] font-black uppercase tracking-[0.18em] text-white/70">
+          {isEmail ? 'Email Address' : 'Phone Number'}
+        </label>
 
-          <button 
-            type="submit"
-            disabled={!contact || isVerifying}
-            className={`waze-btn-primary py-4 text-lg mt-auto shadow-lg shadow-blue-600/20 ${(!contact || isVerifying) ? 'opacity-50 grayscale' : ''}`}
+        {/* Beautiful Input */}
+        <div className="relative mb-10">
+          <span
+            className="
+              pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2
+              text-white/50 transition-colors duration-300
+            "
           >
-            {isVerifying ? 'Sending...' : 'Send Verification'}
-            {!isVerifying && <ArrowRight size={20} />}
-          </button>
-          
-          <div className="mt-6 text-center text-sm font-medium">
-            {countdown > 0 ? (
-              <span className="text-public-textSecondary">Resend code in <span className="text-public-textPrimary w-4 inline-block">{countdown}</span>s</span>
-            ) : (
-              <button type="button" className="text-blue-600 hover:text-blue-700 underline" onClick={() => setCountdown(30)}>
-                Resend verification code
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+            {isEmail ? <Mail size={20} /> : <Phone size={20} />}
+          </span>
+
+          <input
+            type={isEmail ? 'email' : 'tel'}
+            placeholder={isEmail ? 'name@example.com' : '+92 300 1234567'}
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            autoFocus
+            className="
+              h-[62px] w-full rounded-[22px]
+              border border-white/12 bg-white/[0.04]
+              pl-12 pr-4
+              text-[15px] font-medium text-white
+              placeholder:text-white/35
+              outline-none backdrop-blur-sm
+              transition-all duration-300
+              focus:border-[#62D8FF]
+              focus:bg-[#0f1722]
+              focus:shadow-[0_0_0_1px_rgba(98,216,255,0.25),0_0_30px_rgba(98,216,255,0.10)]
+            "
+          />
+        </div>
+
+        {/* Button */}
+        <button
+          type="submit"
+          disabled={!contact.trim() || isVerifying}
+          className={`
+            mt-auto h-[58px] w-full rounded-full
+            bg-gradient-to-r from-[#62D8FF] to-[#38C8F5]
+            text-sm font-semibold text-black
+            shadow-[0_10px_25px_rgba(98,216,255,0.25)]
+            transition-all duration-300 active:scale-[0.97]
+            ${!contact.trim() || isVerifying ? 'cursor-not-allowed opacity-50' : ''}
+          `}
+        >
+          {isVerifying ? 'Sending...' : 'Continue'}
+        </button>
+
+        {/* Resend */}
+        <div className="mt-6 text-center text-sm">
+          {countdown > 0 ? (
+            <span className="text-white/50">
+              Resend in <span className="text-white">{countdown}</span>s
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="font-medium text-[#62D8FF]"
+              onClick={() => setCountdown(30)}
+            >
+              Resend code
+            </button>
+          )}
+        </div>
+      </form>
 
       {/* Footer */}
-      <div className="w-full text-center pb-8 pt-6">
-        <a href="mailto:support@carapp.com" className="font-bold text-public-textSecondary hover:text-public-textPrimary transition-colors text-xs">
-          Contact Support Team
+      <div className="mt-10 text-center">
+        <a
+          href="mailto:support@carapp.com"
+          className="text-xs text-white/50 transition-colors hover:text-white"
+        >
+          Contact Support
         </a>
       </div>
     </div>

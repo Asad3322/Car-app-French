@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { 
-  ChevronLeft, 
-  ShieldCheck, 
-  Clock, 
-  ThumbsUp, 
-  ThumbsDown, 
-  MessageSquare, 
-  Sparkles, 
+import {
+  ChevronLeft,
+  ShieldCheck,
+  Clock,
+  ThumbsUp,
+  ThumbsDown,
+  Sparkles,
   AlertTriangle,
   CameraOff,
   Calendar,
@@ -20,190 +19,204 @@ const IncidentDetails = () => {
   const { id } = useParams();
   const { incidents, vehicles } = useStore();
   const incident = incidents.find((i) => i.id === id);
-  const isReceived = incident && vehicles.some(v => v.plate === incident.plate);
+  const isReceived = incident && vehicles.some((v) => v.plate === incident.plate);
   const [isHelpful, setIsHelpful] = useState<boolean | null>(null);
-  const [feedbackSent, setFeedbackSent] = useState(false);
-
-  const handleSayThanks = () => {
-    setFeedbackSent(true);
-    setTimeout(() => setFeedbackSent(false), 3000);
-  };
-
-  const handleReportBad = () => {
-    alert("Reported to support team for manual review.");
-  };
+  const [feedbackSent] = useState(false);
 
   if (!incident) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-        <div className="p-4 bg-red-50 text-red-500 rounded-full mb-4">
+      <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 rounded-full bg-red-50 p-4 text-red-500">
           <Info size={32} />
         </div>
         <h2 className="text-xl font-black text-appText">Report Not Found</h2>
-        <button onClick={() => navigate(-1)} className="mt-4 text-primary font-bold underline">Go back</button>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-4 font-bold text-primary underline"
+        >
+          Go back
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col bg-white relative">
-      {/* Dynamic Success Toast */}
+    <div className="relative flex h-full flex-col bg-charcoal font-sans">
       {feedbackSent && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[100] bg-emerald-600 text-white px-6 py-3 rounded-full flex items-center gap-2 shadow-2xl animate-in fade-in slide-in-from-top-4 duration-300">
-           <ShieldCheck size={18} />
-           <span className="text-xs font-black uppercase tracking-widest">Thanks sent to the reporter!</span>
+        <div className="animate-in fade-in slide-in-from-top-4 absolute left-1/2 top-6 z-[100] flex -translate-x-1/2 items-center gap-2 rounded-full bg-silicon-cyan px-6 py-3 text-charcoal shadow-[0_0_30px_rgba(53,215,255,0.4)] duration-300">
+          <ShieldCheck size={18} />
+          <span className="text-xs font-black uppercase tracking-widest">
+            Thanks sent to the reporter!
+          </span>
         </div>
       )}
 
-      {/* Modern Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-appBorder px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/5 bg-charcoal/80 px-6 py-5 backdrop-blur-md">
         <button
           onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 active:scale-95 transition-all"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-silicon-cyan transition-all active:scale-95"
         >
-          <ChevronLeft size={20} className="text-appText" />
+          <ChevronLeft size={24} />
         </button>
-        <h1 className="text-sm font-black text-appText uppercase tracking-widest">
+        <h1 className="text-[14px] font-black uppercase tracking-[0.05em] text-white">
           Report Details
         </h1>
         <div className="w-10" />
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto pb-32 scrollbar-hide">
-         {/* Media Section - Focus on the Image */}
-         <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
-            {incident.image ? (
-              <img 
-                src={incident.image} 
-                alt="Reported car evidence" 
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full flex flex-col items-center justify-center gap-4 text-appTextSecondary/20">
-                <div className="h-20 w-20 rounded-[32px] bg-white border border-appBorder shadow-sm flex items-center justify-center">
-                  <CameraOff size={40} />
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">No car image available</span>
+      <div className="scrollbar-hide flex-1 overflow-y-auto pb-32">
+        <div className="relative aspect-video w-full overflow-hidden bg-[#11161D]">
+          {incident.image ? (
+            <img
+              src={incident.image}
+              alt="Reported car evidence"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-white/10">
+              <div className="flex h-20 w-20 items-center justify-center rounded-[32px] border border-white/5 bg-[#1A1F26] shadow-sm">
+                <CameraOff size={40} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                No car image available
+              </span>
+            </div>
+          )}
+
+          <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
+            <div
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[11px] font-black uppercase tracking-widest shadow-2xl ${
+                incident.urgency === 'Urgent'
+                  ? 'bg-red-600 text-white shadow-red-600/30'
+                  : 'bg-silicon-cyan text-charcoal shadow-silicon-cyan/30'
+              }`}
+            >
+              {incident.urgency === 'Urgent' ? (
+                <AlertTriangle size={15} />
+              ) : (
+                <Clock size={15} />
+              )}
+              {incident.urgency}
+            </div>
+
+            {!isReceived && (
+              <div className="rounded-full bg-emerald-500 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-emerald-500/30">
+                {incident.status}
               </div>
             )}
-            
-            {/* Status Overlay */}
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                <div className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 ${
-                    incident.urgency === 'Urgent' ? 'bg-red-600 text-white' : 'bg-white text-appText'
-                }`}>
-                   {incident.urgency === 'Urgent' ? <AlertTriangle size={14} /> : <Clock size={14} />}
-                   {incident.urgency}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-8 px-6 py-8">
+          <section className="rounded-[40px] border border-white/5 bg-[#1A1F26] p-8">
+            <div className="flex flex-col gap-8">
+              <div className="flex items-center gap-5">
+                <div className="rounded-2xl border border-white/10 bg-charcoal px-6 py-4 shadow-inner">
+                  <span className="font-mono text-xl font-black tracking-widest text-white">
+                    {incident.plate}
+                  </span>
                 </div>
-                {!isReceived && (
-                  <div className="bg-emerald-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                      {incident.status}
+                <div>
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <Sparkles
+                      size={12}
+                      className="text-silicon-cyan"
+                      strokeWidth={3}
+                    />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-silicon-cyan">
+                      {incident.incidentType}
+                    </span>
                   </div>
-                )}
-            </div>
-         </div>
-
-         <div className="px-6 py-8 flex flex-col gap-8">
-          {/* Info Card */}
-          <section className="bg-slate-50 rounded-[32px] p-6 border border-appBorder">
-            <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-4">
-                    <div className="bg-white px-5 py-3 rounded-2xl border-2 border-appText shadow-sm">
-                        <span className="text-lg font-mono font-black tracking-widest text-appText">
-                            {incident.plate}
-                        </span>
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                            <Sparkles size={10} className="text-blue-500" />
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600">{incident.incidentType}</span>
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-appTextSecondary/60">Licence Plate</p>
-                        <p className="text-xs font-black text-appText">Registered Vehicle</p>
-                    </div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
+                    Licence Plate
+                  </p>
+                  <p className="text-xs font-black text-white">Registered Vehicle</p>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                    {/* Location Hidden */}
-                    <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-appBorder">
-                        <div className="text-primary">
-                            <Calendar size={18} />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-appTextSecondary/60">Date & Time</p>
-                            <p className="text-xs font-black text-appText truncate">
-                                {new Date(incident.date).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                        </div>
-                    </div>
+              <div className="grid grid-cols-1">
+                <div className="flex items-center gap-4 rounded-3xl border border-white/5 bg-charcoal p-5">
+                  <div className="text-silicon-cyan">
+                    <Calendar size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-widest text-white/30">
+                      Date & Time
+                    </p>
+                    <p className="truncate text-[13px] font-black text-white">
+                      {new Date(incident.date).toLocaleDateString([], {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
                 </div>
+              </div>
             </div>
           </section>
 
-          {/* Description Section */}
           <section>
-            <label className="text-[11px] font-black uppercase tracking-[0.2em] text-appTextSecondary/60 ml-2 mb-3 block">Reporter Notes</label>
-            <div className="p-6 rounded-[32px] bg-white border border-appBorder shadow-sm">
-                <p className="text-sm font-bold text-appText leading-relaxed">
-                    {incident.description}
-                </p>
+            <label className="mb-4 ml-4 block text-[10px] font-bold uppercase tracking-[0.2em] text-white/20">
+              Reporter Notes
+            </label>
+            <div className="rounded-[40px] border border-white/5 bg-[#1A1F26] p-8 shadow-sm">
+              <p className="text-[15px] font-medium italic leading-relaxed text-white/80">
+                "{incident.description}"
+              </p>
             </div>
           </section>
 
-          {/* Assistant Tip */}
-          <section className="p-6 rounded-[32px] bg-primary text-white shadow-xl relative overflow-hidden group">
-            <div className="absolute -right-10 -top-10 h-40 w-40 bg-white/10 rounded-full blur-3xl" />
+          <section className="group relative overflow-hidden rounded-[40px] border border-silicon-cyan/20 bg-charcoal p-8 shadow-[0_0_40px_rgba(53,215,255,0.05)]">
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-silicon-cyan/5 blur-3xl transition-all group-hover:scale-125" />
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={18} />
-                <h3 className="text-xs font-black uppercase tracking-widest">Assistant Tip</h3>
+              <div className="mb-4 flex items-center gap-2">
+                <Sparkles size={18} className="text-silicon-cyan" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-white">
+                  Assistant Tip
+                </h3>
               </div>
-              <p className="text-sm font-bold leading-relaxed opacity-90">
-                This report was verified by our community. You can thank the person who reported this to encourage safe parking!
+              <p className="text-[14px] font-medium leading-relaxed text-white/60">
+                This report was verified by our community. Please review the details carefully and stay aware of similar vehicle-related incidents nearby.
               </p>
-              
-              <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Helpful info?</span>
-                <div className="flex gap-2">
-                    <button 
-                      onClick={() => setIsHelpful(true)}
-                      className={`h-8 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                        isHelpful === true ? 'bg-white text-primary' : 'bg-white/10 text-white'
-                      }`}
-                    >
-                      <ThumbsUp size={12} /> Yes
-                    </button>
-                    <button 
-                      onClick={() => setIsHelpful(false)}
-                      className={`h-8 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                        isHelpful === false ? 'bg-red-500 text-white' : 'bg-white/10 text-white'
-                      }`}
-                    >
-                      <ThumbsDown size={12} /> No
-                    </button>
+
+              <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/20">
+                  Helpful?
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsHelpful(true)}
+                    className={`flex h-9 items-center gap-2 rounded-full border px-5 text-[10px] font-black uppercase tracking-widest transition-all ${
+                      isHelpful === true
+                        ? 'border-silicon-cyan bg-silicon-cyan text-charcoal shadow-[0_0_15px_rgba(53,215,255,0.2)]'
+                        : 'border-white/10 bg-white/5 text-white/40'
+                    }`}
+                  >
+                    <ThumbsUp size={14} /> Yes
+                  </button>
+                  <button
+                    onClick={() => setIsHelpful(false)}
+                    className={`flex h-9 items-center gap-2 rounded-full border px-5 text-[10px] font-black uppercase tracking-widest transition-all ${
+                      isHelpful === false
+                        ? 'border-red-500 bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+                        : 'border-white/10 bg-white/5 text-white/40'
+                    }`}
+                  >
+                    <ThumbsDown size={14} /> No
+                  </button>
                 </div>
               </div>
             </div>
           </section>
-          
-          {/* Action Footer */}
-          <section className="flex flex-col gap-4">
-            <button 
-              onClick={handleSayThanks}
-              className="waze-btn-primary h-14 rounded-2xl text-sm flex items-center justify-center gap-2"
-            >
-               <MessageSquare size={18} />
-               <span>Thank you</span>
-            </button>
-            <button 
-              onClick={handleReportBad}
-              className="text-[10px] font-black text-red-500 uppercase tracking-widest text-center hover:opacity-70 transition-all py-2"
-            >
-               Bad report
-            </button>
-          </section>
-         </div>
+
+          <div className="mt-6 flex items-center justify-center">
+            <div className="rounded-full border border-white/10 bg-white/5 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white/30">
+              Community Verified Report
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

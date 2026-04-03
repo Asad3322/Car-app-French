@@ -39,26 +39,28 @@ function App() {
             <Route path="/vehicle/add-onboarding" element={<AddVehicleOnboarding />} />
           </Route>
 
-          {/* Main App with Bottom Nav */}
-          <Route path="/app" element={<AppLayout />}>
-            <Route index element={<Navigate to="/app/home" replace />} />
-            <Route path="home" element={<Home />} />
-            <Route path="vehicles" element={<Vehicles />} />
-            <Route path="incidents" element={<Incidents />} />
-            <Route path="leaderboard" element={<Leaderboard />} />
-            <Route path="profile" element={<Profile />} />
-          </Route>
+          {/* Main App Routes */}
+          <Route path="/app">
+            {/* Layout WITH Bottom Nav */}
+            <Route element={<AppLayout />}>
+              <Route index element={<Navigate to="/app/home" replace />} />
+              <Route path="home" element={<Home />} />
+              <Route path="vehicles" element={<Vehicles />} />
+              <Route path="history" element={<Incidents />} />
+              <Route path="leaderboard" element={<Leaderboard />} />
+              <Route path="profile" element={<Profile />} />
+            </Route>
 
-          {/* Secondary Screens WITHOUT Bottom Nav */}
-          <Route path="/app" element={<PlainAppLayout />}>
-            <Route path="reports" element={<ReportDetails />} />
-            <Route path="report-details" element={<ReportDetails />} />
-            <Route path="vehicles/add" element={<AddVehicle />} />
-            <Route path="vehicles/:id/edit" element={<EditVehicle />} />
-            <Route path="incidents/:id" element={<IncidentDetails />} />
-            <Route path="profile/edit" element={<EditProfile />} />
+            {/* Layout WITHOUT Bottom Nav */}
+            <Route element={<PlainAppLayout />}>
+              <Route path="reports" element={<ReportDetails />} />
+              <Route path="report-details" element={<ReportDetails />} />
+              <Route path="vehicles/add" element={<AddVehicle />} />
+              <Route path="vehicles/:id/edit" element={<EditVehicle />} />
+              <Route path="incidents/:id" element={<IncidentDetails />} />
+              <Route path="profile/edit" element={<EditProfile />} />
+            </Route>
           </Route>
-
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />

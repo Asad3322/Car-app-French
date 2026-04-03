@@ -1,46 +1,30 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../utils/store';
-import { 
-  Edit3, 
-  CheckCircle2, 
-  Mail, 
-  Phone as PhoneIcon, 
-  ShieldAlert, 
-  ArrowRight, 
-  ShieldCheck, 
+import {
+  Edit3,
+  Mail,
+  Phone as PhoneIcon,
+  ShieldAlert,
+  ShieldCheck,
   Navigation,
   FileText,
   CarFront,
-  Settings
+  Settings,
 } from 'lucide-react';
+
+const DEFAULT_AVATAR =
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, vehicles, incidents } = useStore();
 
-  const formatFrenchNumber = (num: string) => {
-    if (!num) return '';
-
-    let cleaned = num.replace(/\D/g, '');
-
-    // remove Pakistan code if present
-    if (cleaned.startsWith('92')) {
-      cleaned = cleaned.slice(2);
-    }
-
-    // remove leading 0
-    if (cleaned.startsWith('0')) {
-      cleaned = cleaned.slice(1);
-    }
-
-    cleaned = cleaned.slice(0, 9);
-
-    return `+33 ${cleaned.slice(0,1)} ${cleaned.slice(1,3)} ${cleaned.slice(3,5)} ${cleaned.slice(5,7)} ${cleaned.slice(7,9)}`;
-  };
-  
-  const [language, setLanguage] = useState(() => localStorage.getItem('app_language') || 'EN');
+  const [language, setLanguage] = useState(
+    () => localStorage.getItem('app_language') || 'EN'
+  );
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang);
@@ -48,39 +32,43 @@ const Profile = () => {
     setShowLangMenu(false);
   };
 
-  // Count reports for quick access badges
-  const sentCount = incidents.filter(i => i.reporterId === user.id).length;
-  const receivedCount = incidents.filter(i => vehicles.some(v => v.plate === i.plate)).length;
+  const sentCount = incidents.filter((i) => i.reporterId === user.id).length;
+  const receivedCount = incidents.filter((i) =>
+    vehicles.some((v) => v.plate === i.plate)
+  ).length;
+
+  const avatarSrc =
+    !imageError && user.profileImage ? user.profileImage : DEFAULT_AVATAR;
 
   return (
-    <div className="flex h-full flex-col bg-appBg px-6 pt-10 pb-10">
-      {/* Top Header */}
-      <div className="flex items-center justify-between px-1 mb-8">
-        <h1 className="text-[24px] font-black tracking-tight text-appText uppercase italic">
+    <div className="flex h-full flex-col bg-charcoal px-6 pt-10 pb-10 text-white">
+      {/* Header */}
+      <div className="relative z-40 mb-8 flex items-center justify-between px-1">
+        <h1 className="text-[24px] font-black uppercase italic tracking-tight">
           Profile
         </h1>
+
         <div className="relative">
           <button
-            onClick={() => setShowLangMenu(!showLangMenu)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-appSurface border border-appBorder text-appTextSecondary shadow-waze transition-all active:scale-95"
+            onClick={() => setShowLangMenu((prev) => !prev)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 backdrop-blur-xl transition-all active:scale-95"
           >
-            <Settings size={20} strokeWidth={3} />
+            <Settings size={20} />
           </button>
-          
+
           {showLangMenu && (
-            <div className="absolute right-0 top-12 w-40 overflow-hidden rounded-[24px] border border-appBorder bg-appSurface p-1.5 shadow-waze z-50">
+            <div className="absolute right-0 top-12 z-[70] w-40 rounded-[20px] border border-white/10 bg-[#0B1420]/95 p-2 shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
               {['EN', 'FR'].map((lang) => (
-                <button 
+                <button
                   key={lang}
                   onClick={() => handleLanguageChange(lang)}
-                  className={`flex w-full items-center justify-between rounded-2xl p-3 text-[12px] font-black transition-all ${
-                    language === lang 
-                      ? 'bg-primary text-white' 
-                      : 'text-appTextSecondary hover:bg-appBg'
+                  className={`mb-1 w-full rounded-xl px-3 py-3 text-left text-[12px] font-bold transition-all last:mb-0 ${
+                    language === lang
+                      ? 'bg-white/10 text-[#62D8FF]'
+                      : 'text-white/70 hover:bg-white/5'
                   }`}
                 >
                   {lang === 'EN' ? 'English' : 'Français'}
-                  {language === lang && <CheckCircle2 size={14} strokeWidth={3} />}
                 </button>
               ))}
             </div>
@@ -90,158 +78,120 @@ const Profile = () => {
 
       <div className="scrollbar-hide flex-1 overflow-y-auto pb-32">
         <div className="flex flex-col gap-8">
-          
           {/* Profile Card */}
-          <section className="relative rounded-[40px] border-2 border-appBorder bg-appSurface p-8 shadow-waze text-center group">
-            <button 
+          <section className="relative rounded-[36px] border border-white/10 bg-white/5 p-6 text-center backdrop-blur-xl">
+            <button
               onClick={() => navigate('/app/profile/edit')}
-              className="absolute top-6 right-6 h-10 w-10 flex items-center justify-center rounded-full bg-appBg text-appTextSecondary border border-appBorder hover:text-primary transition-all active:scale-90"
+              className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all active:scale-95"
             >
-              <Edit3 size={18} strokeWidth={3} />
+              <Edit3 size={16} />
             </button>
 
-            <div className="mx-auto mb-6 h-28 w-28 overflow-hidden rounded-[40px] border-4 border-appSurface bg-appBg shadow-waze p-1">
+            <div className="mx-auto mb-4 h-24 w-24 overflow-hidden rounded-[28px] border border-white/10 bg-white/10">
               <img
-                src={user.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                src={avatarSrc}
                 alt="Profile"
-                className="h-full w-full object-cover rounded-[34px]"
+                className="h-full w-full object-cover"
+                onError={() => setImageError(true)}
               />
             </div>
-            
-            <h2 className="text-2xl font-black tracking-tight text-appText">{user.username || 'Cool Driver'}</h2>
-            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.2em] text-appTextSecondary">Safety Pioneer</p>
-            
-            <div className="mt-4 flex flex-col gap-1 text-[13px] font-bold text-appTextSecondary/60">
-                <p className="flex items-center justify-center gap-1.5">
-                    <PhoneIcon size={14} className="opacity-40" />
-                    {user.phone ? formatFrenchNumber(user.phone) : 'No phone added'}
-                </p>
-                <p className="flex items-center justify-center gap-1.5">
-                    <Mail size={14} className="opacity-40" />
-                    {user.email || 'No email added'}
-                </p>
+
+            <h2 className="text-lg font-bold text-white">
+              {user.username || 'Cool Driver'}
+            </h2>
+            <p className="text-[10px] uppercase text-white/50">Safety Pioneer</p>
+
+            <div className="mt-4 space-y-2 text-[12px] text-white/60">
+              <p className="flex items-center justify-center gap-2">
+                <PhoneIcon size={14} />
+                {user.phone || 'No phone'}
+              </p>
+              <p className="flex items-center justify-center gap-2">
+                <Mail size={14} />
+                {user.email || 'No email'}
+              </p>
             </div>
 
             {user.isVehicleOwner && (
-              <div className="mt-6 flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 border border-emerald-100 py-2 px-5 rounded-full mx-auto w-fit text-[10px] font-black uppercase tracking-widest">
-                <ShieldCheck size={14} strokeWidth={3} />
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-[10px] uppercase tracking-wide text-emerald-300">
+                <ShieldCheck size={14} />
                 Verified Owner
               </div>
             )}
           </section>
 
-          {/* Verification / Upgrade CTA */}
-          {!user.isVehicleOwner && (
-            <section className="bg-primary rounded-[40px] p-8 text-white shadow-xl relative overflow-hidden group active:scale-[0.98] transition-all cursor-pointer" onClick={() => navigate('/app/profile/edit')}>
-               <div className="absolute -right-4 -top-4 w-28 h-28 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
-               <div className="relative z-10">
-                  <h3 className="text-xl font-black tracking-tight mb-2">Register your vehicle</h3>
-                  <p className="text-sm font-bold opacity-80 leading-relaxed max-w-[220px]">Get real-time alerts if something happens to your car.</p>
-                  <button className="mt-6 bg-white text-primary px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg flex items-center gap-2">
-                    Verify Now <ArrowRight size={14} strokeWidth={3} />
-                  </button>
-               </div>
-            </section>
-          )}
+          {/* Quick Actions */}
+          <section className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() =>
+                navigate('/app/incidents', { state: { filter: 'sent' } })
+              }
+              className="rounded-[28px] border border-white/10 bg-white/5 p-5 text-left backdrop-blur-xl transition-all active:scale-95"
+            >
+              <Navigation className="mb-2 text-[#62D8FF]" size={20} />
+              <p className="text-sm font-bold text-white">My Sent</p>
+              <p className="text-xs text-white/50">{sentCount} reports</p>
+            </button>
 
-          {/* Quick Access Section */}
-          <section>
-            <label className="text-[11px] font-black uppercase tracking-[0.2em] text-appTextSecondary/40 ml-2 mb-4 block">
-                Activity Hub
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => navigate('/app/incidents', { state: { filter: 'sent' } })}
-                className="group flex flex-col items-center justify-center gap-3 p-6 bg-appSurface rounded-[36px] border border-appBorder shadow-waze hover:border-primary/20 transition-all active:scale-95"
-              >
-                <div className="relative">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform">
-                        <Navigation size={20} strokeWidth={2.5} />
-                    </div>
-                    {sentCount > 0 && (
-                        <span className="absolute -top-1 -right-1 h-5 w-5 bg-blue-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
-                            {sentCount}
-                        </span>
-                    )}
-                </div>
-                <span className="text-[13px] font-black text-appText">My Sent</span>
-              </button>
-
-              <button 
-                onClick={() => navigate('/app/incidents', { state: { filter: 'received' } })}
-                className="group flex flex-col items-center justify-center gap-3 p-6 bg-appSurface rounded-[36px] border border-appBorder shadow-waze hover:border-primary/20 transition-all active:scale-95"
-              >
-                <div className="relative">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:scale-110 transition-transform">
-                        <FileText size={20} strokeWidth={2.5} />
-                    </div>
-                    {receivedCount > 0 && (
-                        <span className="absolute -top-1 -right-1 h-5 w-5 bg-emerald-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
-                            {receivedCount}
-                        </span>
-                    )}
-                </div>
-                <span className="text-[13px] font-black text-appText">Received</span>
-              </button>
-            </div>
+            <button
+              onClick={() =>
+                navigate('/app/incidents', { state: { filter: 'received' } })
+              }
+              className="rounded-[28px] border border-white/10 bg-white/5 p-5 text-left backdrop-blur-xl transition-all active:scale-95"
+            >
+              <FileText className="mb-2 text-[#62D8FF]" size={20} />
+              <p className="text-sm font-bold text-white">Received</p>
+              <p className="text-xs text-white/50">{receivedCount} reports</p>
+            </button>
           </section>
 
-          {/* My Vehicles Preview */}
+          {/* Vehicles */}
           <section>
-            <div className="flex items-center justify-between mb-4 px-2">
-                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-appTextSecondary/40">
-                    My Garage
-                </label>
-                <button onClick={() => navigate('/app/vehicles')} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
-                    Manage All
-                </button>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[11px] uppercase tracking-wide text-white/50">
+                My Garage
+              </span>
+              <button
+                onClick={() => navigate('/app/vehicles')}
+                className="text-xs font-medium text-[#62D8FF]"
+              >
+                Manage
+              </button>
             </div>
-            
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
+
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {vehicles.length === 0 ? (
-                <button 
-                    onClick={() => navigate('/app/vehicles/add')}
-                    className="w-full p-8 border-2 border-dashed border-appBorder rounded-[40px] bg-appBg/50 flex flex-col items-center gap-3 active:bg-appBg transition-all"
+                <button
+                  onClick={() => navigate('/app/vehicles/add')}
+                  className="flex min-w-[150px] flex-col items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-white/5 p-6 text-white/50"
                 >
-                    <CarFront size={32} className="text-appTextSecondary/20" />
-                    <p className="text-[11px] font-bold text-appTextSecondary/60 uppercase tracking-widest text-center leading-relaxed">
-                        Add your first vehicle<br/>to get alerts
-                    </p>
+                  <CarFront size={28} />
+                  <p className="mt-2 text-xs">Add Vehicle</p>
                 </button>
               ) : (
-                vehicles.map(vehicle => (
-                  <div 
-                    key={vehicle.id} 
-                    onClick={() => navigate(`/app/vehicles/${vehicle.id}/edit`)}
-                    className="flex flex-col gap-3 min-w-[160px] p-4 bg-appSurface border border-appBorder rounded-[32px] shadow-waze hover:shadow-md transition-all cursor-pointer active:scale-95"
+                vehicles.map((v) => (
+                  <div
+                    key={v.id}
+                    onClick={() => navigate(`/app/vehicles/${v.id}/edit`)}
+                    className="min-w-[140px] rounded-[24px] border border-white/10 bg-white/5 p-3 backdrop-blur-xl"
                   >
-                    <div className="h-28 w-full overflow-hidden rounded-[24px] bg-appBg border border-appBorder">
-                        <img 
-                            src={vehicle.image || 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=200'}
-                            className="h-full w-full object-cover"
-                            alt="Vehicle Preview"
-                        />
-                    </div>
-                    <div className="px-1 min-w-0">
-                        <p className="text-[11px] font-black text-appText truncate">{vehicle.name}</p>
-                        <p className="text-[10px] font-bold text-appTextSecondary/40 font-mono tracking-widest">{vehicle.plate}</p>
-                    </div>
+                    <p className="text-sm font-bold text-white">{v.name}</p>
+                    <p className="text-xs text-white/50">{v.plate}</p>
                   </div>
                 ))
               )}
             </div>
           </section>
 
-
-          {/* Support and Policies */}
-          <section className="mt-4 pt-8 border-t border-appBorder flex flex-col gap-4">
-             <button 
-                onClick={() => window.location.href = 'mailto:support@carapp.com'}
-                className="flex items-center justify-center gap-2 rounded-[24px] py-4 px-6 text-[11px] font-black uppercase tracking-widest text-appTextSecondary/60 hover:text-appText transition-colors"
-             >
-                <ShieldAlert size={16} />
-                Support Helpdesk
-             </button>
+          {/* Support */}
+          <section className="border-t border-white/10 pt-6">
+            <button
+              onClick={() => (window.location.href = 'mailto:support@carapp.com')}
+              className="flex items-center justify-center gap-2 text-xs text-white/60"
+            >
+              <ShieldAlert size={16} />
+              Support Helpdesk
+            </button>
           </section>
         </div>
       </div>

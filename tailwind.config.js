@@ -34,6 +34,11 @@ export default {
         publicText: "#111827",
         publicTextPrimary: "#111827",
         publicTextSecondary: "#6B7280",
+
+        // Premium Dark Theme
+        charcoal: "#060B14",
+        "charcoal-light": "#0A0F1A",
+        "silicon-cyan": "#35D7FF",
       },
       borderRadius: {
         "3xl": "24px",

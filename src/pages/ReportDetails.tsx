@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, HelpCircle, Camera, UploadCloud, Sparkles } from 'lucide-react';
+import {
+  ChevronLeft,
+  HelpCircle,
+  Camera,
+  UploadCloud,
+  Sparkles,
+  Car,
+} from 'lucide-react';
 import type { Urgency, Incident } from '../utils/types';
 import { useStore } from '../utils/store';
 
 const ReportDetails = () => {
   const navigate = useNavigate();
   const { setIncidents } = useStore();
-  
+
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState<Urgency>('Medium Urgency');
   const [plate, setPlate] = useState('');
@@ -19,24 +26,27 @@ const ReportDetails = () => {
 
   const handleAiOptimize = () => {
     if (!description || aiUses >= 3 || isOptimizing) return;
+
     setIsOptimizing(true);
+
     setTimeout(() => {
-      setDescription(prev => prev + " (Refined by CARAPP AI)");
-      setAiUses(prev => prev + 1);
+      setDescription((prev) => prev + ' (Refined by CARAPP AI)');
+      setAiUses((prev) => prev + 1);
       setIsOptimizing(false);
     }, 1200);
   };
 
   const sendReport = () => {
     if (!plate || !description) return;
+
     setIsSubmitting(true);
-    
+
     const newIncident: Incident = {
       id: Date.now().toString(),
-      plate: plate,
+      plate,
       incidentType: 'TRAFFIC',
-      description: description,
-      urgency: urgency,
+      description,
+      urgency,
       date: new Date().toISOString(),
       status: 'reported',
       location: 'Current Location',
@@ -51,129 +61,141 @@ const ReportDetails = () => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-[#F8FAFC] to-[#EEF3F8] pb-32 items-center relative overflow-y-auto scrollbar-hide pt-10 px-6">
-      {/* Decorative Blur Backgrounds */}
-      <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-blue-400/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-20 left-0 -ml-20 h-64 w-64 rounded-full bg-indigo-400/5 blur-3xl pointer-events-none" />
+    <div className="relative flex h-full flex-col overflow-y-auto bg-[#050B14] px-6 pb-36 pt-8 font-sans text-white scrollbar-hide">
+      {/* background glow */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-400/8 blur-3xl" />
+        <div className="absolute -right-16 top-24 h-56 w-56 rounded-full bg-cyan-400/6 blur-3xl" />
+        <div className="absolute bottom-16 left-0 h-48 w-48 rounded-full bg-cyan-400/5 blur-3xl" />
+      </div>
 
       {/* Header */}
-      <header className="w-full flex items-center justify-between mb-8 z-10">
-        <button 
-          onClick={() => navigate(-1)} 
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm border border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.05)] active:scale-90 transition-all hover:bg-white"
+      <header className="relative z-10 mb-10 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex h-10 w-10 items-center justify-center rounded-full text-[#4DD8FF] transition-all active:scale-90"
         >
-          <ChevronLeft size={18} className="text-[#0F172A]" />
+          <ChevronLeft size={24} strokeWidth={2.8} />
         </button>
-        <h1 className="text-[15px] font-black tracking-[0.2em] text-[#0F172A] uppercase">
-          REPORT DETAILS
+
+        <h1 className="text-[17px] font-black uppercase tracking-[0.04em] text-white">
+          REPORT INCIDENT
         </h1>
-        <button className="flex h-11 w-11 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm border border-white/50 shadow-[0_4px_12px_rgba(0,0,0,0.05)] active:scale-90 transition-all hover:bg-white">
-          <HelpCircle size={18} className="text-[#94A3B8]" />
+
+        <button className="flex h-10 w-10 items-center justify-center rounded-full text-[#4DD8FF] transition-all active:scale-90">
+          <HelpCircle size={20} strokeWidth={2.6} />
         </button>
       </header>
 
-      {/* Main Content Area */}
-      <div className="w-full flex flex-col gap-7 z-10">
-        
-        {/* Licence Plate Section */}
-        <section className="group">
-          <label className="text-[10.5px] font-black uppercase tracking-[0.16em] text-slate-700 mb-2.5 block ml-1 transition-colors group-focus-within:text-blue-600">
+      {/* Content */}
+      <div className="relative z-10 mx-auto flex w-full max-w-md flex-col gap-7">
+        {/* LICENCE PLATE */}
+        <section>
+          <label className="mb-3 ml-1 block text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
             LICENCE PLATE
           </label>
-          <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/40 p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300 group-hover:shadow-lg group-hover:border-white focus-within:ring-2 focus-within:ring-blue-100/50">
+
+          <div className="flex items-center rounded-full border border-white/5 bg-[linear-gradient(180deg,#121A26_0%,#0D1520_100%)] px-6 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.28)]">
             <input
               type="text"
               value={plate}
               onChange={(e) => setPlate(e.target.value.toUpperCase())}
-              className="w-full text-[16px] font-black text-[#0F172A] placeholder:text-slate-300 focus:outline-none bg-transparent"
               placeholder="ABC 1234"
+              className="w-full bg-transparent text-[18px] font-extrabold tracking-[0.06em] text-white/90 outline-none placeholder:text-white/45"
             />
+            <Car size={20} className="ml-3 text-white/55" />
           </div>
         </section>
 
-        {/* Urgency Section */}
+        {/* URGENCY */}
         <section>
-          <label className="text-[10.5px] font-black uppercase tracking-[0.16em] text-slate-700 mb-2.5 block ml-1">
+          <label className="mb-3 ml-1 block text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
             URGENCY LEVEL
           </label>
-          <div className="flex bg-slate-200/50 backdrop-blur-sm rounded-[28px] p-1.5 gap-1 shadow-inner border border-white/20">
-            {(['Urgent', 'Medium Urgency', 'Not Urgent'] as Urgency[]).map((level) => (
-              <button
-                key={level}
-                onClick={() => setUrgency(level)}
-                className={`flex-1 py-3 text-[9px] font-black uppercase tracking-widest transition-all duration-300 rounded-[22px] ${
-                  urgency === level 
-                    ? 'bg-gradient-to-r from-[#FF9F0A] to-[#FFB340] text-white shadow-[0_4px_12px_rgba(255,159,10,0.3)] scale-[1.02]' 
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-white/20'
-                }`}
-              >
-                {level.replace(' Urgency', '')}
-              </button>
-            ))}
+
+          <div className="flex rounded-full border border-white/5 bg-[linear-gradient(180deg,#121A26_0%,#0D1520_100%)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.24)]">
+            {(['Urgent', 'Medium Urgency', 'Not Urgent'] as Urgency[]).map(
+              (level) => {
+                const active = urgency === level;
+
+                return (
+                  <button
+                    key={level}
+                    onClick={() => setUrgency(level)}
+                    className={`flex-1 rounded-full px-2 py-3 text-[10px] font-black uppercase tracking-[0.08em] transition-all duration-300 ${
+                      active
+                        ? 'bg-[#62D8FF] text-[#07111A] shadow-[0_0_22px_rgba(98,216,255,0.35)]'
+                        : 'text-white/55 hover:text-white/80'
+                    }`}
+                  >
+                    {level === 'Medium Urgency' ? 'MEDIUM' : level.toUpperCase()}
+                  </button>
+                );
+              }
+            )}
           </div>
         </section>
 
-        {/* Description Section */}
-        <section className="group">
-          <div className="flex items-center justify-between mb-2.5 px-1">
-            <label className="text-[10.5px] font-black uppercase tracking-[0.16em] text-slate-700 transition-colors group-focus-within:text-blue-600">
+        {/* DESCRIPTION */}
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3 px-1">
+            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
               INCIDENT DESCRIPTION
             </label>
+
             <button
               onClick={handleAiOptimize}
               disabled={!description || aiUses >= 3 || isOptimizing}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#2B61E5] text-white text-[8px] font-black uppercase tracking-widest shadow-[0_8px_20px_rgba(43,97,229,0.3)] active:scale-95 transition-all duration-300 disabled:opacity-30 disabled:grayscale ${
-                !isOptimizing && description && aiUses < 3 ? 'animate-[pulse_3s_infinite]' : ''
-              }`}
+              className="flex items-center gap-1.5 rounded-full border border-[#62D8FF]/20 bg-[#0E1722] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#62D8FF] transition-all active:scale-95 disabled:opacity-35"
             >
               <Sparkles size={10} className={isOptimizing ? 'animate-spin' : ''} />
-              {isOptimizing ? 'OPTIMIZING...' : aiUses > 0 ? `REGENERATE (${3 - aiUses})` : 'OPTIMIZE WITH AI'}
+              {isOptimizing ? 'OPTIMIZING...' : 'OPTIMIZE WITH AI'}
             </button>
           </div>
-          <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/40 p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] min-h-[140px] transition-all duration-300 group-hover:shadow-lg group-hover:border-white focus-within:ring-2 focus-within:ring-blue-100/50">
+
+          <div className="rounded-[30px] border border-white/5 bg-[linear-gradient(180deg,#121A26_0%,#0D1520_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.28)]">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-sm font-bold text-[#0F172A] leading-relaxed focus:outline-none resize-none bg-transparent placeholder:text-slate-300"
-              rows={4}
+              rows={5}
               placeholder="Please describe what happened..."
+              className="min-h-[125px] w-full resize-none bg-transparent text-[16px] font-semibold leading-relaxed text-white/90 outline-none placeholder:text-white/45"
             />
           </div>
         </section>
 
-        {/* Media Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          <UploadCard 
-            label="ADD PHOTOS" 
-            icon={<Camera size={22} />} 
-            active={mediaCount > 0} 
-            onClick={() => setMediaCount(1)}
+        {/* ACTION CARDS */}
+        <div className="grid grid-cols-2 gap-5 pt-1">
+          <ActionCard
+            label="ADD PHOTOS"
+            icon={<Camera size={24} />}
+            active={mediaCount > 0}
+            onClick={() => setMediaCount((prev) => (prev > 0 ? 0 : 1))}
           />
-          <UploadCard 
-            label="INSURANCE (OPT)" 
-            icon={<UploadCloud size={22} />} 
+
+          <ActionCard
+            label="INSURANCE"
+            subLabel="(OPT)"
+            icon={<UploadCloud size={24} />}
             active={hasInsurance}
-            onClick={() => setHasInsurance(true)}
+            onClick={() => setHasInsurance((prev) => !prev)}
           />
         </div>
 
-        {/* Submit Button */}
-        <div className="mt-4 px-1">
+        {/* CTA */}
+        <div className="pt-3">
           <button
             onClick={sendReport}
             disabled={!plate || !description || isSubmitting}
-            className="group relative w-full h-[68px] bg-gradient-to-r from-[#2B61E5] to-[#1D4ED8] text-white rounded-[28px] text-[16px] font-black shadow-[0_12px_28px_-8px_rgba(43,97,229,0.5)] hover:shadow-[0_16px_32px_-8px_rgba(43,97,229,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3 uppercase tracking-[0.1em] overflow-hidden"
+            className="flex h-[68px] w-full items-center justify-center rounded-full bg-[linear-gradient(90deg,#63DFFF_0%,#16C7FF_100%)] px-6 text-[15px] font-black uppercase tracking-[0.1em] text-[#07111A] shadow-[0_18px_38px_rgba(34,211,238,0.28)] transition-all hover:shadow-[0_20px_44px_rgba(34,211,238,0.34)] active:scale-[0.985] disabled:opacity-50"
           >
-            {/* Subtle Shine Effect */}
-            <div className="absolute top-0 -left-[100%] h-full w-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-all duration-1000 group-hover:left-[100%]" />
-            
             {isSubmitting ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Sending Request...</span>
-              </>
+              <span className="flex items-center gap-3">
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#07111A]/30 border-t-[#07111A]" />
+                SUBMITTING...
+              </span>
             ) : (
-              <span>Send Report</span>
+              'SUBMIT REPORT DETAILS'
             )}
           </button>
         </div>
@@ -182,25 +204,51 @@ const ReportDetails = () => {
   );
 };
 
-const UploadCard = ({ label, icon, active, onClick }: { label: string, icon: any, active: boolean, onClick: () => void }) => (
-  <button 
-    onClick={onClick} 
-    className={`flex flex-col items-center justify-center p-10 rounded-[32px] border-2 shadow-sm gap-4 active:scale-95 transition-all duration-300 hover:scale-[1.02] outline-none ${
-      active 
-        ? 'bg-blue-50/80 border-blue-200 text-[#2B61E5] shadow-[0_4px_15px_rgba(43,97,229,0.1)]' 
-        : 'bg-white/60 backdrop-blur-sm border-slate-100 border-dashed text-[#94A3B8] hover:border-blue-200 hover:bg-white/90'
-    }`}
-  >
-    <div className={`p-4 rounded-full transition-transform duration-500 ease-out ${
-      active ? 'bg-blue-100/80 text-[#2B61E5] scale-110 shadow-inner' : 'bg-slate-100/50 text-[#94A3B8]'
-    }`}>
-      {icon}
-    </div>
-    <span className={`text-[10.5px] font-black tracking-[0.16em] uppercase transition-colors ${active ? 'text-[#0F172A]' : 'text-slate-700'}`}>
-      {label}
-    </span>
-  </button>
-);
+type ActionCardProps = {
+  label: string;
+  subLabel?: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+};
+
+const ActionCard = ({
+  label,
+  subLabel,
+  icon,
+  active,
+  onClick,
+}: ActionCardProps) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex aspect-square flex-col items-center justify-center rounded-[34px] border transition-all active:scale-95 ${
+        active
+          ? 'border-[#62D8FF]/25 bg-[linear-gradient(180deg,rgba(98,216,255,0.12)_0%,rgba(14,23,34,0.92)_100%)] shadow-[0_12px_28px_rgba(34,211,238,0.10)]'
+          : 'border-white/5 bg-[linear-gradient(180deg,#121A26_0%,#0D1520_100%)] shadow-[0_10px_24px_rgba(0,0,0,0.22)]'
+      }`}
+    >
+      <div
+        className={`mb-4 flex h-14 w-14 items-center justify-center rounded-full transition-all ${
+          active
+            ? 'bg-[#62D8FF] text-[#07111A] shadow-[0_0_22px_rgba(98,216,255,0.30)]'
+            : 'bg-white/5 text-[#62D8FF]'
+        }`}
+      >
+        {icon}
+      </div>
+
+      <span className="text-center text-[11px] font-black uppercase tracking-[0.12em] text-white/78">
+        {label}
+      </span>
+
+      {subLabel && (
+        <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white/40">
+          {subLabel}
+        </span>
+      )}
+    </button>
+  );
+};
 
 export default ReportDetails;
-
