@@ -15,28 +15,29 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label }) => {
   return (
     <NavLink
       to={to}
-      className={({ isActive }) =>
-        `flex flex-col items-center justify-center text-xs transition-all duration-200 ${
-          isActive ? 'text-[#62D8FF]' : 'text-white/50'
-        }`
-      }
+      className="flex flex-col items-center justify-center text-xs"
     >
       {({ isActive }) => (
         <div
           className={`
             flex flex-col items-center gap-1
-            rounded-xl px-3 py-1.5
+            rounded-xl px-3 py-2
             transition-all duration-200
+
             ${
               isActive
-                ? 'bg-white/5 text-[#62D8FF]'
-                : 'text-white/50'
+                ? 'bg-[#2F93F6] text-white shadow-[0_6px_16px_rgba(47,147,246,0.35)]'
+                : 'text-[#7A8FA6]'
             }
           `}
         >
           <Icon active={isActive} />
 
-          <span className="text-[10px] font-medium tracking-wide">
+          <span
+            className={`text-[10px] font-semibold tracking-wide ${
+              isActive ? 'text-white' : 'text-[#7A8FA6]'
+            }`}
+          >
             {label}
           </span>
         </div>

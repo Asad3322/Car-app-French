@@ -9,20 +9,22 @@ const PublicFlowLayout = () => {
   }
 
   return (
-    <div className="flex min-h-[100dvh] w-full items-center justify-center bg-charcoal px-0 sm:p-6">
+    // ✅ OUTER = DARK
+    <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#020B16] px-0 sm:p-6">
+      
+      {/* ✅ INNER = LIGHT */}
       <main
         className="
           relative flex min-h-[100dvh] w-full flex-col overflow-hidden
-          bg-charcoal
+          bg-[#EEF3F8]
           sm:min-h-[844px] sm:max-w-[390px]
           sm:rounded-[44px]
-          sm:border sm:border-white/10
-          sm:shadow-[0_20px_60px_rgba(0,0,0,0.5)]
+          sm:border sm:border-[#D9E5F1]
+          sm:shadow-[0_25px_70px_rgba(0,0,0,0.55)]
         "
       >
-        {/* premium cyan glow */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(98,216,255,0.12),_transparent_35%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(98,216,255,0.08),_transparent_40%)]" />
+        {/* light glow */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(91,163,240,0.18),_transparent_35%)]" />
 
         <div className="relative z-10 flex-1 overflow-hidden">
           <Outlet />

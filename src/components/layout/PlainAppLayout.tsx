@@ -15,20 +15,18 @@ const PlainAppLayout: React.FC = () => {
 
   return (
     <div
-      className={`flex min-h-[100dvh] w-full items-center justify-center transition-colors duration-500 ${
-        isDarkScreen ? 'bg-charcoal' : 'bg-[#EEF3F8]'
-      } sm:p-6`}
+      className="flex min-h-[100dvh] w-full items-center justify-center bg-[#050B14] sm:p-6"
     >
       <main
         className={`
           relative flex h-[100dvh] w-full flex-col overflow-hidden transition-colors duration-500
-          ${isDarkScreen ? 'bg-charcoal' : 'bg-[#EEF3F8]'}
+          ${isDarkScreen ? 'bg-charcoal' : 'bg-[#F3F7FB]'}
           sm:h-[844px] sm:max-w-[390px]
           sm:rounded-[44px]
           ${
             isDarkScreen
-              ? 'sm:border sm:border-white/10 sm:shadow-[0_20px_60px_rgba(0,0,0,0.28)]'
-              : 'sm:shadow-[0_20px_60px_rgba(0,0,0,0.15)] sm:ring-1 sm:ring-black/10'
+              ? 'sm:border sm:border-white/10 sm:shadow-[0_24px_70px_rgba(0,0,0,0.45)]'
+              : 'sm:border sm:border-white/10 sm:shadow-[0_24px_70px_rgba(0,0,0,0.35)]'
           }
         `}
       >

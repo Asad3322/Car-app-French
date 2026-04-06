@@ -6,12 +6,19 @@
   html,
   body,
   #root {
-    @apply min-h-screen font-sans antialiased;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #c9d6e2;
+    color: #0b1a2b;
   }
 
   body {
-    @apply m-0 bg-appBg text-appText;
-    font-family: 'Inter', sans-serif;
+    background: #c9d6e2;
+    color: #0b1a2b;
   }
 
   ::-webkit-scrollbar {
@@ -22,31 +29,51 @@
 
 @layer components {
   .app-container {
-    @apply relative mx-auto flex w-full max-w-md flex-col overflow-hidden bg-appBg transition-all;
+    @apply relative mx-auto flex w-full max-w-md flex-col overflow-hidden transition-all;
     min-height: 100dvh;
+    background: #d6e2ec;
   }
 
   .waze-card {
-    @apply rounded-[28px] border border-appBorder bg-appSurface p-5 shadow-waze transition-all;
+    @apply rounded-[28px] p-5 transition-all;
+    border: 1px solid #b8c9d6;
+    background: #eef4f8;
+    box-shadow: 0 10px 25px rgba(70, 106, 140, 0.08);
   }
 
   .waze-btn-primary {
-    @apply flex w-full items-center justify-center gap-2 rounded-[18px] bg-primary px-6 py-3.5 text-white font-semibold shadow-sm transition active:scale-[0.97];
+    @apply flex w-full items-center justify-center gap-2 rounded-[18px] px-6 py-3.5 text-white font-semibold transition active:scale-[0.97];
+    background: #2f93f6;
+    box-shadow: 0 8px 20px rgba(47, 147, 246, 0.25);
   }
 
   .waze-btn-secondary {
-    @apply flex w-full items-center justify-center gap-2 rounded-[18px] border border-appBorder bg-appSurface px-6 py-3.5 text-primary font-semibold transition active:scale-[0.97];
+    @apply flex w-full items-center justify-center gap-2 rounded-[18px] px-6 py-3.5 font-semibold transition active:scale-[0.97];
+    border: 1px solid #b8c9d6;
+    background: #eef4f8;
+    color: #2f93f6;
   }
 
   .waze-input {
-    @apply w-full rounded-xl border border-appBorder px-4 py-3 text-appText bg-white focus:outline-none focus:ring-2 focus:ring-primary;
+    @apply w-full rounded-xl px-4 py-3 focus:outline-none;
+    border: 1px solid #b8c9d6;
+    background: #ffffff;
+    color: #0b1a2b;
+  }
+
+  .waze-input:focus {
+    box-shadow: 0 0 0 2px rgba(47, 147, 246, 0.2);
   }
 
   .surface-card {
-    @apply rounded-[32px] border border-appBorder bg-appSurface p-6 shadow-waze transition-all;
+    @apply rounded-[32px] p-6 transition-all;
+    border: 1px solid #b8c9d6;
+    background: #eef4f8;
+    box-shadow: 0 10px 25px rgba(70, 106, 140, 0.08);
   }
 
   .screen-bg {
-    @apply bg-appBg min-h-screen;
+    min-height: 100dvh;
+    background: #d6e2ec;
   }
 }

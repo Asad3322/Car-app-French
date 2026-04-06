@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Core Waze-like Palette
-        primary: "#2563EB",
-        primaryDark: "#1E40AF",
-        secondary: "#6366F1",
-        secondaryDark: "#4338CA",
+        // Main action colors
+        primary: "#2F93F6",
+        primaryDark: "#1F6FD1",
+        secondary: "#5C8DF6",
+        secondaryDark: "#3E6FE0",
         accent: "#FACC15",
         accentDark: "#EAB308",
         success: "#10B981",
@@ -19,21 +19,21 @@ export default {
         danger: "#EF4444",
         dangerDark: "#B91C1C",
 
-        // Main App Theme
-        appBg: "#F5F5F5",
-        appSurface: "#FAFAFA",
-        appBorder: "#E5E7EB",
-        appText: "#111827",
-        appTextPrimary: "#111827",
-        appTextSecondary: "#6B7280",
+        // Main App Theme - UPDATED TO YOUR NEW LIGHT BLUE SCHEME
+        appBg: "#D6E2EC",
+        appSurface: "#EEF4F8",
+        appBorder: "#B8C9D6",
+        appText: "#0B1A2B",
+        appTextPrimary: "#0B1A2B",
+        appTextSecondary: "#6F8194",
 
-        // Public/Auth Flow
-        publicBg: "#F5F5F5",
-        publicSurface: "#FAFAFA",
-        publicBorder: "#E5E7EB",
-        publicText: "#111827",
-        publicTextPrimary: "#111827",
-        publicTextSecondary: "#6B7280",
+        // Public/Auth Flow - keep same family for consistency
+        publicBg: "#D6E2EC",
+        publicSurface: "#EEF4F8",
+        publicBorder: "#B8C9D6",
+        publicText: "#0B1A2B",
+        publicTextPrimary: "#0B1A2B",
+        publicTextSecondary: "#6F8194",
 
         // Premium Dark Theme
         charcoal: "#060B14",
@@ -49,8 +49,8 @@ export default {
         sans: ["Inter", "system-ui", "apple-system", "sans-serif"],
       },
       boxShadow: {
-        waze: "0 4px 14px rgba(0,0,0,0.04)",
-        "waze-lg": "0 10px 24px rgba(0,0,0,0.08)",
+        waze: "0 10px 25px rgba(70,106,140,0.08)",
+        "waze-lg": "0 18px 40px rgba(70,106,140,0.12)",
       },
     },
   },

@@ -13,71 +13,66 @@ type NavIconProps = {
   onDark?: boolean;
 };
 
-const getIconClass = (active: boolean, onDark: boolean) => {
+// ✅ FIXED: Active = WHITE (for blue button background)
+const getIconClass = (active: boolean) => {
   if (active) {
-    return onDark ? 'text-[#62D8FF]' : 'text-[#0F5D7A]';
+    return 'text-white'; // 🔥 THIS IS THE FIX
   }
 
-  return onDark ? 'text-white/40' : 'text-[#94A3B8]';
+  return 'text-[#7A8FA6]'; // soft gray for inactive
 };
 
-export const MapNavIcon = ({
-  active = false,
-  onDark = false,
-}: NavIconProps) => (
+export const MapNavIcon = ({ active = false }: NavIconProps) => (
   <IoCompass
-    size={22}
-    className={`transition-colors duration-300 ${getIconClass(active, onDark)}`}
+    size={20}
+    className={`transition-all duration-300 ${
+      getIconClass(active)
+    } ${active ? 'scale-110' : 'scale-100'}`}
   />
 );
 
-export const HomeNavIcon = ({
-  active = false,
-  onDark = false,
-}: NavIconProps) => (
+export const HomeNavIcon = ({ active = false }: NavIconProps) => (
   <IoHome
-    size={22}
-    className={`transition-colors duration-300 ${getIconClass(active, onDark)}`}
+    size={20}
+    className={`transition-all duration-300 ${
+      getIconClass(active)
+    } ${active ? 'scale-110' : 'scale-100'}`}
   />
 );
 
-export const VehiclesNavIcon = ({
-  active = false,
-  onDark = false,
-}: NavIconProps) => (
+export const VehiclesNavIcon = ({ active = false }: NavIconProps) => (
   <IoCar
-    size={24}
-    className={`transition-colors duration-300 ${getIconClass(active, onDark)}`}
+    size={21}
+    className={`transition-all duration-300 ${
+      getIconClass(active)
+    } ${active ? 'scale-110' : 'scale-100'}`}
   />
 );
 
-export const ReportNavIcon = ({
-  active = false,
-  onDark = false,
-}: NavIconProps) => (
+export const ReportNavIcon = ({ active = false }: NavIconProps) => (
   <IoShieldCheckmark
-    size={22}
-    className={`transition-colors duration-300 ${getIconClass(active, onDark)}`}
+    size={20}
+    className={`transition-all duration-300 ${
+      getIconClass(active)
+    } ${active ? 'scale-110' : 'scale-100'}`}
   />
 );
 
-export const LeaderboardNavIcon = ({
-  active = false,
-  onDark = false,
-}: NavIconProps) => (
+export const LeaderboardNavIcon = ({ active = false }: NavIconProps) => (
   <IoTrophy
-    size={22}
-    className={`transition-colors duration-300 ${getIconClass(active, onDark)}`}
+    size={20}
+    className={`transition-all duration-300 ${
+      getIconClass(active)
+    } ${active ? 'scale-110' : 'scale-100'}`}
   />
 );
 
-export const ProfileNavIcon = ({
-  active = false,
-  onDark = false,
-}: NavIconProps) => (
+export const ProfileNavIcon = ({ active = false }: NavIconProps) => (
   <IoIdCard
-    size={22}
-    className={`transition-colors duration-300 ${getIconClass(active, onDark)}`}
+    size={20}
+    className={`transition-all duration-300 ${
+      getIconClass(active)
+    } ${active ? 'scale-110' : 'scale-100'}`}
   />
 );
 

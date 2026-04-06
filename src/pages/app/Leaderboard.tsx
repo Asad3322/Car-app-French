@@ -1,207 +1,158 @@
+import { useMemo, useState } from 'react';
+import { ArrowLeft, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '../../utils/store';
-import { HiArrowLeft } from 'react-icons/hi';
-import {
-  MdEmojiEvents,
-  MdLocalFireDepartment,
-  MdWorkspacePremium,
-} from 'react-icons/md';
-import { FaCrown, FaMedal } from 'react-icons/fa';
+
+type Period = 'daily' | 'monthly' | 'allTime';
+
+type LeaderboardEntry = {
+  id: number;
+  name: string;
+  points: number;
+  reports: number;
+  avatar: string;
+};
+
+const DEFAULT_AVATAR =
+  'https://ui-avatars.com/api/?name=User&background=4EA1F3&color=fff&bold=true';
+
+const leaderboardData: Record<Period, LeaderboardEntry[]> = {
+  daily: [
+    { id: 1, name: 'Peter Thomas', points: 1800, reports: 42, avatar: 'https://i.pravatar.cc/150?img=12' },
+    { id: 2, name: 'Emma Wilson', points: 1490, reports: 35, avatar: 'https://i.pravatar.cc/150?img=5' },
+    { id: 3, name: 'Daniel Harris', points: 1205, reports: 30, avatar: 'https://i.pravatar.cc/150?img=15' },
+    { id: 4, name: 'Sophia Clark', points: 1000, reports: 28, avatar: 'https://i.pravatar.cc/150?img=32' },
+    { id: 5, name: 'Michael Brown', points: 900, reports: 25, avatar: 'https://i.pravatar.cc/150?img=22' },
+    { id: 6, name: 'Olivia Martin', points: 800, reports: 22, avatar: 'https://i.pravatar.cc/150?img=18' },
+    { id: 7, name: 'James Walker', points: 750, reports: 20, avatar: 'https://i.pravatar.cc/150?img=44' },
+    { id: 8, name: 'Peter Thomas (You)', points: 720, reports: 12, avatar: 'https://i.pravatar.cc/150?img=9' },
+  ],
+  monthly: [
+    { id: 1, name: 'Peter Thomas', points: 5200, reports: 82, avatar: 'https://i.pravatar.cc/150?img=12' },
+    { id: 2, name: 'Daniel Harris', points: 4700, reports: 74, avatar: 'https://i.pravatar.cc/150?img=15' },
+    { id: 3, name: 'Emma Wilson', points: 4300, reports: 69, avatar: 'https://i.pravatar.cc/150?img=5' },
+    { id: 4, name: 'Sophia Clark', points: 3900, reports: 60, avatar: 'https://i.pravatar.cc/150?img=32' },
+    { id: 5, name: 'Michael Brown', points: 3400, reports: 56, avatar: 'https://i.pravatar.cc/150?img=22' },
+    { id: 6, name: 'Olivia Martin', points: 3100, reports: 51, avatar: 'https://i.pravatar.cc/150?img=18' },
+    { id: 7, name: 'James Walker', points: 2800, reports: 48, avatar: 'https://i.pravatar.cc/150?img=44' },
+    { id: 8, name: 'Peter Thomas (You)', points: 2500, reports: 41, avatar: 'https://i.pravatar.cc/150?img=9' },
+  ],
+  allTime: [
+    { id: 1, name: 'Peter Thomas', points: 15400, reports: 210, avatar: 'https://i.pravatar.cc/150?img=12' },
+    { id: 2, name: 'Emma Wilson', points: 14850, reports: 201, avatar: 'https://i.pravatar.cc/150?img=5' },
+    { id: 3, name: 'Daniel Harris', points: 14120, reports: 193, avatar: 'https://i.pravatar.cc/150?img=15' },
+    { id: 4, name: 'Sophia Clark', points: 12670, reports: 172, avatar: 'https://i.pravatar.cc/150?img=32' },
+    { id: 5, name: 'Michael Brown', points: 11220, reports: 158, avatar: 'https://i.pravatar.cc/150?img=22' },
+    { id: 6, name: 'Olivia Martin', points: 10480, reports: 149, avatar: 'https://i.pravatar.cc/150?img=18' },
+    { id: 7, name: 'James Walker', points: 9980, reports: 141, avatar: 'https://i.pravatar.cc/150?img=44' },
+    { id: 8, name: 'Peter Thomas (You)', points: 9540, reports: 136, avatar: 'https://i.pravatar.cc/150?img=9' },
+  ],
+};
+
+const Avatar = ({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) => {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={(e) => {
+        e.currentTarget.src = DEFAULT_AVATAR;
+      }}
+    />
+  );
+};
 
 const Leaderboard = () => {
   const navigate = useNavigate();
-  const { user, leaderboard } = useStore();
+  const [period, setPeriod] = useState<Period>('daily');
 
-  const sortedLeaderboard = [...leaderboard].sort((a, b) => a.rank - b.rank);
-  const currentUserEntry = sortedLeaderboard.find(e => e.isCurrentUser);
+  const entries = useMemo(() => leaderboardData[period], [period]);
+  const topThree = useMemo(() => [entries[1], entries[0], entries[2]], [entries]);
+  const rest = useMemo(() => entries.slice(3), [entries]);
 
   return (
-    <div className="relative flex h-full flex-col bg-charcoal px-6 pt-10 pb-10 text-white">
-      
-      {/* Header */}
-      <header className="mb-8 flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="
-            flex h-11 w-11 items-center justify-center
-            rounded-full bg-white/5 border border-white/10
-            backdrop-blur-md
-            shadow-[0_6px_18px_rgba(0,0,0,0.3)]
-            active:scale-95 transition
-          "
-        >
-          <HiArrowLeft size={20} className="text-white" />
-        </button>
+    <div className="min-h-screen bg-[#DDEBF7] px-4 pb-8 pt-4 text-[#0F2340]">
+      <div className="mx-auto w-full max-w-[430px]">
+        <div className="mb-5 flex items-center justify-between">
+          <button onClick={() => navigate(-1)} className="p-2">
+            <ArrowLeft size={22} />
+          </button>
 
-        <h1 className="flex items-center gap-2 text-lg font-black uppercase tracking-tight text-white">
-          <MdEmojiEvents size={20} className="text-[#62D8FF]" />
-          Leaderboard
-        </h1>
+          <h1 className="text-2xl font-bold">Leaderboard</h1>
 
-        <div className="w-11"></div>
-      </header>
+          <button className="p-2">
+            <Search size={22} />
+          </button>
+        </div>
 
-      <div className="flex-1 overflow-y-auto pb-32 scrollbar-hide">
-
-        {/* My Stats Card */}
-        {currentUserEntry && (
-          <section className="
-            relative mb-8 overflow-hidden
-            rounded-[36px] p-6
-            bg-white/5 backdrop-blur-xl
-            border border-white/10
-            shadow-[0_20px_60px_rgba(0,0,0,0.5)]
-          ">
-            <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-[#62D8FF]/10" />
-
-            <div className="relative z-10 flex flex-col gap-6">
-              
-              {/* Top Row */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#62D8FF]/20 text-[#62D8FF] font-black border border-[#62D8FF]/30">
-                    {user.username.charAt(0).toUpperCase()}
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-black text-white">
-                      {user.username}
-                    </h3>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
-                      Global Ranking
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 rounded-2xl bg-yellow-400/20 px-3 py-1.5 text-yellow-300 border border-yellow-300/30">
-                  <FaMedal size={14} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">
-                    Platinum
-                  </span>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-2">
-
-                {/* Rank */}
-                <div className="flex flex-col gap-1 font-black">
-                  <span className="text-[9px] uppercase tracking-widest text-white/50">
-                    Rank
-                  </span>
-                  <span className="text-2xl tracking-tight text-white">
-                    #{currentUserEntry.rank}
-                  </span>
-                </div>
-
-                {/* Coins */}
-                <div className="flex flex-col gap-1 border-x border-white/10 px-3 font-black">
-                  <span className="text-[9px] uppercase tracking-widest text-white/50">
-                    Coins
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <MdWorkspacePremium className="text-yellow-400" size={18} />
-                    <span className="text-2xl tracking-tight text-white">
-                      {currentUserEntry.coins.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Streak */}
-                <div className="flex flex-col gap-1 font-black">
-                  <span className="text-[9px] uppercase tracking-widest text-white/50">
-                    Streak
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <MdLocalFireDepartment size={18} className="text-orange-400" />
-                    <span className="text-2xl tracking-tight text-white">
-                      {user.streak}d
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Ranking List */}
-        <div className="flex flex-col gap-3">
-          {sortedLeaderboard.map((item) => (
-            <div
-              key={item.id}
-              className={`flex items-center gap-4 p-5 rounded-[24px] border transition active:scale-[0.98] ${
-                item.isCurrentUser
-                  ? 'bg-[#62D8FF]/10 border-[#62D8FF]/30'
-                  : 'bg-white/5 border-white/10'
-              } backdrop-blur-md`}
+        <div className="mb-6 flex rounded-full bg-[#cfe3f7] p-1">
+          {[
+            { label: 'Daily', value: 'daily' },
+            { label: 'Monthly', value: 'monthly' },
+            { label: 'All time', value: 'allTime' },
+          ].map((item) => (
+            <button
+              key={item.value}
+              onClick={() => setPeriod(item.value as Period)}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
+                period === item.value
+                  ? 'bg-[#3793F6] text-white'
+                  : 'text-[#5c6f87]'
+              }`}
             >
-              {/* Rank */}
-              <div className="flex w-10 items-center justify-center">
-                {item.rank === 1 ? (
-                  <FaCrown size={26} className="text-yellow-400" />
-                ) : item.rank === 2 ? (
-                  <FaMedal size={24} className="text-slate-300" />
-                ) : item.rank === 3 ? (
-                  <FaMedal size={24} className="text-orange-400" />
-                ) : (
-                  <span className="text-[14px] font-black text-white/40">
-                    #{item.rank}
-                  </span>
-                )}
-              </div>
+              {item.label}
+            </button>
+          ))}
+        </div>
 
-              {/* Avatar */}
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-[20px] font-black text-lg border-2 ${
-                  item.isCurrentUser
-                    ? 'bg-[#62D8FF] text-black border-white shadow-md'
-                    : 'bg-white/10 text-white/70 border-white/10'
+        <div className="mb-8 flex items-end justify-between">
+          {topThree.map((player, i) => (
+            <div key={player.id} className="flex w-[31%] flex-col items-center text-center">
+              <Avatar
+                src={player.avatar}
+                alt={player.name}
+                className={`rounded-full border-4 border-[#3793F6] object-cover ${
+                  i === 1 ? 'h-24 w-24' : 'h-16 w-16'
                 }`}
-              >
-                {item.username.charAt(0).toUpperCase()}
-              </div>
-
-              {/* Name */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3
-                    className={`truncate text-[15px] font-black ${
-                      item.isCurrentUser ? 'text-[#62D8FF]' : 'text-white'
-                    }`}
-                  >
-                    {item.username}
-                  </h3>
-
-                  {item.isCurrentUser && (
-                    <span className="rounded-full bg-[#62D8FF] px-2 py-0.5 text-[8px] font-black uppercase text-black">
-                      Me
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Coins */}
-              <div className="text-right">
-                <div
-                  className={`text-[15px] font-black ${
-                    item.isCurrentUser ? 'text-[#62D8FF]' : 'text-white'
-                  }`}
-                >
-                  {item.coins.toLocaleString()}
-                </div>
-                <div className="text-[9px] font-black uppercase text-white/50">
-                  PTS
-                </div>
-              </div>
+              />
+              <p className="mt-2 line-clamp-2 text-sm font-bold">{player.name}</p>
+              <p className="text-xs text-[#6b7f99]">{player.reports} Reports</p>
+              <p className="text-sm font-semibold text-[#3793F6]">{player.points} pts</p>
             </div>
           ))}
         </div>
 
-        <p className="mt-12 text-center text-[10px] font-black uppercase tracking-widest text-white/40 opacity-60">
-          Updated every hour
-        </p>
+        <div className="space-y-3">
+          {rest.map((player, index) => (
+            <div
+              key={player.id}
+              className="flex items-center justify-between rounded-xl bg-[#4EA1F3] px-4 py-3 text-white"
+            >
+              <span className="w-8 text-left font-bold">{index + 4}</span>
 
+              <div className="mx-3 flex min-w-0 flex-1 items-center gap-3">
+                <Avatar
+                  src={player.avatar}
+                  alt={player.name}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{player.name}</p>
+                  <p className="text-xs opacity-80">{player.reports} Reports</p>
+                </div>
+              </div>
+
+              <span className="whitespace-nowrap font-semibold">{player.points} pts</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
