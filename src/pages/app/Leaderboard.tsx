@@ -12,6 +12,10 @@ type LeaderboardEntry = {
   avatar: string;
 };
 
+type RankedLeaderboardEntry = LeaderboardEntry & {
+  rank: number;
+};
+
 const DEFAULT_AVATAR =
   'https://ui-avatars.com/api/?name=User&background=4EA1F3&color=fff&bold=true';
 
@@ -69,13 +73,51 @@ const Avatar = ({
   );
 };
 
+const getRowClasses = (rank: number, isYou: boolean) => {
+  if (isYou) {
+    return 'bg-[#EAF3FF] border-2 border-[#3793F6] shadow-[0_8px_24px_rgba(55,147,246,0.12)]';
+  }
+
+  switch (rank) {
+    case 1:
+      return 'bg-[#FFF0B8] border border-[#F2C94C] shadow-[0_8px_24px_rgba(242,201,76,0.18)]';
+    case 2:
+      return 'bg-[#DDF3FF] border border-[#6EC6FF] shadow-[0_8px_24px_rgba(110,198,255,0.18)]';
+    case 3:
+      return 'bg-[#FFE1E8] border border-[#FF8FA3] shadow-[0_8px_24px_rgba(255,143,163,0.18)]';
+    default:
+      return 'bg-white border border-[#C9DFF5] shadow-[0_6px_18px_rgba(15,35,64,0.06)]';
+  }
+};
+
+const getRankTextClasses = (rank: number, isYou: boolean) => {
+  if (isYou) return 'text-[#3793F6]';
+  if (rank === 1) return 'text-[#B78103]';
+  if (rank === 2) return 'text-[#2686D9]';
+  if (rank === 3) return 'text-[#E35D7A]';
+  return 'text-[#7A8CA5]';
+};
+
+const getBadgePillClasses = (rank: number, isYou: boolean) => {
+  if (isYou) return 'bg-[#D6EAFF] text-[#3793F6]';
+  if (rank === 1) return 'bg-[#FFE08A] text-[#9A6A00]';
+  if (rank === 2) return 'bg-[#CFEFFF] text-[#1877C9]';
+  if (rank === 3) return 'bg-[#FFD5DE] text-[#D94F6D]';
+  return 'bg-[#EEF5FD] text-[#3793F6]';
+};
+
 const Leaderboard = () => {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('daily');
 
-  const entries = useMemo(() => leaderboardData[period], [period]);
-  const topThree = useMemo(() => [entries[1], entries[0], entries[2]], [entries]);
-  const rest = useMemo(() => entries.slice(3), [entries]);
+  const rankedEntries: RankedLeaderboardEntry[] = useMemo(
+    () =>
+      leaderboardData[period].map((item, index) => ({
+        ...item,
+        rank: index + 1,
+      })),
+    [period]
+  );
 
   return (
     <div className="min-h-screen bg-[#DDEBF7] px-4 pb-8 pt-4 text-[#0F2340]">
@@ -102,9 +144,7 @@ const Leaderboard = () => {
               key={item.value}
               onClick={() => setPeriod(item.value as Period)}
               className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
-                period === item.value
-                  ? 'bg-[#3793F6] text-white'
-                  : 'text-[#5c6f87]'
+                period === item.value ? 'bg-[#3793F6] text-white' : 'text-[#5c6f87]'
               }`}
             >
               {item.label}
@@ -112,46 +152,63 @@ const Leaderboard = () => {
           ))}
         </div>
 
-        <div className="mb-8 flex items-end justify-between">
-          {topThree.map((player, i) => (
-            <div key={player.id} className="flex w-[31%] flex-col items-center text-center">
-              <Avatar
-                src={player.avatar}
-                alt={player.name}
-                className={`rounded-full border-4 border-[#3793F6] object-cover ${
-                  i === 1 ? 'h-24 w-24' : 'h-16 w-16'
-                }`}
-              />
-              <p className="mt-2 line-clamp-2 text-sm font-bold">{player.name}</p>
-              <p className="text-xs text-[#6b7f99]">{player.reports} Reports</p>
-              <p className="text-sm font-semibold text-[#3793F6]">{player.points} pts</p>
-            </div>
-          ))}
-        </div>
+        <div className="space-y-4">
+          {rankedEntries.map((player) => {
+            const isYou = player.name.includes('(You)');
+            const cleanName = player.name.replace(' (You)', '');
 
-        <div className="space-y-3">
-          {rest.map((player, index) => (
-            <div
-              key={player.id}
-              className="flex items-center justify-between rounded-xl bg-[#4EA1F3] px-4 py-3 text-white"
-            >
-              <span className="w-8 text-left font-bold">{index + 4}</span>
+            return (
+              <div
+                key={player.id}
+                className={`flex items-center justify-between rounded-[24px] px-4 py-4 ${getRowClasses(
+                  player.rank,
+                  isYou
+                )}`}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg font-bold ${getRankTextClasses(
+                      player.rank,
+                      isYou
+                    )}`}
+                  >
+                    {player.rank}
+                  </div>
 
-              <div className="mx-3 flex min-w-0 flex-1 items-center gap-3">
-                <Avatar
-                  src={player.avatar}
-                  alt={player.name}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{player.name}</p>
-                  <p className="text-xs opacity-80">{player.reports} Reports</p>
+                  <div className="relative">
+                    <Avatar
+                      src={player.avatar}
+                      alt={cleanName}
+                      className="h-12 w-12 rounded-full border-2 border-white object-cover"
+                    />
+
+                    {isYou && (
+                      <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-[#3793F6] px-2 py-[2px] text-[9px] font-bold text-white shadow-sm">
+                        YOU
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-[17px] font-bold text-[#0F2340]">
+                      {cleanName}
+                    </p>
+                    <p className="text-sm text-[#60738C]">{player.reports} Reports</p>
+                  </div>
+                </div>
+
+                <div
+                  className={`ml-3 flex items-center gap-2 rounded-full px-3 py-2 font-bold ${getBadgePillClasses(
+                    player.rank,
+                    isYou
+                  )}`}
+                >
+                  <span className="text-base">🏅</span>
+                  <span>{player.reports}</span>
                 </div>
               </div>
-
-              <span className="whitespace-nowrap font-semibold">{player.points} pts</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

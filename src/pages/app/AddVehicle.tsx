@@ -1,6 +1,14 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Camera, FileText, UploadCloud } from 'lucide-react';
+import {
+  ChevronLeft,
+  Camera,
+  FileText,
+  UploadCloud,
+  Plus,
+  Image as ImageIcon,
+  Shield,
+} from 'lucide-react';
 import { useStore } from '../../utils/store';
 
 const AddVehicle = () => {
@@ -9,6 +17,10 @@ const AddVehicle = () => {
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
   const [image, setImage] = useState<string | undefined>(undefined);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const insuranceInputRef = useRef<HTMLInputElement | null>(null);
 
   const isFormValid = name.trim() !== '' && plate.trim() !== '';
 
@@ -20,6 +32,14 @@ const AddVehicle = () => {
         setImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+    setShowAddMenu(false);
+  };
+
+  const handleInsuranceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setShowAddMenu(false);
     }
   };
 
@@ -71,7 +91,45 @@ const AddVehicle = () => {
             onSubmit={handleSubmit}
             className="flex flex-col gap-6"
           >
-            {/* Hero Upload Card */}
+            {/* FORM */}
+            <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+              <div className="flex flex-col gap-5">
+                <div>
+                  <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
+                    Vehicle Nickname
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. My Black Tesla"
+                    className="h-[58px] w-full rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 text-[15px] font-semibold text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
+                    Licence Plate
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="ABC-1234"
+                      className="h-[58px] w-full rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 pr-12 text-[15px] font-black uppercase tracking-[0.18em] text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
+                      value={plate}
+                      onChange={(e) => setPlate(e.target.value.toUpperCase())}
+                      required
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#94A3B8]">
+                      <FileText size={18} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* IMAGE SECTION */}
             <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-5">
               <div className="mb-3">
                 <label className="ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
@@ -118,52 +176,64 @@ const AddVehicle = () => {
                     </div>
                   </div>
                 )}
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  onChange={handleImageUpload}
-                />
               </div>
-            </section>
 
-            {/* Form Card */}
-            <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-              <div className="flex flex-col gap-5">
-                <div>
-                  <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                    Vehicle Nickname
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. My Black Tesla"
-                    className="h-[58px] w-full rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 text-[15px] font-semibold text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
+              {/* BOTTOM ACTION AREA */}
+              <div className="relative mt-4 flex justify-end">
+                {showAddMenu && (
+                  <div className="absolute bottom-[72px] right-0 z-20 flex min-w-[180px] flex-col gap-2 rounded-[18px] border border-[#DCE6F2] bg-white/95 p-2 shadow-[0_16px_30px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="flex items-center gap-3 rounded-[14px] px-3 py-3 text-left transition hover:bg-[#F3F7FB]"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#2563EB]">
+                        <ImageIcon size={18} />
+                      </div>
+                      <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
+                        Add Image
+                      </span>
+                    </button>
 
-                <div>
-                  <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                    Licence Plate
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="ABC-1234"
-                      className="h-[58px] w-full rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 pr-12 text-[15px] font-black uppercase tracking-[0.18em] text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
-                      value={plate}
-                      onChange={(e) => setPlate(e.target.value.toUpperCase())}
-                      required
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#94A3B8]">
-                      <FileText size={18} />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => insuranceInputRef.current?.click()}
+                      className="flex items-center gap-3 rounded-[14px] px-3 py-3 text-left transition hover:bg-[#F3F7FB]"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E0F2FE] text-[#0284C7]">
+                        <Shield size={18} />
+                      </div>
+                      <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
+                        Add Insurance
+                      </span>
+                    </button>
                   </div>
-                </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowAddMenu((prev) => !prev)}
+                  className="flex h-14 w-14 items-center justify-center rounded-full border-4 border-white bg-[#2563EB] text-white shadow-[0_16px_28px_rgba(37,99,235,0.35)] transition-all active:scale-95"
+                >
+                  <Plus size={24} strokeWidth={3} />
+                </button>
               </div>
+
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+
+              <input
+                ref={insuranceInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={handleInsuranceUpload}
+              />
             </section>
           </form>
         </div>

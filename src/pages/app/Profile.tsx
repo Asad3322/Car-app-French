@@ -5,15 +5,14 @@ import {
   Edit3,
   Mail,
   Phone as PhoneIcon,
-  ShieldAlert,
   ShieldCheck,
   Navigation,
   FileText,
-  CarFront,
-  Settings,
   ChevronRight,
   Globe,
   Plus,
+  CarFront,
+  Sparkles,
 } from 'lucide-react';
 
 const DEFAULT_AVATAR =
@@ -23,7 +22,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, vehicles, incidents } = useStore();
 
-  const [language, setLanguage] = useState(
+  const [, setLanguage] = useState(
     () => localStorage.getItem('app_language') || 'EN'
   );
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -59,25 +58,20 @@ const Profile = () => {
         <div className="relative">
           <button
             onClick={() => setShowLangMenu((prev) => !prev)}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#AFC0CF] bg-[#F3F8FC] text-[#2F93F6] shadow-[0_8px_24px_rgba(31,84,133,0.18)] transition-all duration-200 active:scale-95"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#AFC0CF] bg-[#F3F8FC] shadow-[0_8px_20px_rgba(47,147,246,0.10)] transition-all duration-200 active:scale-95"
           >
-            <Settings size={18} className="text-[#2F93F6]" />
+            <Globe size={18} className="text-[#2F93F6]" />
           </button>
 
           {showLangMenu && (
-            <div className="absolute right-0 top-14 z-[70] w-44 rounded-[22px] border border-[#B8C9D7] bg-[#F3F8FC] p-2 shadow-[0_18px_40px_rgba(41,75,110,0.16)]">
+            <div className="absolute right-0 top-14 z-[70] w-44 rounded-[22px] border border-[#C7D7E4] bg-[#F3F8FC] p-2 shadow-[0_16px_32px_rgba(43,78,112,0.14)]">
               {['EN', 'FR'].map((lang) => (
                 <button
                   key={lang}
                   onClick={() => handleLanguageChange(lang)}
-                  className={`mb-1 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-[13px] font-semibold transition-all duration-200 last:mb-0 ${
-                    language === lang
-                      ? 'bg-[#DDEBFA] text-[#2F93F6]'
-                      : 'text-[#4F6478] hover:bg-[#EAF2F8]'
-                  }`}
+                  className="w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-[#35506B] transition-all hover:bg-[#E7F0F8]"
                 >
-                  <span>{lang === 'EN' ? 'English' : 'Français'}</span>
-                  <Globe size={15} className="shrink-0" />
+                  {lang === 'EN' ? 'English' : 'Français'}
                 </button>
               ))}
             </div>
@@ -87,31 +81,29 @@ const Profile = () => {
 
       <div className="relative z-20 flex-1 overflow-y-auto px-6 pb-32">
         <div className="flex flex-col gap-5">
-          {/* Hero Profile Card */}
-          <section className="relative overflow-hidden rounded-[34px] border border-[#B6C8D8] bg-[#EEF4F8] p-5 shadow-[0_14px_30px_rgba(70,106,140,0.10)]">
+          {/* Profile Card */}
+          <section className="relative overflow-hidden rounded-[34px] border border-[#BDD0DE] bg-[#EEF4F8] p-5 shadow-[0_14px_30px_rgba(70,106,140,0.10)]">
             <button
               onClick={() => navigate('/app/profile/edit')}
-              className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full border border-[#C5D4E0] bg-white text-[#2F93F6] transition-all duration-200 active:scale-95"
+              className="absolute right-5 top-5 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-[#C5D4E0] bg-white shadow-[0_8px_20px_rgba(47,147,246,0.14)] transition-all duration-200 active:scale-95"
             >
               <Edit3 size={16} className="text-[#2F93F6]" />
             </button>
 
-            <div className="relative z-10 flex items-start gap-4">
-              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[28px] border border-[#C7D7E3] bg-white ring-4 ring-[#E4EDF4]">
-                <img
-                  src={avatarSrc}
-                  alt="Profile"
-                  className="h-full w-full object-cover"
-                  onError={() => setImageError(true)}
-                />
-              </div>
+            <div className="flex gap-4">
+              <img
+                src={avatarSrc}
+                alt="Profile"
+                className="h-24 w-24 rounded-[26px] border border-[#C7D7E3] bg-white object-cover ring-4 ring-[#E4EDF4]"
+                onError={() => setImageError(true)}
+              />
 
               <div className="min-w-0 flex-1 pr-10 pt-1">
-                <h2 className="truncate text-[22px] font-extrabold tracking-tight text-[#0B1A2B]">
-                  {user.username || 'Cool Driver'}
+                <h2 className="truncate text-[24px] font-extrabold tracking-tight text-[#0B1A2B]">
+                  {user.username || 'User'}
                 </h2>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#2F93F6]">
-                  Safety Pioneer
+                  Community Driver
                 </p>
 
                 {user.isVehicleOwner && (
@@ -123,8 +115,8 @@ const Profile = () => {
               </div>
             </div>
 
-            <div className="relative z-10 mt-5 grid gap-3">
-              <div className="flex items-center gap-3 rounded-[20px] border border-[#C6D5E1] bg-white px-4 py-3">
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center gap-3 rounded-[20px] border border-[#C6D5E1] bg-white px-4 py-3 shadow-[0_6px_16px_rgba(70,106,140,0.06)]">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4F0FC]">
                   <PhoneIcon size={16} className="text-[#2F93F6]" />
                 </div>
@@ -138,7 +130,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-[20px] border border-[#C6D5E1] bg-white px-4 py-3">
+              <div className="flex items-center gap-3 rounded-[20px] border border-[#C6D5E1] bg-white px-4 py-3 shadow-[0_6px_16px_rgba(70,106,140,0.06)]">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4F0FC]">
                   <Mail size={16} className="text-[#2F93F6]" />
                 </div>
@@ -154,44 +146,54 @@ const Profile = () => {
             </div>
           </section>
 
-          {/* Stats / Quick Actions */}
+          {/* Sent / Received */}
           <section className="grid grid-cols-2 gap-4">
             <button
               onClick={() =>
                 navigate('/app/incidents', { state: { filter: 'sent' } })
               }
-              className="group rounded-[28px] border border-[#B9CBDA] bg-[#EEF4F8] p-5 text-left shadow-[0_12px_24px_rgba(70,106,140,0.08)] transition-all duration-200 hover:bg-[#F4F8FB] active:scale-[0.98]"
+              className="group relative overflow-hidden rounded-[28px] border border-[#B9CBDA] bg-[#EEF4F8] p-5 text-left shadow-[0_12px_24px_rgba(70,106,140,0.08)] transition-all duration-200 hover:bg-[#F4F8FB] active:scale-[0.98]"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E2EFFF]">
-                <Navigation size={20} className="text-[#2F93F6]" />
-              </div>
+              <div className="absolute right-[-12px] top-[-12px] h-24 w-24 rounded-full bg-[#DCEBFA] opacity-80" />
+              <div className="relative z-10">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4D9EF2] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+                  <Navigation size={20} className="text-white" />
+                </div>
 
-              <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-[#708294]">
-                My Sent
-              </p>
-              <p className="mt-1 text-[22px] font-extrabold text-[#0B1A2B]">
-                {sentCount}
-              </p>
-              <p className="mt-1 text-xs text-[#6F8194]">Reports submitted</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#7B8D9F]">
+                  Sent
+                </p>
+                <p className="mt-2 text-[30px] font-black leading-none text-[#0B1A2B]">
+                  {sentCount}
+                </p>
+                <p className="mt-2 text-xs font-medium text-[#6F8194]">
+                  Reports submitted
+                </p>
+              </div>
             </button>
 
             <button
               onClick={() =>
                 navigate('/app/incidents', { state: { filter: 'received' } })
               }
-              className="group rounded-[28px] border border-[#B9CBDA] bg-[#EEF4F8] p-5 text-left shadow-[0_12px_24px_rgba(70,106,140,0.08)] transition-all duration-200 hover:bg-[#F4F8FB] active:scale-[0.98]"
+              className="group relative overflow-hidden rounded-[28px] border border-[#B9CBDA] bg-[#EEF4F8] p-5 text-left shadow-[0_12px_24px_rgba(70,106,140,0.08)] transition-all duration-200 hover:bg-[#F4F8FB] active:scale-[0.98]"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E2EFFF]">
-                <FileText size={20} className="text-[#2F93F6]" />
-              </div>
+              <div className="absolute right-[-12px] top-[-12px] h-24 w-24 rounded-full bg-[#DCEBFA] opacity-80" />
+              <div className="relative z-10">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4D9EF2] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+                  <FileText size={20} className="text-white" />
+                </div>
 
-              <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-[#708294]">
-                Received
-              </p>
-              <p className="mt-1 text-[22px] font-extrabold text-[#0B1A2B]">
-                {receivedCount}
-              </p>
-              <p className="mt-1 text-xs text-[#6F8194]">Owner notifications</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#7B8D9F]">
+                  Received
+                </p>
+                <p className="mt-2 text-[30px] font-black leading-none text-[#0B1A2B]">
+                  {receivedCount}
+                </p>
+                <p className="mt-2 text-xs font-medium text-[#6F8194]">
+                  Owner notifications
+                </p>
+              </div>
             </button>
           </section>
 
@@ -216,78 +218,48 @@ const Profile = () => {
               </button>
             </div>
 
-            <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-1">
-              {vehicles.length === 0 ? (
-                <button
-                  onClick={() => navigate('/app/vehicles/add')}
-                  className="flex min-w-[180px] flex-col items-center justify-center rounded-[26px] border border-dashed border-[#BDD0DE] bg-white px-5 py-8 text-center transition-all duration-200 hover:bg-[#F8FBFD] active:scale-[0.98]"
-                >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E4F0FC]">
-                    <Plus size={24} className="text-[#2F93F6]" />
-                  </div>
-                  <p className="mt-4 text-sm font-bold text-[#0B1A2B]">
-                    Add Vehicle
-                  </p>
-                  <p className="mt-1 text-xs text-[#718396]">
-                    Register your first car
-                  </p>
-                </button>
-              ) : (
-                vehicles.map((v) => (
+            {vehicles.length === 0 ? (
+              <button
+                onClick={() => navigate('/app/vehicles/add')}
+                className="flex w-full flex-col items-center justify-center rounded-[26px] border border-dashed border-[#BDD0DE] bg-white px-5 py-8 text-center transition-all duration-200 hover:bg-[#F8FBFD] active:scale-[0.98]"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E4F0FC]">
+                  <Plus size={24} className="text-[#2F93F6]" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#0B1A2B]">
+                  Add Vehicle
+                </p>
+                <p className="mt-1 text-xs text-[#718396]">
+                  Register your first car
+                </p>
+              </button>
+            ) : (
+              <div className="space-y-3">
+                {vehicles.map((v) => (
                   <button
                     key={v.id}
                     onClick={() => navigate(`/app/vehicles/${v.id}/edit`)}
-                    className="min-w-[185px] rounded-[26px] border border-[#C2D2DF] bg-white p-4 text-left transition-all duration-200 hover:bg-[#F8FBFD] active:scale-[0.98]"
+                    className="flex w-full items-center justify-between rounded-[22px] border border-[#C6D5E1] bg-white px-4 py-4 text-left shadow-[0_6px_16px_rgba(70,106,140,0.06)] transition-all duration-200 hover:bg-[#F8FBFD] active:scale-[0.99]"
                   >
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E4F0FC]">
-                      <CarFront size={20} className="text-[#2F93F6]" />
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E4F0FC]">
+                        <CarFront size={18} className="text-[#2F93F6]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[15px] font-bold text-[#0B1A2B]">
+                          {v.name}
+                        </p>
+                        <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#718396]">
+                          {v.plate}
+                        </p>
+                      </div>
                     </div>
 
-                    <p className="truncate text-[16px] font-bold text-[#0B1A2B]">
-                      {v.name}
-                    </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[#718396]">
-                      {v.plate}
-                    </p>
+                    <ChevronRight size={18} className="text-[#7C8FA2]" />
                   </button>
-                ))
-              )}
-            </div>
-          </section>
-
-          {/* Preferences */}
-          <section className="rounded-[30px] border border-[#B9CBDA] bg-[#EEF4F8] p-5 shadow-[0_14px_26px_rgba(70,106,140,0.08)]">
-            <div className="mb-3 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E4F0FC]">
-                <Globe size={18} className="text-[#2F93F6]" />
+                ))}
               </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#708294]">
-                  Preferences
-                </p>
-                <h3 className="text-[16px] font-bold text-[#0B1A2B]">
-                  App Language
-                </h3>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-[22px] border border-[#C6D5E1] bg-white px-4 py-4">
-              <div>
-                <p className="text-sm font-semibold text-[#0B1A2B]">
-                  Current language
-                </p>
-                <p className="mt-1 text-xs text-[#6F8194]">
-                  {language === 'EN' ? 'English' : 'Français'}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowLangMenu((prev) => !prev)}
-                className="rounded-full bg-[#E4F0FC] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#2F93F6] transition-all active:scale-95"
-              >
-                Change
-              </button>
-            </div>
+            )}
           </section>
 
           {/* Support */}
@@ -297,8 +269,8 @@ const Profile = () => {
               className="flex w-full items-center justify-between rounded-[26px] border border-[#B9CBDA] bg-[#EEF4F8] px-5 py-4 text-left shadow-[0_12px_24px_rgba(70,106,140,0.08)] transition-all duration-200 hover:bg-[#F4F8FB] active:scale-[0.99]"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF0F0]">
-                  <ShieldAlert size={18} className="text-[#E35D5D]" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E4F0FC]">
+                  <Sparkles size={18} className="text-[#2F93F6]" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-[#0B1A2B]">

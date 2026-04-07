@@ -183,7 +183,7 @@ const IncidentDetails = () => {
 
           <section>
             <label className="mb-3 ml-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
-              Reporter Notes
+               Incident Description
             </label>
 
             <div className="rounded-[28px] border border-[#DCE6F2] bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">

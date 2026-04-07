@@ -1,23 +1,22 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   HelpCircle,
   Camera,
   UploadCloud,
   Car,
-} from 'lucide-react';
-import type { Urgency, Incident } from '../utils/types';
-import { useStore } from '../utils/store';
+} from "lucide-react";
+import type { Urgency, Incident } from "../utils/types";
+import { useStore } from "../utils/store";
 
 const ReportDetails = () => {
   const navigate = useNavigate();
   const { setIncidents } = useStore();
 
-  const [description, setDescription] = useState('');
-  const [insuranceDescription, setInsuranceDescription] = useState('');
-  const [urgency, setUrgency] = useState<Urgency>('Medium Urgency');
-  const [plate, setPlate] = useState('');
+  const [description, setDescription] = useState("");
+  const [urgency, setUrgency] = useState<Urgency>("Medium Urgency");
+  const [plate, setPlate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiUses, setAiUses] = useState(0);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -30,39 +29,35 @@ const ReportDetails = () => {
     setIsOptimizing(true);
 
     setTimeout(() => {
-      setDescription((prev) => prev + ' (Refined by CARAPP AI)');
+      setDescription((prev) => prev + " (Refined by CARAPP AI)");
       setAiUses((prev) => prev + 1);
       setIsOptimizing(false);
     }, 1200);
   };
 
   const sendReport = () => {
-    if (!plate || !description || (hasInsurance && !insuranceDescription.trim())) {
+    if (!plate || !description) {
       return;
     }
 
     setIsSubmitting(true);
 
-    const finalDescription = hasInsurance
-      ? `${description}\n\nInsurance Description: ${insuranceDescription}`
-      : description;
-
     const newIncident: Incident = {
       id: Date.now().toString(),
       plate,
-      incidentType: 'TRAFFIC',
-      description: finalDescription,
+      incidentType: "TRAFFIC",
+      description,
       urgency,
       date: new Date().toISOString(),
-      status: 'reported',
-      location: 'Current Location',
-      reporterId: 'user1',
+      status: "reported",
+      location: "Current Location",
+      reporterId: "user1",
     };
 
     setTimeout(() => {
       setIncidents((prev: Incident[]) => [newIncident, ...prev]);
       setIsSubmitting(false);
-      navigate('/success');
+      navigate("/success");
     }, 1500);
   };
 
@@ -109,22 +104,26 @@ const ReportDetails = () => {
           </label>
 
           <div className="flex rounded-full bg-white p-1 shadow-sm">
-            {(['Urgent', 'Medium Urgency', 'Not Urgent'] as Urgency[]).map((level) => {
-              const active = urgency === level;
+            {(["Urgent", "Medium Urgency", "Not Urgent"] as Urgency[]).map(
+              (level) => {
+                const active = urgency === level;
 
-              return (
-                <button
-                  key={level}
-                  type="button"
-                  onClick={() => setUrgency(level)}
-                  className={`flex-1 rounded-full py-3 text-[10px] font-black uppercase transition ${
-                    active ? 'bg-[#4A90E2] text-white' : 'text-[#6B7A90]'
-                  }`}
-                >
-                  {level === 'Medium Urgency' ? 'MEDIUM' : level.toUpperCase()}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setUrgency(level)}
+                    className={`flex-1 rounded-full py-3 text-[10px] font-black uppercase transition ${
+                      active ? "bg-[#4A90E2] text-white" : "text-[#6B7A90]"
+                    }`}
+                  >
+                    {level === "Medium Urgency"
+                      ? "MEDIUM"
+                      : level.toUpperCase()}
+                  </button>
+                );
+              },
+            )}
           </div>
         </section>
 
@@ -140,7 +139,7 @@ const ReportDetails = () => {
               disabled={!description || aiUses >= 3 || isOptimizing}
               className="rounded-full border border-[#CFE0F2] bg-white px-3 py-1 text-[10px] font-bold text-[#4A90E2] transition disabled:opacity-50"
             >
-              {isOptimizing ? 'Optimizing...' : 'AI Optimize'}
+              {isOptimizing ? "Optimizing..." : "AI Optimize"}
             </button>
           </div>
 
@@ -151,23 +150,16 @@ const ReportDetails = () => {
             placeholder="Describe what happened..."
             className="w-full resize-none rounded-[22px] border border-[#D9E5F1] bg-white p-4 text-[15px] font-medium leading-relaxed text-[#1F2A37] outline-none shadow-sm placeholder:text-[#9AA8BC]"
           />
+
+          {/* ✅ SHORT ALERT TEXT */}
+          <p className="mt-3 text-[13px] font-extrabold text-[#E5533D]">
+            ⚠️ BE SPECIFIC
+          </p>
+
+          <p className="mt-1 text-[13px] font-bold text-[#1F2A37]">
+            📸 ADD PROOF
+          </p>
         </section>
-
-        {hasInsurance && (
-          <section>
-            <label className="mb-2 ml-1 block text-[10px] font-black uppercase tracking-widest text-[#6B7A90]">
-              Insurance Description
-            </label>
-
-            <textarea
-              value={insuranceDescription}
-              onChange={(e) => setInsuranceDescription(e.target.value)}
-              rows={4}
-              placeholder="Provide insurance-related details..."
-              className="w-full resize-none rounded-[22px] border border-[#D9E5F1] bg-white p-4 text-[15px] font-medium leading-relaxed text-[#1F2A37] outline-none shadow-sm placeholder:text-[#9AA8BC]"
-            />
-          </section>
-        )}
 
         <div className="grid grid-cols-2 gap-4">
           <ActionCard
@@ -183,13 +175,7 @@ const ReportDetails = () => {
             icon={<UploadCloud size={22} />}
             active={hasInsurance}
             onClick={() => {
-              setHasInsurance((prev) => {
-                const next = !prev;
-                if (!next) {
-                  setInsuranceDescription('');
-                }
-                return next;
-              });
+              setHasInsurance((prev) => !prev);
             }}
           />
         </div>
@@ -197,15 +183,10 @@ const ReportDetails = () => {
         <button
           type="button"
           onClick={sendReport}
-          disabled={
-            !plate ||
-            !description ||
-            isSubmitting ||
-            (hasInsurance && !insuranceDescription.trim())
-          }
+          disabled={!plate || !description || isSubmitting}
           className="mt-3 flex h-[60px] w-full items-center justify-center rounded-full border-b-4 border-[#E09E00] bg-[#F4B400] text-[15px] font-black uppercase tracking-[0.06em] text-white shadow-md transition disabled:opacity-50"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Report'}
+          {isSubmitting ? "Submitting..." : "Submit Report"}
         </button>
       </div>
     </div>
@@ -233,8 +214,8 @@ const ActionCard = ({
       onClick={onClick}
       className={`flex min-h-[140px] flex-col items-center justify-center rounded-[22px] border p-5 transition ${
         active
-          ? 'border-[#4A90E2] bg-[#4A90E2]/10'
-          : 'border-[#D9E5F1] bg-white'
+          ? "border-[#4A90E2] bg-[#4A90E2]/10"
+          : "border-[#D9E5F1] bg-white"
       }`}
     >
       <div className="mb-3 text-[#4A90E2]">{icon}</div>
