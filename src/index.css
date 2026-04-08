@@ -12,13 +12,23 @@
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
     background: #c9d6e2;
     color: #0b1a2b;
+  }
+
+  html {
+    overflow-x: hidden;
   }
 
   body {
     background: #c9d6e2;
     color: #0b1a2b;
+    overflow-x: hidden;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 
   ::-webkit-scrollbar {
@@ -30,7 +40,7 @@
 @layer components {
   .app-container {
     @apply relative mx-auto flex w-full max-w-md flex-col overflow-hidden transition-all;
-    min-height: 100dvh;
+    min-height: 100svh;
     background: #d6e2ec;
   }
 
@@ -59,6 +69,7 @@
     border: 1px solid #b8c9d6;
     background: #ffffff;
     color: #0b1a2b;
+    font-size: 16px;
   }
 
   .waze-input:focus {
@@ -73,7 +84,7 @@
   }
 
   .screen-bg {
-    min-height: 100dvh;
+    min-height: 100svh;
     background: #d6e2ec;
   }
 }
