@@ -48,8 +48,9 @@ const Onboarding = () => {
               Report Incident
             </Link>
 
+            {/* ✅ FIXED ROUTE HERE */}
             <Link
-              to="/vehicle/add-onboarding"
+              to="/app/vehicles/add"
               className="flex h-[60px] items-center justify-center rounded-[22px] bg-gradient-to-r from-[#5BA3F0] to-[#4A90E2] text-[16px] font-black text-white shadow-[0_12px_25px_rgba(74,144,226,0.25)] transition-all duration-300 hover:-translate-y-0.5"
             >
               Register Vehicle

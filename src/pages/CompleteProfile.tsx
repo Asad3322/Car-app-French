@@ -85,7 +85,6 @@ const CompleteProfile = () => {
       <main className="relative z-10 flex flex-1 flex-col px-4 pb-6">
         <div className="flex flex-1 flex-col rounded-t-[30px] border border-[#B8C9D6] bg-[#EEF4F8] px-4 pt-5 pb-6 shadow">
           <div className="mx-auto w-full max-w-[440px]">
-
             {/* Top */}
             <section className="mb-5 text-center">
               <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border bg-white shadow">
@@ -101,18 +100,21 @@ const CompleteProfile = () => {
               </p>
             </section>
 
-            {/* Card */}
-            <div className="rounded-[28px] border bg-white px-4 py-5 shadow">
+            {/* Form without outer card */}
+            <div className="px-1">
               <form onSubmit={handleComplete} className="flex flex-col gap-4">
-
                 {/* Avatar */}
                 <div className="flex flex-col items-center">
                   <div className="relative mb-4">
-                    <div className="h-28 w-28 rounded-[30px] border bg-[#F8FBFF] p-1.5">
-                      <img src={selectedAvatar} className="rounded-[24px]" />
+                    <div className="h-28 w-28 rounded-[30px] border border-[#D9E5F1] bg-[#F8FBFF] p-1.5">
+                      <img
+                        src={selectedAvatar}
+                        alt="Selected avatar"
+                        className="h-full w-full rounded-[24px] object-cover"
+                      />
                     </div>
 
-                    <div className="absolute -bottom-1 -right-1 h-9 w-9 flex items-center justify-center rounded-full bg-emerald-500 text-white border-4 border-white">
+                    <div className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-emerald-500 text-white">
                       <CheckCircle2 size={15} />
                     </div>
                   </div>
@@ -130,13 +132,17 @@ const CompleteProfile = () => {
                           key={idx}
                           type="button"
                           onClick={() => setSelectedAvatar(avatar)}
-                          className={`h-14 w-14 rounded-[18px] border p-0.5 ${
+                          className={`h-14 w-14 rounded-[18px] border p-0.5 transition-all duration-200 ${
                             isActive
                               ? 'border-[#2F93F6] bg-[#EAF4FF]'
-                              : 'border-[#D9E5F1]'
+                              : 'border-[#D9E5F1] bg-white'
                           }`}
                         >
-                          <img src={avatar} className="rounded-[14px]" />
+                          <img
+                            src={avatar}
+                            alt={`Avatar ${idx + 1}`}
+                            className="h-full w-full rounded-[14px] object-cover"
+                          />
                         </button>
                       );
                     })}
@@ -149,11 +155,14 @@ const CompleteProfile = () => {
                     Username
                   </label>
                   <div className="relative mt-2">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]" size={17}/>
+                    <User
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
+                      size={17}
+                    />
                     <input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="h-[58px] w-full rounded-[20px] border pl-12 pr-4"
+                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
                     />
                   </div>
                 </div>
@@ -164,23 +173,26 @@ const CompleteProfile = () => {
                     Email
                   </label>
                   <div className="relative mt-2">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]" size={17}/>
+                    <Mail
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
+                      size={17}
+                    />
                     <input
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-[58px] w-full rounded-[20px] border pl-12 pr-4"
+                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
                     />
                   </div>
                 </div>
 
-                {/* Phone (UPDATED 🇫🇷) */}
+                {/* Phone */}
                 <div>
                   <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Phone
                   </label>
 
                   <div className="relative mt-2">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-[#0B1A2B]">
                       🇫🇷 +33
                     </div>
 
@@ -188,7 +200,7 @@ const CompleteProfile = () => {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="6 12 34 56 78"
-                      className="h-[58px] w-full rounded-[20px] border pl-20 pr-4"
+                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-20 pr-4 text-[15px] text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
                     />
                   </div>
                 </div>
@@ -199,14 +211,14 @@ const CompleteProfile = () => {
                     Primary Contact
                   </label>
 
-                  <div className="grid grid-cols-2 gap-3 mt-2">
+                  <div className="mt-2 grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setPrimaryContact('email')}
-                      className={`h-[54px] rounded-[18px] ${
+                      className={`h-[54px] rounded-[18px] text-[15px] font-medium transition-all ${
                         primaryContact === 'email'
                           ? 'bg-[#2F93F6] text-white'
-                          : 'border'
+                          : 'border border-[#D9E5F1] bg-white text-[#0B1A2B]'
                       }`}
                     >
                       Email
@@ -215,10 +227,10 @@ const CompleteProfile = () => {
                     <button
                       type="button"
                       onClick={() => setPrimaryContact('phone')}
-                      className={`h-[54px] rounded-[18px] ${
+                      className={`h-[54px] rounded-[18px] text-[15px] font-medium transition-all ${
                         primaryContact === 'phone'
                           ? 'bg-[#2F93F6] text-white'
-                          : 'border'
+                          : 'border border-[#D9E5F1] bg-white text-[#0B1A2B]'
                       }`}
                     >
                       Phone
@@ -231,7 +243,7 @@ const CompleteProfile = () => {
                   <button
                     type="button"
                     onClick={() => navigate('/app/home')}
-                    className="h-[58px] rounded-[20px] border"
+                    className="h-[58px] rounded-[20px] border border-[#D9E5F1] bg-white text-[15px] font-medium text-[#0B1A2B]"
                   >
                     Cancel
                   </button>
@@ -239,7 +251,7 @@ const CompleteProfile = () => {
                   <button
                     type="submit"
                     disabled={!username.trim() || isSubmitting}
-                    className="h-[58px] rounded-[20px] bg-[#2F93F6] text-white flex items-center justify-center gap-2"
+                    className="flex h-[58px] items-center justify-center gap-2 rounded-[20px] bg-[#2F93F6] text-[15px] font-medium text-white disabled:opacity-50"
                   >
                     {isSubmitting ? 'Saving...' : 'Continue'}
                     {!isSubmitting && <ArrowRight size={17} />}
