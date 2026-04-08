@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../utils/store';
 import {
   User,
-  Phone,
   Mail,
   ArrowRight,
   X,
@@ -55,68 +54,70 @@ const CompleteProfile = () => {
   };
 
   return (
-    <div className="flex min-h-[100dvh] w-full flex-col bg-[#D6E2EC] text-[#0B1A2B]">
+    <div className="relative flex min-h-[100dvh] w-full flex-col bg-[#D6E2EC] text-[#0B1A2B]">
+      {/* Background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#2F93F6]/10 blur-3xl" />
         <div className="absolute right-0 top-1/3 h-48 w-48 rounded-full bg-white/30 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-sky-200/30 blur-3xl" />
       </div>
 
-      <header className="relative z-10 flex items-center justify-between px-6 pt-8 pb-5">
+      {/* Header */}
+      <header className="relative z-10 flex items-center justify-between px-5 pt-7 pb-4">
         <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#6F8194]">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6F8194]">
             Welcome
           </p>
-          <h1 className="text-[28px] font-black tracking-tight text-[#0B1A2B]">
+          <h1 className="text-[26px] font-black tracking-tight text-[#0B1A2B]">
             Complete Profile
           </h1>
         </div>
 
         <button
           onClick={() => navigate('/app/home')}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#B8C9D6] bg-white text-[#6F8194] shadow-sm transition-all duration-200 hover:bg-[#F8FBFD] active:scale-95"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#B8C9D6] bg-white text-[#6F8194] shadow-sm hover:bg-[#F8FBFD]"
         >
           <X size={18} />
         </button>
       </header>
 
-      <main className="relative z-10 flex flex-1 flex-col px-6 pb-8">
-        <div className="flex flex-1 flex-col rounded-t-[34px] border border-[#B8C9D6] bg-[#EEF4F8] px-5 pt-6 pb-8 shadow-[0_16px_40px_rgba(70,106,140,0.12)]">
-          <div className="mx-auto w-full max-w-[430px]">
-            <section className="mb-6 text-center">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-[#C5D6E3] bg-white shadow-[0_10px_24px_rgba(70,106,140,0.10)]">
+      {/* Content */}
+      <main className="relative z-10 flex flex-1 flex-col px-4 pb-6">
+        <div className="flex flex-1 flex-col rounded-t-[30px] border border-[#B8C9D6] bg-[#EEF4F8] px-4 pt-5 pb-6 shadow">
+          <div className="mx-auto w-full max-w-[440px]">
+
+            {/* Top */}
+            <section className="mb-5 text-center">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border bg-white shadow">
                 <Sparkles size={30} className="text-[#2F93F6]" />
               </div>
 
-              <h2 className="text-[24px] font-black tracking-tight text-[#0B1A2B]">
+              <h2 className="text-[24px] font-black">
                 Set up your profile
               </h2>
 
-              <p className="mx-auto mt-2 max-w-[320px] text-[13px] leading-6 text-[#6F8194]">
-                Add your details and choose your emoji avatar before entering the
-                app.
+              <p className="mt-2 text-[14px] text-[#6F8194]">
+                Add your details and choose your emoji avatar before entering the app.
               </p>
             </section>
 
-            <div className="rounded-[30px] border border-[#C5D6E3] bg-white p-5 shadow-[0_12px_28px_rgba(70,106,140,0.08)]">
-              <form onSubmit={handleComplete} className="flex flex-col gap-5">
+            {/* Card */}
+            <div className="rounded-[28px] border bg-white px-4 py-5 shadow">
+              <form onSubmit={handleComplete} className="flex flex-col gap-4">
+
                 {/* Avatar */}
                 <div className="flex flex-col items-center">
                   <div className="relative mb-4">
-                    <div className="h-24 w-24 overflow-hidden rounded-[28px] border border-[#D9E5F1] bg-[#F8FBFF] p-1.5 shadow-[0_14px_30px_rgba(70,106,140,0.10)]">
-                      <img
-                        src={selectedAvatar}
-                        alt="Selected avatar"
-                        className="h-full w-full rounded-[22px] object-cover"
-                      />
+                    <div className="h-28 w-28 rounded-[30px] border bg-[#F8FBFF] p-1.5">
+                      <img src={selectedAvatar} className="rounded-[24px]" />
                     </div>
 
-                    <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-4 border-white bg-emerald-500 text-white shadow-sm">
-                      <CheckCircle2 size={14} strokeWidth={3} />
+                    <div className="absolute -bottom-1 -right-1 h-9 w-9 flex items-center justify-center rounded-full bg-emerald-500 text-white border-4 border-white">
+                      <CheckCircle2 size={15} />
                     </div>
                   </div>
 
-                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#6F8194]">
+                  <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#6F8194]">
                     Choose Avatar
                   </p>
 
@@ -129,17 +130,13 @@ const CompleteProfile = () => {
                           key={idx}
                           type="button"
                           onClick={() => setSelectedAvatar(avatar)}
-                          className={`relative h-12 w-12 overflow-hidden rounded-[18px] border p-0.5 transition-all duration-200 ${
+                          className={`h-14 w-14 rounded-[18px] border p-0.5 ${
                             isActive
-                              ? 'scale-110 border-[#2F93F6] bg-[#EAF4FF] shadow-[0_0_0_3px_rgba(47,147,246,0.12)]'
-                              : 'border-[#D9E5F1] bg-[#F8FBFD] hover:scale-105'
+                              ? 'border-[#2F93F6] bg-[#EAF4FF]'
+                              : 'border-[#D9E5F1]'
                           }`}
                         >
-                          <img
-                            src={avatar}
-                            alt={`Avatar ${idx + 1}`}
-                            className="h-full w-full rounded-[14px] object-cover"
-                          />
+                          <img src={avatar} className="rounded-[14px]" />
                         </button>
                       );
                     })}
@@ -148,81 +145,68 @@ const CompleteProfile = () => {
 
                 {/* Username */}
                 <div>
-                  <label className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#6F8194]">
+                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Username
                   </label>
-
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]">
-                      <User size={16} />
-                    </span>
-
+                  <div className="relative mt-2">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]" size={17}/>
                     <input
-                      type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="yourusername"
-                      className="h-[56px] w-full rounded-[18px] border border-[#D9E5F1] bg-[#FCFEFF] pl-12 pr-4 text-[14px] font-medium text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
+                      className="h-[58px] w-full rounded-[20px] border pl-12 pr-4"
                     />
                   </div>
                 </div>
 
                 {/* Email */}
                 <div>
-                  <label className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#6F8194]">
+                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Email
                   </label>
-
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]">
-                      <Mail size={16} />
-                    </span>
-
+                  <div className="relative mt-2">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]" size={17}/>
                     <input
-                      type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@example.com"
-                      className="h-[56px] w-full rounded-[18px] border border-[#D9E5F1] bg-[#FCFEFF] pl-12 pr-4 text-[14px] font-medium text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
+                      className="h-[58px] w-full rounded-[20px] border pl-12 pr-4"
                     />
                   </div>
                 </div>
 
-                {/* Phone */}
+                {/* Phone (UPDATED 🇫🇷) */}
                 <div>
-                  <label className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#6F8194]">
+                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Phone
                   </label>
 
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]">
-                      <Phone size={16} />
-                    </span>
+                  <div className="relative mt-2">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold">
+                      🇫🇷 +33
+                    </div>
 
                     <input
-                      type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+92 300 1234567"
-                      className="h-[56px] w-full rounded-[18px] border border-[#D9E5F1] bg-[#FCFEFF] pl-12 pr-4 text-[14px] font-medium text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
+                      placeholder="6 12 34 56 78"
+                      className="h-[58px] w-full rounded-[20px] border pl-20 pr-4"
                     />
                   </div>
                 </div>
 
                 {/* Primary Contact */}
                 <div>
-                  <label className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#6F8194]">
+                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Primary Contact
                   </label>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 mt-2">
                     <button
                       type="button"
                       onClick={() => setPrimaryContact('email')}
-                      className={`rounded-[16px] py-3 text-sm font-bold transition-all duration-200 ${
+                      className={`h-[54px] rounded-[18px] ${
                         primaryContact === 'email'
-                          ? 'bg-[#2F93F6] text-white shadow-[0_8px_18px_rgba(47,147,246,0.24)]'
-                          : 'border border-[#D9E5F1] bg-[#F8FBFD] text-[#6F8194]'
+                          ? 'bg-[#2F93F6] text-white'
+                          : 'border'
                       }`}
                     >
                       Email
@@ -231,10 +215,10 @@ const CompleteProfile = () => {
                     <button
                       type="button"
                       onClick={() => setPrimaryContact('phone')}
-                      className={`rounded-[16px] py-3 text-sm font-bold transition-all duration-200 ${
+                      className={`h-[54px] rounded-[18px] ${
                         primaryContact === 'phone'
-                          ? 'bg-[#2F93F6] text-white shadow-[0_8px_18px_rgba(47,147,246,0.24)]'
-                          : 'border border-[#D9E5F1] bg-[#F8FBFD] text-[#6F8194]'
+                          ? 'bg-[#2F93F6] text-white'
+                          : 'border'
                       }`}
                     >
                       Phone
@@ -243,11 +227,11 @@ const CompleteProfile = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="mt-2 grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => navigate('/app/home')}
-                    className="flex h-[56px] items-center justify-center rounded-[18px] border border-[#D9E5F1] bg-[#F8FBFD] text-[14px] font-bold text-[#6F8194] transition-all duration-200 hover:bg-white active:scale-[0.98]"
+                    className="h-[58px] rounded-[20px] border"
                   >
                     Cancel
                   </button>
@@ -255,19 +239,17 @@ const CompleteProfile = () => {
                   <button
                     type="submit"
                     disabled={!username.trim() || isSubmitting}
-                    className="flex h-[56px] items-center justify-center gap-2 rounded-[18px] bg-[#2F93F6] text-[14px] font-black uppercase tracking-[0.04em] text-white shadow-[0_10px_20px_rgba(47,147,246,0.26)] transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+                    className="h-[58px] rounded-[20px] bg-[#2F93F6] text-white flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? 'Saving...' : 'Continue'}
-                    {!isSubmitting && <ArrowRight size={16} />}
+                    {!isSubmitting && <ArrowRight size={17} />}
                   </button>
                 </div>
               </form>
             </div>
 
-            <div className="pt-6 text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8EA1B3]">
-                Safe journey starts here
-              </p>
+            <div className="pt-5 text-center text-[11px] text-[#8EA1B3]">
+              Safe journey starts here
             </div>
           </div>
         </div>
