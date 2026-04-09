@@ -14,58 +14,51 @@ type NavIconProps = {
 };
 
 const getIconClass = (active: boolean) => {
-  if (active) {
-    return 'text-white';
-  }
-
-  return 'text-[#7A8FA6]';
+  return active ? 'text-white' : 'text-[#7A8FA6]';
 };
+
+const baseIconClass =
+  'transition-all duration-200 leading-none shrink-0 align-middle';
 
 export const MapNavIcon = ({ active = false }: NavIconProps) => (
   <IoCompass
-    className={`text-[17px] transition-all duration-200 ${
-      getIconClass(active)
-    } ${active ? 'scale-100' : 'scale-100'}`}
+    size={18}
+    className={`${baseIconClass} ${getIconClass(active)}`}
   />
 );
 
 export const HomeNavIcon = ({ active = false }: NavIconProps) => (
   <IoHome
-    className={`text-[17px] transition-all duration-200 ${
-      getIconClass(active)
-    } ${active ? 'scale-100' : 'scale-100'}`}
+    size={18}
+    className={`${baseIconClass} ${getIconClass(active)}`}
   />
 );
 
 export const VehiclesNavIcon = ({ active = false }: NavIconProps) => (
   <IoCar
-    className={`text-[17px] transition-all duration-200 ${
-      getIconClass(active)
-    } ${active ? 'scale-100' : 'scale-100'}`}
+    size={18}
+    className={`${baseIconClass} ${getIconClass(active)}`}
   />
 );
 
 export const ReportNavIcon = ({ active = false }: NavIconProps) => (
   <IoShieldCheckmark
-    className={`text-[17px] transition-all duration-200 ${
-      getIconClass(active)
-    } ${active ? 'scale-100' : 'scale-100'}`}
+    size={18}
+    className={`${baseIconClass} ${getIconClass(active)}`}
   />
 );
 
 export const LeaderboardNavIcon = ({ active = false }: NavIconProps) => (
   <IoTrophy
-    className={`text-[17px] transition-all duration-200 ${
-      getIconClass(active)
-    } ${active ? 'scale-100' : 'scale-100'}`}
+    size={18}
+    className={`${baseIconClass} ${getIconClass(active)}`}
   />
 );
 
 export const ProfileNavIcon = ({ active = false }: NavIconProps) => (
   <IoIdCard
-    className={`text-[17px] transition-all duration-200 ${
-      getIconClass(active)
-    } ${active ? 'scale-100' : 'scale-100'}`}
+    size={18}
+    className={`${baseIconClass} ${getIconClass(active)}`}
   />
 );
 

@@ -20,21 +20,22 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label }) => {
       {({ isActive }) => (
         <div
           className={`
-            flex min-w-[58px] flex-col items-center justify-center gap-[3px]
-            rounded-[18px] px-2 py-2
+            flex min-w-[60px] flex-col items-center justify-center
+            rounded-[20px] px-2.5 pt-[8px] pb-[7px]
             transition-all duration-200
-
             ${
               isActive
-                ? 'bg-[#2F93F6] text-white shadow-[0_6px_16px_rgba(47,147,246,0.28)]'
+                ? 'bg-[#2F93F6] text-white shadow-[0_8px_18px_rgba(47,147,246,0.28)]'
                 : 'text-[#7A8FA6]'
             }
           `}
         >
-          <Icon active={isActive} />
+          <div className="flex h-[21px] items-center justify-center">
+            <Icon active={isActive} />
+          </div>
 
           <span
-            className={`text-[9px] font-semibold leading-none tracking-[0.02em] sm:text-[10px] ${
+            className={`mt-[4px] text-[9px] font-semibold leading-none tracking-[0.02em] sm:text-[10px] ${
               isActive ? 'text-white' : 'text-[#7A8FA6]'
             }`}
           >

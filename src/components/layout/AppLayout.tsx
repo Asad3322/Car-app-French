@@ -15,7 +15,7 @@ const AppLayout: React.FC = () => {
       <div className="flex min-h-screen w-full items-center justify-center sm:p-6">
         <main
           className="
-            relative flex h-[100svh] min-h-[100svh] w-full flex-col overflow-hidden
+            relative isolate flex h-[100dvh] min-h-[100dvh] w-full flex-col overflow-hidden
             bg-[#D6E2EC]
             sm:h-[844px] sm:min-h-0 sm:max-w-[390px]
             sm:rounded-[44px]
@@ -31,7 +31,7 @@ const AppLayout: React.FC = () => {
           <div
             className="scrollbar-hide relative z-10 flex-1 overflow-y-auto"
             style={{
-              paddingBottom: 'calc(92px + env(safe-area-inset-bottom, 0px))',
+              paddingBottom: 'calc(106px + env(safe-area-inset-bottom, 0px))',
             }}
           >
             <Outlet />
@@ -39,18 +39,19 @@ const AppLayout: React.FC = () => {
 
           {/* Floating Nav */}
           <div
-            className="absolute left-1/2 z-50 w-[92%] max-w-[360px] -translate-x-1/2"
+            className="pointer-events-none absolute inset-x-0 z-50 flex justify-center px-4 sm:px-0"
             style={{
-              bottom: 'calc(10px + env(safe-area-inset-bottom, 0px))',
+              bottom: 'max(4px, env(safe-area-inset-bottom, 0px))',
             }}
           >
             <nav
               className="
-                flex items-center justify-between
-                rounded-[30px]
+                pointer-events-auto
+                flex w-full max-w-[360px] items-center justify-between
+                rounded-[32px]
                 border border-[#C5D3DE]
                 bg-[#DCE7F0]/96
-                px-2 py-2
+                px-2 py-[9px]
                 backdrop-blur-2xl
                 shadow-[0_12px_30px_rgba(70,106,140,0.14)]
               "
