@@ -1,45 +1,31 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   Mail,
-  Phone,
   ChevronLeft,
-  CheckCircle2,
 } from 'lucide-react';
-import { useStore } from '../utils/store';
 
 const Verify = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { setUser } = useStore();
 
-  const state = location.state as { contact?: string; role?: string } | null;
-  const initialContact = state?.contact || '';
-  const isEmail = state?.role !== 'owner';
+  const storedEmail = localStorage.getItem('pendingEmail') || '';
 
-  const [contact, setContact] = useState(initialContact);
-  const [linkSent, setLinkSent] = useState(!!initialContact);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [contact, setContact] = useState(storedEmail);
+  const [linkSent, setLinkSent] = useState(!!storedEmail);
 
   const handleSendLink = () => {
     if (!contact.trim()) return;
+
+    localStorage.setItem('pendingEmail', contact.trim());
     setLinkSent(true);
   };
 
-  const handleSimulateClick = () => {
-    setIsSuccess(true);
-
-    setUser((prev) => ({
-      ...prev,
-      verifiedEmail: isEmail ? contact : prev.verifiedEmail,
-      email: isEmail ? contact : prev.email,
-      phone: !isEmail ? contact : prev.phone,
-    }));
-
-    setTimeout(() => {
-      navigate('/complete-profile');
-    }, 1400);
+  const handleChangeEmail = () => {
+    localStorage.removeItem('pendingEmail');
+    setContact('');
+    setLinkSent(false);
+    navigate('/auth');
   };
 
   return (
@@ -63,8 +49,7 @@ const Verify = () => {
       {/* Content */}
       <main className="flex flex-1 flex-col px-6 pb-8">
         <div className="flex flex-1 flex-col rounded-t-[34px] border border-[#B8C9D6] bg-[#EEF4F8] px-6 pt-8 pb-8 shadow">
-          <div className="mx-auto w-full max-w-[420px] flex flex-col">
-
+          <div className="mx-auto flex w-full max-w-[420px] flex-col">
             {/* Top */}
             <div className="mb-6 text-center">
               <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-[#D9E5F1] bg-white shadow">
@@ -77,40 +62,39 @@ const Verify = () => {
 
               <p className="mt-3 text-[14px] text-[#6F8194]">
                 {!linkSent
-                  ? `Enter your ${isEmail ? 'email' : 'phone'} to receive a secure login link.`
-                  : `We sent a secure login link to your ${isEmail ? 'email' : 'phone'}. Open it to continue.`}
+                  ? 'Enter your email to receive a secure login link.'
+                  : 'We sent a secure login link to your email. Open it to continue.'}
               </p>
             </div>
 
-            {/* FORM / RESULT (NO CARD) */}
             {!linkSent ? (
               <div>
                 <label className="mb-2 block text-[11px] font-black uppercase text-[#6F8194]">
-                  {isEmail ? 'Email Address' : 'Phone Number'}
+                  Email Address
                 </label>
 
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]">
-                    {isEmail ? <Mail size={18} /> : <Phone size={18} />}
+                    <Mail size={18} />
                   </span>
 
                   <input
-                    type={isEmail ? 'email' : 'tel'}
+                    type="email"
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
-                    placeholder={isEmail ? 'name@example.com' : '+92 300 1234567'}
-                    className="h-[58px] w-full rounded-[18px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px]"
+                    placeholder="name@example.com"
+                    className="h-[58px] w-full rounded-[18px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] outline-none"
                   />
                 </div>
 
                 <p className="mt-3 text-[13px] text-[#6F8194]">
-                  We will send a secure sign-in link instead of a verification code.
+                  We will send a secure sign-in link to your email.
                 </p>
 
                 <button
                   onClick={handleSendLink}
                   disabled={!contact.trim()}
-                  className="mt-6 h-[58px] w-full rounded-full bg-[#2F93F6] text-white font-black"
+                  className="mt-6 h-[58px] w-full rounded-full bg-[#2F93F6] font-black text-white disabled:opacity-50"
                 >
                   Send Login Link
                 </button>
@@ -125,42 +109,21 @@ const Verify = () => {
                   {contact}
                 </p>
 
-                {!isSuccess ? (
-                  <>
-                    <div className="mt-4">
-                      <p className="text-[14px] font-semibold text-[#2F93F6]">
-                        Next step
-                      </p>
+                <div className="mt-4">
+                  <p className="text-[14px] font-semibold text-[#2F93F6]">
+                    Next step
+                  </p>
 
-                      <p className="text-[14px] text-[#6F8194]">
-                        Open the secure link from your inbox or message and continue to your profile setup.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={handleSimulateClick}
-                      className="mt-6 h-[58px] w-full rounded-full bg-[#2F93F6] text-white font-black"
-                    >
-                      I Opened the Link
-                    </button>
-                  </>
-                ) : (
-                  <div className="mt-6 flex items-center justify-center gap-2 text-emerald-600">
-                    <CheckCircle2 size={18} />
-                    <span className="font-bold">
-                      Verified Successfully
-                    </span>
-                  </div>
-                )}
+                  <p className="text-[14px] text-[#6F8194]">
+                    Open the secure link from your inbox and continue to your profile setup.
+                  </p>
+                </div>
 
                 <button
-                  onClick={() => {
-                    setLinkSent(false);
-                    setIsSuccess(false);
-                  }}
-                  className="mt-4 text-sm font-bold text-[#2F93F6]"
+                  onClick={handleChangeEmail}
+                  className="mt-6 text-sm font-bold text-[#2F93F6]"
                 >
-                  Change {isEmail ? 'email' : 'phone'}
+                  Change email
                 </button>
               </div>
             )}
@@ -171,7 +134,6 @@ const Verify = () => {
                 Protected access
               </p>
             </div>
-
           </div>
         </div>
       </main>

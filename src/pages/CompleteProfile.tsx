@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../utils/store';
+import { saveUserProfile } from '../services/authService';
 import {
   User,
   Mail,
@@ -19,7 +20,7 @@ const avatars = [
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
-  const { user, setUser } = useStore();
+  const { user } = useStore();
 
   const [username, setUsername] = useState(user.username || '');
   const [phone, setPhone] = useState(user.phone || '');
@@ -32,25 +33,26 @@ const CompleteProfile = () => {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleComplete = (e: React.FormEvent) => {
+  const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!username.trim()) return;
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setUser((prev) => ({
-        ...prev,
-        username,
+    try {
+      await saveUserProfile({
+        name: username,
         phone,
-        email,
-        profileImage: selectedAvatar,
-        primaryContact,
-      }));
+      });
 
       navigate('/app/home');
-    }, 1200);
+    } catch (err: any) {
+      console.error('Save profile error:', err);
+      alert(err?.message || 'Failed to save profile');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

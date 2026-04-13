@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Mail, Phone } from 'lucide-react';
+import { sendVerification } from '../services/authService'
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -8,29 +9,40 @@ const Auth = () => {
   const navigate = useNavigate();
 
   const [contact, setContact] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [countdown, setCountdown] = useState(30);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState('');
 
   const isEmail = role === 'reporter';
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contact.trim()) return;
 
-    setIsVerifying(true);
+    const trimmedContact = contact.trim();
 
-    setTimeout(() => {
-      setIsVerifying(false);
-      navigate('/verify', { state: { contact, role } });
-    }, 1200);
-  };
-
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
-      return () => clearTimeout(timer);
+    if (!trimmedContact) {
+      setError(isEmail ? 'Email is required' : 'Phone number is required');
+      return;
     }
-  }, [countdown]);
+
+    setError('');
+    setIsSending(true);
+
+    try {
+      if (isEmail) {
+        await sendVerification(trimmedContact);
+        localStorage.setItem('pendingEmail', trimmedContact);
+      } else {
+        localStorage.setItem('pendingPhone', trimmedContact);
+      }
+
+      navigate('/verify');
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || 'Failed to send verification link');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-[#EEF3F8] px-6 py-10">
@@ -59,7 +71,7 @@ const Auth = () => {
             {isEmail ? 'Email Address' : 'Phone Number'}
           </label>
 
-          <div className="relative mb-10">
+          <div className="relative mb-3">
             <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#9AA8BC] transition-colors duration-300">
               {isEmail ? <Mail size={20} /> : <Phone size={20} />}
             </span>
@@ -68,37 +80,38 @@ const Auth = () => {
               type={isEmail ? 'email' : 'tel'}
               placeholder={isEmail ? 'name@example.com' : '+92 300 1234567'}
               value={contact}
-              onChange={(e) => setContact(e.target.value)}
+              onChange={(e) => {
+                setContact(e.target.value);
+                if (error) setError('');
+              }}
               autoFocus
               className="h-[62px] w-full rounded-[22px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] font-medium text-[#1F2A37] placeholder:text-[#9AA8BC] outline-none shadow-sm transition-all duration-300 focus:border-[#5BA3F0] focus:ring-4 focus:ring-[#5BA3F0]/15"
             />
           </div>
 
+          {error && (
+            <p className="mb-6 ml-1 text-sm font-semibold text-red-500">
+              {error}
+            </p>
+          )}
+
+          {!error && (
+            <p className="mb-6 ml-1 text-sm text-[#6B7A90]">
+              {isEmail
+                ? 'We will send you a secure sign-in link to your email.'
+                : 'We will verify your phone number to continue.'}
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={!contact.trim() || isVerifying}
+            disabled={!contact.trim() || isSending}
             className={`mt-auto h-[58px] w-full rounded-full border-b-4 border-[#E09E00] bg-[#F4B400] text-sm font-black text-white shadow-[0_14px_28px_rgba(244,180,0,0.25)] transition-all duration-300 active:scale-[0.97] ${
-              !contact.trim() || isVerifying ? 'cursor-not-allowed opacity-50' : ''
+              !contact.trim() || isSending ? 'cursor-not-allowed opacity-50' : ''
             }`}
           >
-            {isVerifying ? 'Sending...' : 'Continue'}
+            {isSending ? 'Sending...' : 'Continue'}
           </button>
-
-          <div className="mt-6 text-center text-sm">
-            {countdown > 0 ? (
-              <span className="text-[#9AA8BC]">
-                Resend in <span className="font-bold text-[#1F2A37]">{countdown}</span>s
-              </span>
-            ) : (
-              <button
-                type="button"
-                className="font-bold text-[#4A90E2]"
-                onClick={() => setCountdown(30)}
-              >
-                Resend code
-              </button>
-            )}
-          </div>
         </form>
 
         <div className="mt-10 text-center">

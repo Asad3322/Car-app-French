@@ -4,11 +4,11 @@ import ReportDetails from './pages/ReportDetails';
 import Verify from './pages/Verify';
 import Success from './pages/Success';
 import Auth from './pages/Auth';
+import AuthCallback from './pages/AuthCallback';
 import AddVehicleOnboarding from './pages/AddVehicleOnboarding';
 import AppLayout from './components/layout/AppLayout';
 import PlainAppLayout from './components/layout/PlainAppLayout';
 import PublicFlowLayout from './components/layout/PublicFlowLayout';
-
 
 // App Routes
 import Home from './pages/app/Home';
@@ -35,6 +35,7 @@ function App() {
             <Route path="/verify" element={<Verify />} />
             <Route path="/success" element={<Success />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/vehicle/add-onboarding" element={<AddVehicleOnboarding />} />
           </Route>
