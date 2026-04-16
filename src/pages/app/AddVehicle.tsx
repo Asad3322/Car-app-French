@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -14,60 +14,173 @@ import { useStore } from '../../utils/store';
 const AddVehicle = () => {
   const navigate = useNavigate();
   const { setVehicles } = useStore();
+
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
-  const [image, setImage] = useState<string | undefined>(undefined);
+  const [imagePreview, setImagePreview] = useState<string | undefined>(undefined);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const insuranceInputRef = useRef<HTMLInputElement | null>(null);
+  const addMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const isFormValid = name.trim() !== '' && plate.trim() !== '';
+  const isFormValid =
+    name.trim() !== '' &&
+    plate.trim() !== '' &&
+    !!imageFile;
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        showAddMenu &&
+        addMenuRef.current &&
+        !addMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowAddMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [showAddMenu]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+
+    if (!file) {
+      setShowAddMenu(false);
+      return;
     }
+
+    setImageFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
     setShowAddMenu(false);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
   };
 
   const handleInsuranceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+
+    if (!file) {
       setShowAddMenu(false);
+      return;
+    }
+
+    setInsuranceFile(file);
+    setShowAddMenu(false);
+
+    if (insuranceInputRef.current) {
+      insuranceInputRef.current.value = '';
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || isSubmitting) return;
 
-    const newVehicle = {
-      id: Math.random().toString(36).substring(2, 9),
-      name,
-      plate: plate.toUpperCase(),
-      reportsCount: 0,
-      image,
-    };
+    try {
+      setIsSubmitting(true);
 
-    setVehicles((prev) => [...prev, newVehicle]);
-    navigate('/app/vehicles');
+      const token = localStorage.getItem('token') || '';
+      const formData = new FormData();
+
+      formData.append('vehicleName', name.trim());
+      formData.append('licencePlate', plate.trim().toUpperCase());
+
+      if (imageFile) {
+        formData.append('vehicleMedia', imageFile);
+      }
+
+      if (insuranceFile) {
+        formData.append('insuranceDocument', insuranceFile);
+      }
+
+      const response = await fetch('http://localhost:5000/api/vehicles', {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      console.log('Vehicle API response:', result);
+
+      if (!response.ok) {
+        console.error('Backend validation errors:', result.errors);
+
+        const validationMessage =
+          Array.isArray(result.errors) && result.errors.length > 0
+            ? result.errors.join(', ')
+            : result.message || 'Failed to register vehicle';
+
+        throw new Error(validationMessage);
+      }
+
+      const refreshResponse = await fetch('http://localhost:5000/api/vehicles', {
+        method: 'GET',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      const refreshResult = await refreshResponse.json();
+
+      console.log('Refreshed vehicles response:', refreshResult);
+
+      if (!refreshResponse.ok) {
+        throw new Error(refreshResult.message || 'Failed to refresh vehicles');
+      }
+
+      const normalizedVehicles = Array.isArray(refreshResult?.data)
+        ? refreshResult.data.map((vehicle: any) => ({
+            id: vehicle.id || Date.now().toString(),
+            name: vehicle.vehicle_name || vehicle.vehicleName || '',
+            plate: vehicle.licence_plate || '',
+            reportsCount: vehicle.reports_count || 0,
+            image: vehicle.image || vehicle.vehicle_media?.[0] || '',
+            vehicle_media: Array.isArray(vehicle.vehicle_media)
+              ? vehicle.vehicle_media
+              : vehicle.image
+                ? [vehicle.image]
+                : [],
+          }))
+        : [];
+
+      setVehicles(normalizedVehicles);
+
+      navigate('/app/vehicles');
+    } catch (error: any) {
+      console.error('Add vehicle error:', error);
+      alert(error.message || 'Failed to register vehicle');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="relative flex h-full flex-col bg-[#F3F7FB] px-5 pt-8 pb-10 sm:px-6 sm:pt-10">
-      {/* Soft atmosphere */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[220px] w-[220px] -translate-x-1/2 rounded-full bg-white/35 blur-3xl" />
         <div className="absolute right-[-40px] top-24 h-[180px] w-[180px] rounded-full bg-[#D8EAFF]/35 blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="relative z-10 mb-8 flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
@@ -91,7 +204,6 @@ const AddVehicle = () => {
             onSubmit={handleSubmit}
             className="flex flex-col gap-6"
           >
-            {/* FORM */}
             <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
               <div className="flex flex-col gap-5">
                 <div>
@@ -129,7 +241,6 @@ const AddVehicle = () => {
               </div>
             </section>
 
-            {/* IMAGE SECTION */}
             <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-5">
               <div className="mb-3">
                 <label className="ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
@@ -138,10 +249,10 @@ const AddVehicle = () => {
               </div>
 
               <div className="group relative overflow-hidden rounded-[24px] border border-[#DCE6F2] bg-[#F8FBFF] p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition-all">
-                {image ? (
+                {imagePreview ? (
                   <div className="relative h-52 w-full overflow-hidden rounded-[20px]">
                     <img
-                      src={image}
+                      src={imagePreview}
                       alt="Preview"
                       className="h-full w-full object-cover"
                     />
@@ -178,8 +289,7 @@ const AddVehicle = () => {
                 )}
               </div>
 
-              {/* BOTTOM ACTION AREA */}
-              <div className="relative mt-4 flex justify-end">
+              <div ref={addMenuRef} className="relative mt-4 flex justify-end">
                 {showAddMenu && (
                   <div className="absolute bottom-[72px] right-0 z-20 flex min-w-[180px] flex-col gap-2 rounded-[18px] border border-[#DCE6F2] bg-white/95 p-2 shadow-[0_16px_30px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                     <button
@@ -214,8 +324,13 @@ const AddVehicle = () => {
                   type="button"
                   onClick={() => setShowAddMenu((prev) => !prev)}
                   className="flex h-14 w-14 items-center justify-center rounded-full border-4 border-white bg-[#2563EB] text-white shadow-[0_16px_28px_rgba(37,99,235,0.35)] transition-all active:scale-95"
+                  aria-label="Open add options"
                 >
-                  <Plus size={24} strokeWidth={3} />
+                  <Plus
+                    size={24}
+                    strokeWidth={3}
+                    className={`transition-transform duration-200 ${showAddMenu ? 'rotate-45' : 'rotate-0'}`}
+                  />
                 </button>
               </div>
 
@@ -239,16 +354,15 @@ const AddVehicle = () => {
         </div>
       </div>
 
-      {/* Bottom Action Bar */}
       <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-[#DCE6F2] bg-white/95 p-5 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-3xl">
           <button
             type="submit"
             form="app-add-vehicle"
-            disabled={!isFormValid}
+            disabled={!isFormValid || isSubmitting}
             className="h-[60px] w-full rounded-[18px] bg-[#2563EB] text-[13px] font-black uppercase tracking-[0.14em] text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Register Vehicle
+            {isSubmitting ? 'Registering...' : 'Register Vehicle'}
           </button>
         </div>
       </div>

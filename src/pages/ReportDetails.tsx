@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
@@ -7,7 +7,7 @@ import {
   UploadCloud,
   Car,
 } from "lucide-react";
-import type { Urgency, Incident } from "../utils/types";
+import type { Urgency } from "../utils/types";
 import { useStore } from "../utils/store";
 
 const ReportDetails = () => {
@@ -15,6 +15,7 @@ const ReportDetails = () => {
   const { setIncidents } = useStore();
 
   const [description, setDescription] = useState("");
+  const [originalDescription, setOriginalDescription] = useState("");
   const [urgency, setUrgency] = useState<Urgency>("Medium Urgency");
   const [plate, setPlate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,42 +24,198 @@ const ReportDetails = () => {
   const [hasInsurance, setHasInsurance] = useState(false);
   const [mediaCount, setMediaCount] = useState(0);
 
-  const handleAiOptimize = () => {
-    if (!description || aiUses >= 3 || isOptimizing) return;
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
 
-    setIsOptimizing(true);
+  const [mediaPreview, setMediaPreview] = useState<string[]>([]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
 
-    setTimeout(() => {
-      setDescription((prev) => prev + " (Refined by CARAPP AI)");
-      setAiUses((prev) => prev + 1);
-      setIsOptimizing(false);
-    }, 1200);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
+  const insuranceInputRef = useRef<HTMLInputElement | null>(null);
+
+  const mapUrgencyToApi = (
+    value: Urgency,
+  ): "urgent" | "medium" | "not_urgent" => {
+    if (value === "Urgent") return "urgent";
+    if (value === "Not Urgent") return "not_urgent";
+    return "medium";
   };
 
-  const sendReport = () => {
-    if (!plate || !description) {
+  const handleAiOptimize = async () => {
+    if (!description.trim() || aiUses >= 3 || isOptimizing) return;
+
+    try {
+      setIsOptimizing(true);
+
+      if (!originalDescription.trim()) {
+        setOriginalDescription(description.trim());
+      }
+
+      const response = await fetch(
+        "http://localhost:5000/api/ai/generate-description",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            description: description.trim(),
+            mode: "incident_optimization",
+            language: "fr",
+          }),
+        },
+      );
+
+      const result = await response.json();
+
+      console.log("AI optimize response:", result);
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to optimize description");
+      }
+
+      const optimizedText =
+        result?.data?.description ||
+        result?.data?.optimizedDescription ||
+        result?.description ||
+        "";
+
+      if (!optimizedText.trim()) {
+        throw new Error("No optimized text returned from AI");
+      }
+
+      setDescription(optimizedText.trim());
+      setAiUses((prev) => prev + 1);
+    } catch (error: any) {
+      console.error("AI optimize error:", error);
+      alert(error.message || "Failed to optimize description");
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    setMediaFiles(files);
+    setMediaCount(files.length);
+
+    setMediaPreview((prev) => {
+      prev.forEach((url) => URL.revokeObjectURL(url));
+      return [];
+    });
+
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setMediaPreview(previews);
+  };
+
+  const handleInsuranceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setInsuranceFile(file);
+    setHasInsurance(!!file);
+  };
+
+  const handlePhotosClick = () => {
+    mediaInputRef.current?.click();
+  };
+
+  const handleInsuranceClick = () => {
+    insuranceInputRef.current?.click();
+  };
+
+  const sendReport = async () => {
+    if (!plate.trim() || description.trim().length < 5 || isSubmitting) {
+      alert("Description must be at least 5 characters");
       return;
     }
 
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
+      setUploadedImageUrls([]);
 
-    const newIncident: Incident = {
-      id: Date.now().toString(),
-      plate,
-      incidentType: "TRAFFIC",
-      description,
-      urgency,
-      date: new Date().toISOString(),
-      status: "reported",
-      location: "Current Location",
-      reporterId: "user1",
-    };
+      const token = localStorage.getItem("token") || "";
+      const formData = new FormData();
 
-    setTimeout(() => {
-      setIncidents((prev: Incident[]) => [newIncident, ...prev]);
-      setIsSubmitting(false);
+      formData.append("licencePlate", plate.trim().toUpperCase());
+      formData.append("urgency", mapUrgencyToApi(urgency));
+      formData.append("description", description.trim());
+      formData.append(
+        "originalDescription",
+        (originalDescription.trim() || description.trim()),
+      );
+      formData.append(
+        "aiOptimized",
+        String(
+          !!originalDescription.trim() &&
+            originalDescription.trim() !== description.trim(),
+        ),
+      );
+      formData.append("aiUses", String(aiUses));
+
+      mediaFiles.forEach((file) => {
+        formData.append("medias", file);
+      });
+
+      if (insuranceFile) {
+        formData.append("insuranceCertificate", insuranceFile);
+      }
+
+      const response = await fetch("http://localhost:5000/api/reports", {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      console.log("Report API response:", result);
+
+      if (!response.ok) {
+        console.error("Backend validation errors:", result.errors);
+        throw new Error(result.message || "Failed to submit report");
+      }
+
+      const savedReport = result?.data;
+
+      const urlsFromBackend =
+        savedReport?.mediaUrls ||
+        savedReport?.imageUrls ||
+        savedReport?.media_links ||
+        (savedReport?.imageUrl ? [savedReport.imageUrl] : []) ||
+        (savedReport?.mediaUrl ? [savedReport.mediaUrl] : []);
+
+      if (Array.isArray(urlsFromBackend) && urlsFromBackend.length > 0) {
+        setUploadedImageUrls(urlsFromBackend);
+        console.log("Uploaded Supabase URLs:", urlsFromBackend);
+      } else {
+        console.log("No uploaded URLs returned from backend");
+      }
+
+      if (savedReport) {
+        const newIncident = {
+          id: savedReport.id || Date.now().toString(),
+          plate: savedReport.licence_plate || plate.trim().toUpperCase(),
+          incidentType: "TRAFFIC",
+          description: savedReport.description || description.trim(),
+          urgency,
+          date: savedReport.created_at || new Date().toISOString(),
+          status: savedReport.status || "reported",
+          location: savedReport.location || "Current Location",
+          reporterId: savedReport.reporter_id || "user1",
+        };
+
+        setIncidents((prev: any[]) => [newIncident, ...prev]);
+      }
+
       navigate("/success");
-    }, 1500);
+    } catch (error: any) {
+      console.error("Submit report error:", error);
+      alert(error.message || "Failed to submit report");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,7 +308,12 @@ const ReportDetails = () => {
             className="w-full resize-none rounded-[22px] border border-[#D9E5F1] bg-white p-4 text-[15px] font-medium leading-relaxed text-[#1F2A37] outline-none shadow-sm placeholder:text-[#9AA8BC]"
           />
 
-          {/* ✅ SHORT ALERT TEXT */}
+          {description.trim().length > 0 && description.trim().length < 5 && (
+            <p className="mt-2 text-[12px] font-bold text-red-500">
+              Description must be at least 5 characters long
+            </p>
+          )}
+
           <p className="mt-3 text-[13px] font-extrabold text-[#E5533D]">
             ⚠️ BE SPECIFIC
           </p>
@@ -162,34 +324,121 @@ const ReportDetails = () => {
         </section>
 
         <div className="grid grid-cols-2 gap-4">
-          <ActionCard
-            label="Add Photos"
-            icon={<Camera size={22} />}
-            active={mediaCount > 0}
-            onClick={() => setMediaCount((prev) => (prev > 0 ? 0 : 1))}
+          <PhotoCard
+            onClick={handlePhotosClick}
+            previews={mediaPreview}
+            mediaCount={mediaCount}
           />
 
           <ActionCard
-            label="Insurance"
-            subLabel="Optional"
+            label={insuranceFile ? insuranceFile.name : "Insurance"}
+            subLabel={insuranceFile ? "Selected" : "Optional"}
             icon={<UploadCloud size={22} />}
             active={hasInsurance}
-            onClick={() => {
-              setHasInsurance((prev) => !prev);
-            }}
+            onClick={handleInsuranceClick}
           />
         </div>
+
+        <input
+          ref={mediaInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleMediaUpload}
+        />
+
+        <input
+          ref={insuranceInputRef}
+          type="file"
+          accept="image/*,.pdf"
+          className="hidden"
+          onChange={handleInsuranceUpload}
+        />
 
         <button
           type="button"
           onClick={sendReport}
-          disabled={!plate || !description || isSubmitting}
+          disabled={!plate.trim() || description.trim().length < 5 || isSubmitting}
           className="mt-3 flex h-[60px] w-full items-center justify-center rounded-full border-b-4 border-[#E09E00] bg-[#F4B400] text-[15px] font-black uppercase tracking-[0.06em] text-white shadow-md transition disabled:opacity-50"
         >
           {isSubmitting ? "Submitting..." : "Submit Report"}
         </button>
+
+        {uploadedImageUrls.length > 0 && (
+          <div className="rounded-[20px] border border-[#D9E5F1] bg-white p-4 shadow-sm">
+            <p className="mb-3 text-[12px] font-black uppercase tracking-widest text-[#6B7A90]">
+              Supabase Uploaded Links
+            </p>
+
+            <div className="space-y-2">
+              {uploadedImageUrls.map((url, index) => (
+                <a
+                  key={index}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block break-all text-[12px] font-medium text-[#4A90E2] underline"
+                >
+                  {url}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+};
+
+type PhotoCardProps = {
+  previews: string[];
+  mediaCount: number;
+  onClick: () => void;
+};
+
+const PhotoCard = ({ previews, mediaCount, onClick }: PhotoCardProps) => {
+  const hasImages = previews.length > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex min-h-[140px] flex-col items-center justify-center rounded-[22px] border p-5 transition ${
+        hasImages
+          ? "border-[#4A90E2] bg-[#4A90E2]/10"
+          : "border-[#D9E5F1] bg-white"
+      }`}
+    >
+      {hasImages ? (
+        <>
+          <div className="mb-3 grid w-full grid-cols-2 gap-2">
+            {previews.slice(0, 4).map((src, index) => (
+              <img
+                key={index}
+                src={src}
+                alt={`preview-${index}`}
+                className="h-[42px] w-full rounded-lg object-cover"
+              />
+            ))}
+          </div>
+
+          <span className="text-center text-xs font-bold text-[#1F2A37]">
+            {mediaCount} Photo{mediaCount > 1 ? "s" : ""} Selected
+          </span>
+        </>
+      ) : (
+        <>
+          <div className="mb-3 text-[#4A90E2]">
+            <Camera size={22} />
+          </div>
+
+          <span className="text-center text-xs font-bold text-[#1F2A37]">
+            Add Photos
+          </span>
+        </>
+      )}
+    </button>
   );
 };
 

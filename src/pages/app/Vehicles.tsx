@@ -1,21 +1,101 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../utils/store';
 import { Plus, CarFront, ChevronRight, AlertCircle } from 'lucide-react';
 import type { Vehicle } from '../../utils/types';
 
+const FALLBACK_VEHICLE_IMAGE =
+  'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400';
+
+const getVehicleImage = (vehicle: any) => {
+  if (!vehicle) return FALLBACK_VEHICLE_IMAGE;
+
+  if (typeof vehicle.image === 'string' && vehicle.image.trim()) {
+    return vehicle.image;
+  }
+
+  if (
+    Array.isArray(vehicle.vehicle_media) &&
+    typeof vehicle.vehicle_media[0] === 'string' &&
+    vehicle.vehicle_media[0].trim()
+  ) {
+    return vehicle.vehicle_media[0];
+  }
+
+  if (
+    Array.isArray(vehicle.vehicleMediaUrls) &&
+    typeof vehicle.vehicleMediaUrls[0] === 'string' &&
+    vehicle.vehicleMediaUrls[0].trim()
+  ) {
+    return vehicle.vehicleMediaUrls[0];
+  }
+
+  return FALLBACK_VEHICLE_IMAGE;
+};
+
+const normalizeVehicle = (vehicle: any) => ({
+  id: vehicle.id || Date.now().toString(),
+  name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
+  plate: vehicle.licence_plate || vehicle.plate || '',
+  reportsCount: vehicle.reports_count || vehicle.reportsCount || 0,
+  image: vehicle.image || vehicle.vehicle_media?.[0] || vehicle.vehicleMediaUrls?.[0] || '',
+  vehicle_media: Array.isArray(vehicle.vehicle_media)
+    ? vehicle.vehicle_media
+    : vehicle.image
+      ? [vehicle.image]
+      : [],
+  vehicleMediaUrls: Array.isArray(vehicle.vehicleMediaUrls)
+    ? vehicle.vehicleMediaUrls
+    : [],
+});
+
 const Vehicles = () => {
   const navigate = useNavigate();
-  const { vehicles } = useStore();
+  const { vehicles, setVehicles } = useStore();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+
+        const response = await fetch('http://localhost:5000/api/vehicles', {
+          method: 'GET',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        const result = await response.json();
+
+        console.log('Vehicles fetch response:', result);
+
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to fetch vehicles');
+        }
+
+        const normalizedVehicles = Array.isArray(result?.data)
+          ? result.data.map(normalizeVehicle)
+          : [];
+
+        setVehicles(normalizedVehicles);
+      } catch (error) {
+        console.error('Fetch vehicles error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, [setVehicles]);
 
   return (
     <div className="relative flex h-full flex-col bg-transparent px-5 pt-10 pb-12">
-      {/* Soft background atmosphere */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[220px] w-[220px] -translate-x-1/2 rounded-full bg-white/35 blur-3xl" />
         <div className="absolute right-[-40px] top-24 h-[180px] w-[180px] rounded-full bg-[#D8EAFF]/35 blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="relative z-10 mb-8">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -48,9 +128,26 @@ const Vehicles = () => {
         </div>
       </header>
 
-      {/* Vehicle List */}
       <div className="scrollbar-hide relative z-10 flex-1 overflow-y-auto pb-36">
-        {vehicles.length === 0 ? (
+        {isLoading ? (
+          <div className="mt-10 flex flex-col gap-4">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="flex animate-pulse flex-col gap-4 rounded-[28px] border border-[#DCE6F2] bg-[#F7FAFD]/96 p-5"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-24 rounded-[20px] bg-[#E5EDF6]" />
+                  <div className="flex-1">
+                    <div className="h-5 w-32 rounded bg-[#E5EDF6]" />
+                    <div className="mt-3 h-7 w-24 rounded bg-[#E5EDF6]" />
+                  </div>
+                </div>
+                <div className="h-4 w-28 rounded bg-[#E5EDF6]" />
+              </div>
+            ))}
+          </div>
+        ) : vehicles.length === 0 ? (
           <div className="mt-10 flex flex-col items-center justify-center rounded-[32px] border border-white/70 bg-white/85 p-12 text-center shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur-xl">
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[26px] bg-[#EEF4FA] text-[#94A3B8] shadow-inner">
               <CarFront size={34} />
@@ -93,7 +190,10 @@ const VehicleCard = ({
   vehicle,
   onClick,
 }: {
-  vehicle: Vehicle;
+  vehicle: Vehicle & {
+    vehicle_media?: string[];
+    vehicleMediaUrls?: string[];
+  };
   onClick: () => void;
 }) => (
   <div
@@ -103,12 +203,12 @@ const VehicleCard = ({
     <div className="flex items-center gap-4">
       <div className="flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[20px] border border-[#E5EDF6] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
         <img
-          src={
-            vehicle.image ||
-            'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400'
-          }
+          src={getVehicleImage(vehicle)}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           alt="Vehicle"
+          onError={(e) => {
+            e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
+          }}
         />
       </div>
 
