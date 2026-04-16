@@ -13,6 +13,7 @@ import { useStore } from "../utils/store";
 const ReportDetails = () => {
   const navigate = useNavigate();
   const { setIncidents } = useStore();
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const [description, setDescription] = useState("");
   const [originalDescription, setOriginalDescription] = useState("");
@@ -52,7 +53,7 @@ const ReportDetails = () => {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/ai/generate-description",
+        `${API_URL}/api/ai/generate-description`,
         {
           method: "POST",
           headers: {
@@ -160,7 +161,7 @@ const ReportDetails = () => {
         formData.append("insuranceCertificate", insuranceFile);
       }
 
-      const response = await fetch("http://localhost:5000/api/reports", {
+      const response = await fetch(`${API_URL}/api/reports`, {
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -359,7 +360,9 @@ const ReportDetails = () => {
         <button
           type="button"
           onClick={sendReport}
-          disabled={!plate.trim() || description.trim().length < 5 || isSubmitting}
+          disabled={
+            !plate.trim() || description.trim().length < 5 || isSubmitting
+          }
           className="mt-3 flex h-[60px] w-full items-center justify-center rounded-full border-b-4 border-[#E09E00] bg-[#F4B400] text-[15px] font-black uppercase tracking-[0.06em] text-white shadow-md transition disabled:opacity-50"
         >
           {isSubmitting ? "Submitting..." : "Submit Report"}
