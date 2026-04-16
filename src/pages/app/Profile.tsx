@@ -103,7 +103,7 @@ const Profile = () => {
 
               <div className="flex-1 pt-1">
                 <h2 className="text-[20px] font-extrabold text-[#0B1A2B]">
-                  {user.username || 'User'}
+                  {user?.username ?? ''}
                 </h2>
 
                 <p className="text-[10px] uppercase tracking-[0.25em] text-[#2F93F6]">
@@ -127,7 +127,7 @@ const Profile = () => {
                   <PhoneIcon size={14} className="text-[#2F93F6]" />
                 </div>
                 <p className="text-[13px] text-[#0B1A2B]">
-                  {user.phone || 'No phone'}
+                  {user?.phone ?? ''}
                 </p>
               </div>
 
@@ -136,7 +136,7 @@ const Profile = () => {
                   <Mail size={14} className="text-[#2F93F6]" />
                 </div>
                 <p className="text-[13px] text-[#0B1A2B]">
-                  {user.email || 'No email'}
+                  {user?.email ?? ''}
                 </p>
               </div>
 

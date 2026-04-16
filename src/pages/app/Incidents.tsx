@@ -39,7 +39,6 @@ const Incidents = () => {
 
   return (
     <div className="relative flex h-full flex-col bg-transparent px-5 pt-10 pb-10">
-      {/* soft atmosphere */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[220px] w-[220px] -translate-x-1/2 rounded-full bg-white/35 blur-3xl" />
         <div className="absolute right-[-40px] top-28 h-[180px] w-[180px] rounded-full bg-[#D8EAFF]/35 blur-3xl" />
@@ -142,29 +141,25 @@ const Incidents = () => {
                 </div>
 
                 <h3 className="mb-2 line-clamp-1 text-[17px] font-black tracking-tight text-[#0F172A]">
-                  {incident.description.split('.')[0]}
+                  {incident.description?.split('.')?.[0] ?? ''}
                 </h3>
 
                 <p className="mb-4 line-clamp-2 text-[14px] font-medium leading-relaxed text-[#64748B]">
-                  {incident.description}
+                  {incident.description ?? ''}
                 </p>
 
                 <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF5] pt-4">
                   {activeGroup === 'received' ? (
                     <div className="flex flex-wrap gap-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
+                        onClick={(e) => e.stopPropagation()}
                         className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-black text-emerald-600 transition-all active:scale-95"
                       >
                         Thank you
                       </button>
 
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
+                        onClick={(e) => e.stopPropagation()}
                         className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-black text-red-500 transition-all active:scale-95"
                       >
                         Bad report
@@ -175,7 +170,9 @@ const Incidents = () => {
                   )}
 
                   <div className="shrink-0 text-[11px] font-semibold text-[#94A3B8]">
-                    {new Date(incident.date).toLocaleDateString()}
+                    {incident.date
+                      ? new Date(incident.date).toLocaleDateString()
+                      : ''}
                   </div>
                 </div>
               </div>

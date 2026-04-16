@@ -34,11 +34,15 @@ const getVehicleImage = (vehicle: any) => {
 };
 
 const normalizeVehicle = (vehicle: any) => ({
-  id: vehicle.id || Date.now().toString(),
+  id: vehicle.id,
   name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
   plate: vehicle.licence_plate || vehicle.plate || '',
-  reportsCount: vehicle.reports_count || vehicle.reportsCount || 0,
-  image: vehicle.image || vehicle.vehicle_media?.[0] || vehicle.vehicleMediaUrls?.[0] || '',
+  reportsCount: vehicle.reports_count ?? vehicle.reportsCount ?? 0,
+  image:
+    vehicle.image ||
+    vehicle.vehicle_media?.[0] ||
+    vehicle.vehicleMediaUrls?.[0] ||
+    '',
   vehicle_media: Array.isArray(vehicle.vehicle_media)
     ? vehicle.vehicle_media
     : vehicle.image
