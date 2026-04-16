@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../utils/store';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const AddVehicle = () => {
   const navigate = useNavigate();
   const { setVehicles } = useStore();
@@ -110,7 +112,7 @@ const AddVehicle = () => {
         formData.append('insuranceDocument', insuranceFile);
       }
 
-      const response = await fetch('http://localhost:5000/api/vehicles', {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles`, {
         method: 'POST',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -133,7 +135,7 @@ const AddVehicle = () => {
         throw new Error(validationMessage);
       }
 
-      const refreshResponse = await fetch('http://localhost:5000/api/vehicles', {
+      const refreshResponse = await fetch(`${API_BASE_URL}/api/vehicles`, {
         method: 'GET',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -168,7 +170,12 @@ const AddVehicle = () => {
       navigate('/app/vehicles');
     } catch (error: any) {
       console.error('Add vehicle error:', error);
-      alert(error.message || 'Failed to register vehicle');
+
+      if (error?.message?.includes('Failed to fetch')) {
+        alert('Backend not reachable. Check API URL or backend deployment.');
+      } else {
+        alert(error.message || 'Failed to register vehicle');
+      }
     } finally {
       setIsSubmitting(false);
     }
