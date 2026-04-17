@@ -16,10 +16,15 @@ export const handleMagicLinkLogin = async () => {
 
   if (error) throw error;
 
-  const user = data?.session?.user;
+  const session = data?.session;
+  const user = session?.user;
 
   if (!user) {
     throw new Error('No user session found');
+  }
+
+  if (session?.access_token) {
+    localStorage.setItem('token', session.access_token);
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -231,6 +236,7 @@ export const getMyProfile = async () => {
 };
 
 export const signOutUser = async () => {
+  localStorage.removeItem('token');
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 };

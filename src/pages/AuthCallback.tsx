@@ -24,6 +24,19 @@ const AuthCallback = () => {
           }
         }
 
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        if (session?.access_token) {
+          localStorage.setItem('token', session.access_token);
+        }
+
         const result = await handleMagicLinkLogin();
 
         if (result?.needsProfileCompletion) {
