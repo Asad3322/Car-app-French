@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../utils/store';
+import { supabase } from '../../supabase';
 import {
   MdLocalFireDepartment,
   MdVerifiedUser,
@@ -10,11 +12,45 @@ import {
 const Home = () => {
   const { user } = useStore();
   const navigate = useNavigate();
+  const [authName, setAuthName] = useState('');
+
+  useEffect(() => {
+    const loadAuthUser = async () => {
+      try {
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
+
+        if (!authUser) {
+          setAuthName('');
+          return;
+        }
+
+        const nameFromMeta =
+          typeof authUser.user_metadata?.name === 'string'
+            ? authUser.user_metadata.name.trim()
+            : '';
+
+        const emailName =
+          typeof authUser.email === 'string'
+            ? authUser.email.split('@')[0]
+            : '';
+
+        setAuthName(nameFromMeta || emailName || '');
+      } catch (error) {
+        console.error('Failed to load auth user in Home:', error);
+        setAuthName('');
+      }
+    };
+
+    loadAuthUser();
+  }, []);
 
   const firstName =
-  user?.username?.trim()?.split(' ')[0] ||
-  user?.email?.split('@')[0] ||
-  'Guest';
+    user?.username?.trim()?.split(' ')[0] ||
+    authName?.trim()?.split(' ')[0] ||
+    user?.email?.split('@')[0] ||
+    'Guest';
 
   const streak = user.streak ?? 12;
   const reportsMade = user.totalIncidentsReported ?? 48;
