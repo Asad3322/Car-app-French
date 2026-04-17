@@ -83,11 +83,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         const fallbackUsername =
-          profileData?.username?.trim?.() ||
+          (typeof profileData?.username === 'string' ? profileData.username.trim() : '') ||
+          (typeof profileData?.name === 'string' ? profileData.name.trim() : '') ||
           (typeof authUser.user_metadata?.name === 'string'
             ? authUser.user_metadata.name.trim()
             : '') ||
-          (authUser.email ? authUser.email.split('@')[0] : '') ||
           '';
 
         const mergedUser: UserProfile = {
