@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabase';
 
 type ProtectedRouteProps = {
@@ -7,40 +7,53 @@ type ProtectedRouteProps = {
 };
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [valid, setValid] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
+    let isMounted = true;
+
+    const checkAuth = async () => {
       try {
         const {
-          data: { session },
-        } = await supabase.auth.getSession();
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
-        if (!session) {
-          setValid(false);
-          return;
-        }
+        if (!isMounted) return;
 
-        const { data, error } = await supabase.auth.getUser();
-
-        if (error || !data?.user) {
-          await supabase.auth.signOut();
-          localStorage.removeItem('pendingEmail');
-          localStorage.removeItem('pendingPhone');
+        if (error || !user) {
           setValid(false);
         } else {
           setValid(true);
         }
       } catch (error) {
         console.error('ProtectedRoute error:', error);
-        setValid(false);
+        if (isMounted) {
+          setValid(false);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    checkSession();
+    checkAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setValid(!!session?.user);
+      setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (loading) {
@@ -56,7 +69,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!valid) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
   return <>{children}</>;

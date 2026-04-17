@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Onboarding from './pages/Onboarding';
 import ReportDetails from './pages/ReportDetails';
 import Verify from './pages/Verify';
@@ -9,6 +9,7 @@ import AddVehicleOnboarding from './pages/AddVehicleOnboarding';
 import AppLayout from './components/layout/AppLayout';
 import PlainAppLayout from './components/layout/PlainAppLayout';
 import PublicFlowLayout from './components/layout/PublicFlowLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // App Routes
 import Home from './pages/app/Home';
@@ -23,6 +24,12 @@ import Leaderboard from './pages/app/Leaderboard';
 import CompleteProfile from './pages/CompleteProfile';
 
 import { StoreProvider } from './utils/store';
+
+const ProtectedOutlet = () => (
+  <ProtectedRoute>
+    <Outlet />
+  </ProtectedRoute>
+);
 
 function App() {
   return (
@@ -40,9 +47,15 @@ function App() {
             <Route path="/vehicle/add-onboarding" element={<AddVehicleOnboarding />} />
           </Route>
 
-          {/* Main App Routes */}
-          <Route path="/app">
-            {/* Layout WITH Bottom Nav */}
+          {/* Public Plain Routes - old flow */}
+          <Route element={<PlainAppLayout />}>
+            <Route path="/app/reports" element={<ReportDetails />} />
+            <Route path="/app/report-details" element={<ReportDetails />} />
+          </Route>
+
+          {/* Protected App Flow */}
+          <Route path="/app" element={<ProtectedOutlet />}>
+            {/* WITH Bottom Nav */}
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/app/home" replace />} />
               <Route path="home" element={<Home />} />
@@ -52,10 +65,8 @@ function App() {
               <Route path="profile" element={<Profile />} />
             </Route>
 
-            {/* Layout WITHOUT Bottom Nav */}
+            {/* WITHOUT Bottom Nav */}
             <Route element={<PlainAppLayout />}>
-              <Route path="reports" element={<ReportDetails />} />
-              <Route path="report-details" element={<ReportDetails />} />
               <Route path="vehicles/add" element={<AddVehicle />} />
               <Route path="vehicles/:id/edit" element={<EditVehicle />} />
               <Route path="incidents/:id" element={<IncidentDetails />} />

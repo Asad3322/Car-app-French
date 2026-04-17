@@ -9,34 +9,80 @@ import {
   Mail,
   Info,
 } from 'lucide-react';
-import { useStore } from '../../utils/store';
+import { supabase } from '../../supabase';
 
 const EditProfile = () => {
   const navigate = useNavigate();
-  const { user, setUser } = useStore();
 
-  const [username, setUsername] = useState(user.username || '');
-  const [phone, setPhone] = useState(user.phone || '');
-  const [email, setEmail] = useState(user.email || '');
-  const [profileImage, setProfileImage] = useState(user.profileImage || '');
+  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [profileImage, setProfileImage] = useState('');
 
   const [isTyping, setIsTyping] = useState(false);
   const [isUnique, setIsUnique] = useState<boolean | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Phone Verification State
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(user.isPhoneVerified);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const defaultAvatar =
     'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky&backgroundColor=b6e3f4';
 
   useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setIsLoadingProfile(true);
+
+        const {
+          data: { user: authUser },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !authUser) {
+          navigate('/auth');
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('auth_user_id', authUser.id)
+          .maybeSingle();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (profile) {
+          setUsername(profile.username || profile.name || '');
+          setPhone(profile.phone || '');
+          setEmail(profile.email || authUser.email || '');
+          setProfileImage(profile.avatar_url || '');
+          setPhoneVerified(
+            Boolean(profile.is_vehicle_owner || profile.isVehicleOwner)
+          );
+        } else {
+          setEmail(authUser.email || '');
+        }
+      } catch (error) {
+        console.error('Load profile error:', error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [navigate]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsTyping(false);
-      if (username.length >= 3) {
-        setIsUnique(username.toLowerCase() !== 'admin');
+      if (username.trim().length >= 3) {
+        setIsUnique(username.trim().toLowerCase() !== 'admin');
       } else {
         setIsUnique(null);
       }
@@ -45,24 +91,49 @@ const EditProfile = () => {
     return () => clearTimeout(timer);
   }, [username]);
 
-  const isValid = username.length >= 3 && isUnique !== false && (email || phone);
+  const isValid =
+    username.trim().length >= 3 && isUnique !== false && (email || phone);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
 
-    setUser((prev) => ({
-      ...prev,
-      username,
-      phone,
-      email,
-      profileImage: profileImage || prev.profileImage,
-      isPhoneVerified: phoneVerified,
-      isVehicleOwner: phoneVerified || prev.isVehicleOwner,
-      verifiedPhone: phoneVerified ? phone : prev.verifiedPhone,
-    }));
+    try {
+      setIsSaving(true);
 
-    navigate('/app/profile');
+      const {
+        data: { user: authUser },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !authUser) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: username.trim(),
+          name: username.trim(),
+          phone: phone.trim() || null,
+          email: email.trim() || authUser.email || null,
+          avatar_url: profileImage || null,
+          is_vehicle_owner: phoneVerified,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('auth_user_id', authUser.id);
+
+      if (error) {
+        throw error;
+      }
+
+      navigate('/app/profile');
+    } catch (err: any) {
+      console.error('Update profile error:', err);
+      alert(err?.message || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSendOtp = () => {
@@ -91,9 +162,20 @@ const EditProfile = () => {
     }
   };
 
+  if (isLoadingProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F8FBFF] px-6">
+        <div className="rounded-[24px] border border-[#DCE6F2] bg-white px-6 py-5 text-center shadow-sm">
+          <p className="text-sm font-semibold text-[#6B7A90]">
+            Loading profile...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex h-full flex-col bg-[#F8FBFF] px-5 pt-10 pb-10">
-      {/* Header */}
       <header className="mb-8 flex items-center justify-between">
         <button
           onClick={() => navigate('/app/profile')}
@@ -111,12 +193,11 @@ const EditProfile = () => {
 
       <div className="scrollbar-hide flex-1 overflow-y-auto pb-44">
         <form id="edit-profile" onSubmit={handleSave} className="flex flex-col gap-7">
-          {/* Avatar Section */}
           <section className="flex flex-col items-center pt-1">
             <div className="group relative">
               <div className="h-32 w-32 overflow-hidden rounded-[40px] border border-[#E2EAF3] bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] transition-transform duration-300 group-hover:scale-[1.02]">
                 <img
-                  src={profileImage || user.profileImage || defaultAvatar}
+                  src={profileImage || defaultAvatar}
                   alt="Avatar"
                   className="h-full w-full rounded-[34px] object-cover"
                 />
@@ -138,7 +219,6 @@ const EditProfile = () => {
             </p>
           </section>
 
-          {/* Basic Info */}
           <section className="rounded-[28px] border border-[#DCE6F2] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
             <div className="flex flex-col gap-5">
               <div>
@@ -196,7 +276,6 @@ const EditProfile = () => {
             </div>
           </section>
 
-          {/* Verification Card */}
           <section className="rounded-[30px] border border-[#DCE6F2] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#DCE6F2] bg-[#F8FBFF] text-[#2563EB] shadow-sm">
@@ -289,7 +368,6 @@ const EditProfile = () => {
         </form>
       </div>
 
-      {/* Bottom Action Bar */}
       <div className="absolute bottom-0 left-0 right-0 z-50 border-t border-[#DCE6F2] bg-white/95 p-5 backdrop-blur-xl">
         <div className="mx-auto flex max-w-sm gap-3">
           <button
@@ -303,10 +381,10 @@ const EditProfile = () => {
           <button
             type="submit"
             form="edit-profile"
-            disabled={!isValid}
+            disabled={!isValid || isSaving}
             className="h-14 flex-[2] rounded-[18px] bg-[#2563EB] px-5 text-[11px] font-black uppercase tracking-[0.16em] text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>

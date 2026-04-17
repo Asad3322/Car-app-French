@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabase';
 import { handleMagicLinkLogin } from '../services/authService';
 
 const AuthCallback = () => {
@@ -12,6 +13,17 @@ const AuthCallback = () => {
 
     const run = async () => {
       try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get('code');
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (error) {
+            throw error;
+          }
+        }
+
         const result = await handleMagicLinkLogin();
 
         if (result?.needsProfileCompletion) {
