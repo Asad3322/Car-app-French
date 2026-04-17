@@ -11,7 +11,11 @@ const Home = () => {
   const { user } = useStore();
   const navigate = useNavigate();
 
-  const firstName = user.username ? user.username.split(' ')[0] : 'Driver';
+  const firstName =
+  user?.username?.trim()?.split(' ')[0] ||
+  user?.email?.split('@')[0] ||
+  'Guest';
+
   const streak = user.streak ?? 12;
   const reportsMade = user.totalIncidentsReported ?? 48;
   const coins = user.coins ?? 840;
