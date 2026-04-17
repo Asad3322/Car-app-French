@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '../../utils/store';
 import { Plus, CarFront, ChevronRight, AlertCircle } from 'lucide-react';
 import type { Vehicle } from '../../utils/types';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const FALLBACK_VEHICLE_IMAGE =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400';
@@ -55,15 +56,23 @@ const normalizeVehicle = (vehicle: any) => ({
 
 const Vehicles = () => {
   const navigate = useNavigate();
-  const { vehicles, setVehicles } = useStore();
+  const [vehicles, setVehicles] = useState<
+    (Vehicle & {
+      image?: string;
+      vehicle_media?: string[];
+      vehicleMediaUrls?: string[];
+    })[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
+        setIsLoading(true);
+
         const token = localStorage.getItem('token') || '';
 
-        const response = await fetch('http://localhost:5000/api/vehicles', {
+        const response = await fetch(`${API_URL}/api/vehicles`, {
           method: 'GET',
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -85,13 +94,14 @@ const Vehicles = () => {
         setVehicles(normalizedVehicles);
       } catch (error) {
         console.error('Fetch vehicles error:', error);
+        setVehicles([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchVehicles();
-  }, [setVehicles]);
+  }, []);
 
   return (
     <div className="relative flex h-full flex-col bg-transparent px-5 pt-10 pb-12">
@@ -195,6 +205,7 @@ const VehicleCard = ({
   onClick,
 }: {
   vehicle: Vehicle & {
+    image?: string;
     vehicle_media?: string[];
     vehicleMediaUrls?: string[];
   };
