@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '../utils/store';
 import { saveUserProfile } from '../services/authService';
+import { supabase } from '../supabase';
 import {
   User,
   Mail,
@@ -18,25 +18,83 @@ const avatars = [
   'https://api.dicebear.com/9.x/fun-emoji/svg?seed=D',
 ];
 
+type AuthUserShape = {
+  id: string;
+  email?: string;
+};
+
 const CompleteProfile = () => {
   const navigate = useNavigate();
-  const { user } = useStore();
 
-  const [username, setUsername] = useState(user.username || '');
-  const [phone, setPhone] = useState(user.phone || '');
-  const [email, setEmail] = useState(user.email || '');
-  const [selectedAvatar, setSelectedAvatar] = useState(
-    user.profileImage || avatars[0]
-  );
+  const [authUser, setAuthUser] = useState<AuthUserShape | null>(null);
+  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
   const [primaryContact, setPrimaryContact] = useState<'email' | 'phone'>(
     'email'
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        setIsLoadingUser(true);
+
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!user) {
+          navigate('/auth');
+          return;
+        }
+
+        setAuthUser({
+          id: user.id,
+          email: user.email || '',
+        });
+
+        setEmail(user.email || '');
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('Load existing profile error:', profileError);
+        }
+
+        if (profile) {
+          setUsername(profile.username || profile.name || '');
+          setPhone(profile.phone || '');
+          setSelectedAvatar(profile.avatar_url || avatars[0]);
+          setPrimaryContact(profile.primary_contact || 'email');
+        }
+      } catch (err) {
+        console.error('Load auth user error:', err);
+        navigate('/auth');
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    loadUser();
+  }, [navigate]);
 
   const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!username.trim()) return;
+    if (!authUser) return;
 
     setIsSubmitting(true);
 
@@ -44,6 +102,8 @@ const CompleteProfile = () => {
       await saveUserProfile({
         name: username,
         phone,
+        primaryContact,
+        profileImage: selectedAvatar,
       });
 
       navigate('/app/home');
@@ -54,6 +114,14 @@ const CompleteProfile = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoadingUser) {
+    return (
+      <div className="relative flex min-h-[100dvh] w-full items-center justify-center bg-[#D6E2EC] text-[#0B1A2B]">
+        <p className="text-sm font-semibold text-[#6F8194]">Loading profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex min-h-[100dvh] w-full flex-col bg-[#D6E2EC] text-[#0B1A2B]">
@@ -181,8 +249,8 @@ const CompleteProfile = () => {
                     />
                     <input
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
+                      readOnly
+                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
                     />
                   </div>
                 </div>
