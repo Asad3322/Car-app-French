@@ -36,6 +36,9 @@ const CompleteProfile = () => {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameError, setUsernameError] = useState('');
 
   useEffect(() => {
     const loadUser = async () => {
@@ -90,17 +93,118 @@ const CompleteProfile = () => {
     loadUser();
   }, [navigate]);
 
+  const normalizeUsername = (value: string) => value.trim().toLowerCase();
+
+  const validateUsername = (value: string) => {
+    const normalized = normalizeUsername(value);
+
+    if (!normalized) {
+      return 'Username is required';
+    }
+
+    if (normalized.length < 3 || normalized.length > 20) {
+      return 'Username must be between 3 and 20 characters';
+    }
+
+    if (!/^[a-z0-9_.]+$/.test(normalized)) {
+      return 'Use only letters, numbers, underscore, and dot';
+    }
+
+    return '';
+  };
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    const raw = username;
+    const normalized = normalizeUsername(raw);
+    const validationMessage = validateUsername(raw);
+
+    if (!normalized) {
+      setUsernameError('');
+      setIsUsernameAvailable(null);
+      setIsCheckingUsername(false);
+      return;
+    }
+
+    if (validationMessage) {
+      setUsernameError(validationMessage);
+      setIsUsernameAvailable(false);
+      setIsCheckingUsername(false);
+      return;
+    }
+
+    setUsernameError('');
+    setIsCheckingUsername(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, auth_user_id, username')
+          .ilike('username', normalized);
+
+        if (error) {
+          throw error;
+        }
+
+        const takenByAnotherUser = (data || []).some((item: any) => {
+          const profileOwnerId = item?.auth_user_id || item?.id;
+          return profileOwnerId !== authUser.id;
+        });
+
+        setIsUsernameAvailable(!takenByAnotherUser);
+      } catch (err) {
+        console.error('Username check error:', err);
+        setIsUsernameAvailable(null);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username, authUser]);
+
   const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!username.trim()) return;
     if (!authUser) return;
+
+    const normalizedUsername = normalizeUsername(username);
+    const validationMessage = validateUsername(username);
+
+    if (validationMessage) {
+      setUsernameError(validationMessage);
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, auth_user_id, username')
+        .ilike('username', normalizedUsername);
+
+      if (error) {
+        throw error;
+      }
+
+      const takenByAnotherUser = (data || []).some((item: any) => {
+        const profileOwnerId = item?.auth_user_id || item?.id;
+        return profileOwnerId !== authUser.id;
+      });
+
+      if (takenByAnotherUser) {
+        setUsernameError('This username is already taken');
+        setIsUsernameAvailable(false);
+        setIsSubmitting(false);
+        return;
+      }
+
       await saveUserProfile({
-        name: username,
+        name: normalizedUsername,
+        username: normalizedUsername,
         phone,
         primaryContact,
         profileImage: selectedAvatar,
@@ -109,7 +213,13 @@ const CompleteProfile = () => {
       navigate('/app/home');
     } catch (err: any) {
       console.error('Save profile error:', err);
-      alert(err?.message || 'Failed to save profile');
+
+      if (err?.code === '23505' || err?.message?.toLowerCase()?.includes('duplicate')) {
+        setUsernameError('This username is already taken');
+        setIsUsernameAvailable(false);
+      } else {
+        alert(err?.message || 'Failed to save profile');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -125,14 +235,12 @@ const CompleteProfile = () => {
 
   return (
     <div className="relative flex min-h-[100dvh] w-full flex-col bg-[#D6E2EC] text-[#0B1A2B]">
-      {/* Background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#2F93F6]/10 blur-3xl" />
         <div className="absolute right-0 top-1/3 h-48 w-48 rounded-full bg-white/30 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-sky-200/30 blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-5 pt-7 pb-4">
         <div>
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6F8194]">
@@ -151,11 +259,9 @@ const CompleteProfile = () => {
         </button>
       </header>
 
-      {/* Content */}
       <main className="relative z-10 flex flex-1 flex-col px-4 pb-6">
         <div className="flex flex-1 flex-col rounded-t-[30px] border border-[#B8C9D6] bg-[#EEF4F8] px-4 pt-5 pb-6 shadow">
           <div className="mx-auto w-full max-w-[440px]">
-            {/* Top */}
             <section className="mb-5 text-center">
               <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border bg-white shadow">
                 <Sparkles size={30} className="text-[#2F93F6]" />
@@ -170,10 +276,8 @@ const CompleteProfile = () => {
               </p>
             </section>
 
-            {/* Form without outer card */}
             <div className="px-1">
               <form onSubmit={handleComplete} className="flex flex-col gap-4">
-                {/* Avatar */}
                 <div className="flex flex-col items-center">
                   <div className="relative mb-4">
                     <div className="h-28 w-28 rounded-[30px] border border-[#D9E5F1] bg-[#F8FBFF] p-1.5">
@@ -219,7 +323,6 @@ const CompleteProfile = () => {
                   </div>
                 </div>
 
-                {/* Username */}
                 <div>
                   <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Username
@@ -233,11 +336,33 @@ const CompleteProfile = () => {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
+                      placeholder="asad_112"
                     />
                   </div>
+
+                  {username.trim() !== '' && (
+                    <p
+                      className={`mt-2 text-[11px] font-semibold ${
+                        usernameError
+                          ? 'text-red-500'
+                          : isCheckingUsername
+                          ? 'text-[#6F8194]'
+                          : isUsernameAvailable
+                          ? 'text-emerald-600'
+                          : 'text-[#6F8194]'
+                      }`}
+                    >
+                      {usernameError
+                        ? usernameError
+                        : isCheckingUsername
+                        ? 'Checking username...'
+                        : isUsernameAvailable
+                        ? 'Username is available'
+                        : ''}
+                    </p>
+                  )}
                 </div>
 
-                {/* Email */}
                 <div>
                   <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Email
@@ -255,7 +380,6 @@ const CompleteProfile = () => {
                   </div>
                 </div>
 
-                {/* Phone */}
                 <div>
                   <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Phone
@@ -275,7 +399,6 @@ const CompleteProfile = () => {
                   </div>
                 </div>
 
-                {/* Primary Contact */}
                 <div>
                   <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Primary Contact
@@ -308,7 +431,6 @@ const CompleteProfile = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -320,7 +442,13 @@ const CompleteProfile = () => {
 
                   <button
                     type="submit"
-                    disabled={!username.trim() || isSubmitting}
+                    disabled={
+                      !username.trim() ||
+                      !!usernameError ||
+                      isCheckingUsername ||
+                      isUsernameAvailable === false ||
+                      isSubmitting
+                    }
                     className="flex h-[58px] items-center justify-center gap-2 rounded-[20px] bg-[#2F93F6] text-[15px] font-medium text-white disabled:opacity-50"
                   >
                     {isSubmitting ? 'Saving...' : 'Continue'}

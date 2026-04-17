@@ -23,6 +23,7 @@ const EditProfile = () => {
   const [isUnique, setIsUnique] = useState<boolean | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
@@ -31,6 +32,26 @@ const EditProfile = () => {
 
   const defaultAvatar =
     'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky&backgroundColor=b6e3f4';
+
+  const normalizeUsername = (value: string) => value.trim().toLowerCase();
+
+  const validateUsername = (value: string) => {
+    const normalized = normalizeUsername(value);
+
+    if (!normalized) {
+      return 'Username is required';
+    }
+
+    if (normalized.length < 3 || normalized.length > 20) {
+      return 'Username must be between 3 and 20 characters';
+    }
+
+    if (!/^[a-z0-9_.]+$/.test(normalized)) {
+      return 'Use only letters, numbers, underscore, and dot';
+    }
+
+    return '';
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -79,20 +100,74 @@ const EditProfile = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsTyping(false);
-      if (username.trim().length >= 3) {
-        setIsUnique(username.trim().toLowerCase() !== 'admin');
-      } else {
+    const checkUsername = async () => {
+      const validationMessage = validateUsername(username);
+
+      if (!username.trim()) {
         setIsUnique(null);
+        setUsernameError('');
+        setIsTyping(false);
+        return;
       }
+
+      if (validationMessage) {
+        setUsernameError(validationMessage);
+        setIsUnique(false);
+        setIsTyping(false);
+        return;
+      }
+
+      try {
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
+
+        if (!authUser) {
+          setIsUnique(null);
+          setUsernameError('');
+          setIsTyping(false);
+          return;
+        }
+
+        const normalized = normalizeUsername(username);
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, auth_user_id, username')
+          .ilike('username', normalized);
+
+        if (error) {
+          throw error;
+        }
+
+        const takenByAnotherUser = (data || []).some((item: any) => {
+          const profileOwnerId = item?.auth_user_id || item?.id;
+          return profileOwnerId !== authUser.id;
+        });
+
+        setUsernameError(takenByAnotherUser ? 'This username is already taken' : '');
+        setIsUnique(!takenByAnotherUser);
+      } catch (error) {
+        console.error('Username check error:', error);
+        setIsUnique(null);
+        setUsernameError('');
+      } finally {
+        setIsTyping(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      checkUsername();
     }, 500);
 
     return () => clearTimeout(timer);
   }, [username]);
 
   const isValid =
-    username.trim().length >= 3 && isUnique !== false && (email || phone);
+    username.trim().length >= 3 &&
+    isUnique !== false &&
+    !usernameError &&
+    (email || phone);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,11 +185,42 @@ const EditProfile = () => {
         throw new Error('User not authenticated');
       }
 
+      const normalizedUsername = normalizeUsername(username);
+      const validationMessage = validateUsername(username);
+
+      if (validationMessage) {
+        setUsernameError(validationMessage);
+        setIsUnique(false);
+        setIsSaving(false);
+        return;
+      }
+
+      const { data: existingUsers, error: existingUsersError } = await supabase
+        .from('profiles')
+        .select('id, auth_user_id, username')
+        .ilike('username', normalizedUsername);
+
+      if (existingUsersError) {
+        throw existingUsersError;
+      }
+
+      const takenByAnotherUser = (existingUsers || []).some((item: any) => {
+        const profileOwnerId = item?.auth_user_id || item?.id;
+        return profileOwnerId !== authUser.id;
+      });
+
+      if (takenByAnotherUser) {
+        setUsernameError('This username is already taken');
+        setIsUnique(false);
+        setIsSaving(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
-          username: username.trim(),
-          name: username.trim(),
+          username: normalizedUsername,
+          name: normalizedUsername,
           phone: phone.trim() || null,
           email: email.trim() || authUser.email || null,
           avatar_url: profileImage || null,
@@ -130,7 +236,13 @@ const EditProfile = () => {
       navigate('/app/profile');
     } catch (err: any) {
       console.error('Update profile error:', err);
-      alert(err?.message || 'Failed to update profile');
+
+      if (err?.code === '23505' || err?.message?.toLowerCase()?.includes('duplicate')) {
+        setUsernameError('This username is already taken');
+        setIsUnique(false);
+      } else {
+        alert(err?.message || 'Failed to update profile');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -227,7 +339,7 @@ const EditProfile = () => {
                     Username
                   </label>
 
-                  {isUnique !== null && !isTyping && (
+                  {isUnique !== null && !isTyping && !usernameError && (
                     <span
                       className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.14em] ${
                         isUnique ? 'text-emerald-500' : 'text-red-500'
@@ -253,6 +365,12 @@ const EditProfile = () => {
                   }}
                   placeholder="How others see you"
                 />
+
+                {usernameError && (
+                  <p className="mt-2 px-1 text-[11px] font-semibold text-red-500">
+                    {usernameError}
+                  </p>
+                )}
               </div>
 
               <div>

@@ -81,6 +81,7 @@ export const isProfileComplete = async () => {
 
 export const saveUserProfile = async (profileData: {
   name: string;
+  username?: string;
   phone?: string;
   primaryContact?: 'email' | 'phone';
   profileImage?: string;
@@ -102,16 +103,50 @@ export const saveUserProfile = async (profileData: {
   console.log('👤 Logged-in user:', user.id);
 
   const trimmedName = profileData.name?.trim();
+  const trimmedUsername = profileData.username?.trim().toLowerCase() || trimmedName?.toLowerCase();
 
   if (!trimmedName) {
     throw new Error('Name is required');
+  }
+
+  if (!trimmedUsername) {
+    throw new Error('Username is required');
+  }
+
+  if (trimmedUsername.length < 3 || trimmedUsername.length > 20) {
+    throw new Error('Username must be between 3 and 20 characters');
+  }
+
+  if (!/^[a-z0-9_.]+$/.test(trimmedUsername)) {
+    throw new Error('Username can only contain letters, numbers, underscore, and dot');
+  }
+
+  const { data: usernameMatches, error: usernameCheckError } = await supabase
+    .from('profiles')
+    .select('id, auth_user_id, username')
+    .ilike('username', trimmedUsername);
+
+  if (usernameCheckError) {
+    console.error('❌ Username check error:', usernameCheckError);
+    throw usernameCheckError;
+  }
+
+  const usernameTakenByAnotherUser = (usernameMatches || []).some((item: any) => {
+    const ownerId = item?.auth_user_id || item?.id;
+    return ownerId !== user.id;
+  });
+
+  if (usernameTakenByAnotherUser) {
+    const duplicateError: any = new Error('This username is already taken');
+    duplicateError.code = '23505';
+    throw duplicateError;
   }
 
   const payload = {
     auth_user_id: user.id,
     email: user.email || null,
     name: trimmedName,
-    username: trimmedName,
+    username: trimmedUsername,
     phone: profileData.phone?.trim() || null,
     primary_contact: profileData.primaryContact || 'email',
     avatar_url: profileData.profileImage || null,
@@ -133,7 +168,6 @@ export const saveUserProfile = async (profileData: {
 
   console.log('🔍 Existing profile:', existingProfile);
 
-  // 🔁 UPDATE
   if (existingProfile) {
     console.log('🟡 Updating existing profile');
 
@@ -153,7 +187,6 @@ export const saveUserProfile = async (profileData: {
     return data;
   }
 
-  // ➕ INSERT
   console.log('🟢 Creating new profile');
 
   const { data, error } = await supabase
