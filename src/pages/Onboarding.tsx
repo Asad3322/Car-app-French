@@ -1,17 +1,14 @@
-import { Link } from 'react-router-dom';
-import { MdOutlineDirectionsCarFilled } from 'react-icons/md';
+import { Link } from "react-router-dom";
+import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 
 const Onboarding = () => {
   return (
     <div className="min-h-screen w-full bg-white flex justify-center items-center sm:px-6 sm:py-6">
-      
       <div className="relative w-full max-w-[420px] min-h-screen sm:min-h-[844px] bg-[#EEF3F8] sm:rounded-[40px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.15)] border border-gray-200">
-
         {/* subtle background */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(91,163,240,0.18),_transparent_35%)]" />
 
         <div className="relative z-10 flex flex-col min-h-screen sm:min-h-[844px] px-6 py-10">
-
           {/* top bar */}
           <div className="mx-auto mb-8 h-1.5 w-16 rounded-full bg-[#D6E1EC]" />
 
@@ -32,7 +29,8 @@ const Onboarding = () => {
             </h1>
 
             <p className="mt-4 text-[15px] leading-7 text-[#6B7A90] max-w-[280px] mx-auto">
-              Report incidents and keep your vehicle safe with a simple and smart experience.
+              Report incidents and keep your vehicle safe with a simple and
+              smart experience.
             </p>
           </div>
 
@@ -40,7 +38,6 @@ const Onboarding = () => {
 
           {/* buttons */}
           <div className="space-y-4">
-
             <Link
               to="/app/reports"
               className="flex h-[60px] items-center justify-center rounded-[22px] bg-[#F4B400] text-[16px] font-black text-white shadow-[0_12px_25px_rgba(244,180,0,0.25)] border-b-[5px] border-[#D99800] transition-all duration-300 hover:-translate-y-0.5"
@@ -55,14 +52,12 @@ const Onboarding = () => {
             >
               Register Vehicle
             </Link>
-
           </div>
 
           {/* footer */}
           <div className="mt-6 text-center text-[12px] font-semibold text-[#9AA8BC]">
             Need help? Contact Support
           </div>
-
         </div>
       </div>
 

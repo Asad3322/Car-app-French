@@ -47,10 +47,13 @@ function App() {
             <Route path="/vehicle/add-onboarding" element={<AddVehicleOnboarding />} />
           </Route>
 
-          {/* Public Plain Routes - old flow */}
+          {/* Public Plain Routes */}
           <Route element={<PlainAppLayout />}>
             <Route path="/app/reports" element={<ReportDetails />} />
             <Route path="/app/report-details" element={<ReportDetails />} />
+
+            {/* PUBLIC ADD VEHICLE ROUTE */}
+            <Route path="/vehicle/add" element={<AddVehicle />} />
           </Route>
 
           {/* Protected App Flow */}

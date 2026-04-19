@@ -8,11 +8,9 @@ import {
   Car,
 } from "lucide-react";
 import type { Urgency } from "../utils/types";
-import { useStore } from "../utils/store";
 
 const ReportDetails = () => {
   const navigate = useNavigate();
-  const { setIncidents } = useStore();
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [description, setDescription] = useState("");
@@ -29,7 +27,6 @@ const ReportDetails = () => {
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
 
   const [mediaPreview, setMediaPreview] = useState<string[]>([]);
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
 
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const insuranceInputRef = useRef<HTMLInputElement | null>(null);
@@ -52,20 +49,17 @@ const ReportDetails = () => {
         setOriginalDescription(description.trim());
       }
 
-      const response = await fetch(
-        `${API_URL}/api/ai/generate-description`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            description: description.trim(),
-            mode: "incident_optimization",
-            language: "fr",
-          }),
+      const response = await fetch(`${API_URL}/api/ai/generate-description`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          description: description.trim(),
+          mode: "incident_optimization",
+          language: "fr",
+        }),
+      });
 
       const result = await response.json();
 
@@ -96,7 +90,7 @@ const ReportDetails = () => {
   };
 
   const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []).slice(0, 5);
 
     setMediaFiles(files);
     setMediaCount(files.length);
@@ -125,16 +119,21 @@ const ReportDetails = () => {
   };
 
   const sendReport = async () => {
-    if (!plate.trim() || description.trim().length < 5 || isSubmitting) {
+    if (!plate.trim()) {
+      alert("Licence plate is required");
+      return;
+    }
+
+    if (description.trim().length < 5) {
       alert("Description must be at least 5 characters");
       return;
     }
 
+    if (isSubmitting) return;
+
     try {
       setIsSubmitting(true);
-      setUploadedImageUrls([]);
 
-      const token = localStorage.getItem("token") || "";
       const formData = new FormData();
 
       formData.append("licencePlate", plate.trim().toUpperCase());
@@ -142,7 +141,7 @@ const ReportDetails = () => {
       formData.append("description", description.trim());
       formData.append(
         "originalDescription",
-        (originalDescription.trim() || description.trim()),
+        originalDescription.trim() || description.trim(),
       );
       formData.append(
         "aiOptimized",
@@ -163,9 +162,6 @@ const ReportDetails = () => {
 
       const response = await fetch(`${API_URL}/api/reports`, {
         method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: formData,
       });
 
@@ -176,38 +172,6 @@ const ReportDetails = () => {
       if (!response.ok) {
         console.error("Backend validation errors:", result.errors);
         throw new Error(result.message || "Failed to submit report");
-      }
-
-      const savedReport = result?.data;
-
-      const urlsFromBackend =
-        savedReport?.mediaUrls ||
-        savedReport?.imageUrls ||
-        savedReport?.media_links ||
-        (savedReport?.imageUrl ? [savedReport.imageUrl] : []) ||
-        (savedReport?.mediaUrl ? [savedReport.mediaUrl] : []);
-
-      if (Array.isArray(urlsFromBackend) && urlsFromBackend.length > 0) {
-        setUploadedImageUrls(urlsFromBackend);
-        console.log("Uploaded Supabase URLs:", urlsFromBackend);
-      } else {
-        console.log("No uploaded URLs returned from backend");
-      }
-
-      if (savedReport) {
-        const newIncident = {
-          id: savedReport.id || Date.now().toString(),
-          plate: savedReport.licence_plate || plate.trim().toUpperCase(),
-          incidentType: "TRAFFIC",
-          description: savedReport.description || description.trim(),
-          urgency,
-          date: savedReport.created_at || new Date().toISOString(),
-          status: savedReport.status || "reported",
-          location: savedReport.location || "Current Location",
-          reporterId: savedReport.reporter_id || "user1",
-        };
-
-        setIncidents((prev: any[]) => [newIncident, ...prev]);
       }
 
       navigate("/success");
@@ -233,9 +197,12 @@ const ReportDetails = () => {
           REPORT INCIDENT
         </h1>
 
-        <button className="flex h-10 w-10 items-center justify-center rounded-full text-[#6B7A90] transition hover:bg-white">
+        <a
+          href="mailto:contact@carappdomainname?subject=Support%20Request"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-[#6B7A90] transition hover:bg-white"
+        >
           <HelpCircle size={20} />
-        </button>
+        </a>
       </header>
 
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
@@ -332,7 +299,7 @@ const ReportDetails = () => {
           />
 
           <ActionCard
-            label={insuranceFile ? insuranceFile.name : "Insurance"}
+            label={insuranceFile ? insuranceFile.name : "Insurance Certificate"}
             subLabel={insuranceFile ? "Selected" : "Optional"}
             icon={<UploadCloud size={22} />}
             active={hasInsurance}
@@ -367,28 +334,6 @@ const ReportDetails = () => {
         >
           {isSubmitting ? "Submitting..." : "Submit Report"}
         </button>
-
-        {uploadedImageUrls.length > 0 && (
-          <div className="rounded-[20px] border border-[#D9E5F1] bg-white p-4 shadow-sm">
-            <p className="mb-3 text-[12px] font-black uppercase tracking-widest text-[#6B7A90]">
-              Supabase Uploaded Links
-            </p>
-
-            <div className="space-y-2">
-              {uploadedImageUrls.map((url, index) => (
-                <a
-                  key={index}
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block break-all text-[12px] font-medium text-[#4A90E2] underline"
-                >
-                  {url}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -8,7 +8,10 @@ const Success = () => {
 
   const handleClaim = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
+
     setTimeout(() => {
       setIsSubmitting(false);
       navigate('/auth?role=reporter');
@@ -17,14 +20,11 @@ const Success = () => {
 
   return (
     <div className="relative flex min-h-full flex-col overflow-hidden bg-[#EEF3F8] px-6 pt-8 text-center sm:rounded-[40px]">
-      {/* soft background */}
       <div className="pointer-events-none absolute left-1/2 top-20 h-52 w-52 -translate-x-1/2 rounded-full bg-[#5BA3F0]/20 blur-[110px]" />
       <div className="pointer-events-none absolute bottom-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-white/70 blur-[130px]" />
 
       <div className="relative flex flex-1 flex-col">
-        {/* Main Content */}
         <div className="flex flex-1 flex-col items-center justify-center py-6">
-          {/* Success icon */}
           <div className="relative mb-8 flex items-center justify-center">
             <div className="absolute h-28 w-28 rounded-full bg-emerald-400/20 blur-[60px]" />
             <CheckCircle2
@@ -34,17 +34,14 @@ const Success = () => {
             />
           </div>
 
-          {/* Title */}
           <h1 className="text-[34px] font-black leading-none tracking-tight text-[#1F2A37]">
-            Thank You
+            Thank You!
           </h1>
 
-          {/* Message */}
-          <p className="mt-4 max-w-[290px] text-[15px] font-bold leading-7 text-[#6B7A90]">
-            Your report is live. The community is safer because of you.
+          <p className="mt-4 max-w-[300px] text-[15px] font-bold leading-7 text-[#6B7A90]">
+            🎉 Your report is making a difference. You helped a vehicle owner and made the community safer.
           </p>
 
-          {/* Card */}
           <div className="mt-10 w-full max-w-[320px]">
             <div className="relative overflow-hidden rounded-[32px] border border-[#D9E5F1] bg-white px-6 py-7 shadow-sm">
               <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#5BA3F0]/10 blur-2xl" />
@@ -56,18 +53,17 @@ const Success = () => {
                 </div>
 
                 <h2 className="text-[22px] font-black text-[#1F2A37]">
-                  Continue Your Journey
+                  Claim Your Reward
                 </h2>
 
                 <p className="mt-3 max-w-[250px] text-[13px] font-bold leading-6 text-[#6B7A90]">
-                  Create an account to track your reports, manage your vehicles, and stay connected.
+                  Create an account to claim your reward, track your reports, and stay connected.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="pb-8">
           <div className="mx-auto flex w-full max-w-[320px] flex-col gap-3">
             <button
@@ -79,7 +75,9 @@ const Success = () => {
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
                 <>
-                  <span className="text-[15px] font-black">Create my account</span>
+                  <span className="text-[15px] font-black">
+                    Create my account and claim my reward
+                  </span>
                   <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] opacity-85">
                     Continue setup
                   </span>
@@ -91,11 +89,11 @@ const Success = () => {
               to="/"
               className="flex h-12 items-center justify-center rounded-[18px] border border-[#D9E5F1] bg-white text-[11px] font-black uppercase tracking-[0.12em] text-[#6B7A90] transition-all duration-300 hover:bg-[#F8FBFF] hover:text-[#1F2A37]"
             >
-              Skip for now
+              No, I don’t want to claim my reward
             </Link>
 
             <a
-              href="mailto:support@carapp.com"
+              href="mailto:contact@carappdomainname?subject=Support%20Request"
               className="pt-2 text-center text-[11px] font-black uppercase tracking-[0.18em] text-[#9AA8BC] transition-colors hover:text-[#4A90E2]"
             >
               Contact Support Team

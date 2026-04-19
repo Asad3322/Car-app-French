@@ -9,13 +9,11 @@ import {
   Image as ImageIcon,
   Shield,
 } from 'lucide-react';
-import { useStore } from '../../utils/store';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const AddVehicle = () => {
   const navigate = useNavigate();
-  const { setVehicles } = useStore();
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -29,10 +27,7 @@ const AddVehicle = () => {
   const insuranceInputRef = useRef<HTMLInputElement | null>(null);
   const addMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const isFormValid =
-    name.trim() !== '' &&
-    plate.trim() !== '' &&
-    !!imageFile;
+  const isFormValid = name.trim() !== '' && plate.trim() !== '' && !!imageFile;
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -98,7 +93,6 @@ const AddVehicle = () => {
     try {
       setIsSubmitting(true);
 
-      const token = localStorage.getItem('token') || '';
       const formData = new FormData();
 
       formData.append('vehicleName', name.trim());
@@ -112,11 +106,8 @@ const AddVehicle = () => {
         formData.append('insuranceDocument', insuranceFile);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/vehicles`, {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/onboarding`, {
         method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: formData,
       });
 
@@ -135,39 +126,7 @@ const AddVehicle = () => {
         throw new Error(validationMessage);
       }
 
-      const refreshResponse = await fetch(`${API_BASE_URL}/api/vehicles`, {
-        method: 'GET',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      const refreshResult = await refreshResponse.json();
-
-      console.log('Refreshed vehicles response:', refreshResult);
-
-      if (!refreshResponse.ok) {
-        throw new Error(refreshResult.message || 'Failed to refresh vehicles');
-      }
-
-      const normalizedVehicles = Array.isArray(refreshResult?.data)
-        ? refreshResult.data.map((vehicle: any) => ({
-            id: vehicle.id || Date.now().toString(),
-            name: vehicle.vehicle_name || vehicle.vehicleName || '',
-            plate: vehicle.licence_plate || '',
-            reportsCount: vehicle.reports_count || 0,
-            image: vehicle.image || vehicle.vehicle_media?.[0] || '',
-            vehicle_media: Array.isArray(vehicle.vehicle_media)
-              ? vehicle.vehicle_media
-              : vehicle.image
-                ? [vehicle.image]
-                : [],
-          }))
-        : [];
-
-      setVehicles(normalizedVehicles);
-
-      navigate('/app/vehicles');
+      navigate('/auth?role=owner');
     } catch (error: any) {
       console.error('Add vehicle error:', error);
 
