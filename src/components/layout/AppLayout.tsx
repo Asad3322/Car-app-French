@@ -11,11 +11,11 @@ import {
 
 const AppLayout: React.FC = () => {
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#C9D6E2]">
-      <div className="flex min-h-screen w-full items-center justify-center sm:p-6">
+    <div className="min-h-[100svh] w-full overflow-x-hidden bg-[#D6E2EC]">
+      <div className="flex min-h-[100svh] w-full justify-center sm:min-h-screen sm:items-center sm:p-6">
         <main
           className="
-            relative isolate flex h-[100dvh] min-h-[100dvh] w-full flex-col overflow-hidden
+            relative isolate flex min-h-[100svh] w-full flex-col overflow-hidden
             bg-[#D6E2EC]
             sm:h-[844px] sm:min-h-0 sm:max-w-[390px]
             sm:rounded-[44px]
@@ -39,7 +39,7 @@ const AppLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* ✅ FIXED FLOATING NAV (MAIN FIX) */}
+      {/* Floating Nav */}
       <div
         className="pointer-events-none fixed inset-x-0 z-[999] flex justify-center px-4 sm:px-0"
         style={{
