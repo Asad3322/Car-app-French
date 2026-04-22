@@ -126,7 +126,14 @@ const AddVehicle = () => {
         throw new Error(validationMessage);
       }
 
-      navigate('/auth?role=owner');
+      // ✅ CHANGED ONLY THIS PART:
+      // old: navigate('/auth?role=owner');
+      navigate('/verify', {
+        state: {
+          mode: 'owner',
+          vehicleId: result?.data?.id || null,
+        },
+      });
     } catch (error: any) {
       console.error('Add vehicle error:', error);
 

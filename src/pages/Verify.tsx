@@ -7,10 +7,13 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 type VerifyMode = 'reporter' | 'owner';
 
 type VerifyLocationState = {
   mode?: VerifyMode;
+  vehicleId?: string | null;
 };
 
 const formatFrenchInternational = (value: string): string => {
@@ -47,14 +50,16 @@ const Verify = () => {
   const state = location.state as VerifyLocationState | null;
   const mode: VerifyMode = state?.mode || 'reporter';
   const isOwner = mode === 'owner';
+  const vehicleId = state?.vehicleId || null;
 
   const storageKey = isOwner ? 'pendingPhone' : 'pendingEmail';
   const storedContact = localStorage.getItem(storageKey) || '';
 
   const [contact, setContact] = useState<string>(storedContact);
-  const [linkSent, setLinkSent] = useState<boolean>(!!storedContact);
+  const [linkSent, setLinkSent] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleSendLink = (): void => {
+  const handleSendLink = async (): Promise<void> => {
     if (!contact.trim()) return;
 
     if (isOwner && !isValidFrenchIntl(contact)) {
@@ -62,8 +67,46 @@ const Verify = () => {
       return;
     }
 
-    localStorage.setItem(storageKey, contact.trim());
-    setLinkSent(true);
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_BASE_URL}/auth/send-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contact: contact.trim(),
+          role: isOwner ? 'vehicle_owner' : 'reporter',
+          vehicleId: isOwner ? vehicleId : null,
+        }),
+      });
+
+      const result = await response.json();
+
+      console.log('Verification API response:', result);
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Failed to send verification');
+      }
+
+      localStorage.setItem(storageKey, contact.trim());
+      setLinkSent(true);
+
+      // ✅ OWNER MOCK FLOW: auto-open backend-generated link
+      if (isOwner && result?.data?.verificationLink) {
+        window.location.href = result.data.verificationLink;
+        return;
+      }
+
+      // Reporter email flow keeps old UX
+      alert(result?.message || 'Verification sent successfully');
+    } catch (error: any) {
+      console.error('Send verification error:', error);
+      alert(error?.message || 'Failed to send verification');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChangeContact = (): void => {
@@ -72,7 +115,7 @@ const Verify = () => {
     setLinkSent(false);
 
     if (isOwner) {
-      navigate('/add-vehicle-onboarding');
+      navigate('/vehicle/add-onboarding');
     } else {
       navigate('/auth');
     }
@@ -121,7 +164,7 @@ const Verify = () => {
                     ? 'Enter your phone number to receive a secure verification link.'
                     : 'Enter your email to receive a secure login link.'
                   : isOwner
-                    ? 'We sent a secure verification link to your phone. Open it to continue.'
+                    ? 'We generated a secure verification link for your phone. Continuing now...'
                     : 'We sent a secure login link to your email. Open it to continue.'}
               </p>
             </div>
@@ -149,22 +192,26 @@ const Verify = () => {
 
                 <p className="mt-3 text-[13px] text-[#6F8194]">
                   {isOwner
-                    ? 'We will send a secure verification link to your phone number.'
+                    ? 'We will generate a secure verification link for your phone number.'
                     : 'We will send a secure sign-in link to your email.'}
                 </p>
 
                 <button
                   onClick={handleSendLink}
-                  disabled={!contact.trim()}
+                  disabled={!contact.trim() || loading}
                   className="mt-6 h-[58px] w-full rounded-full bg-[#2F93F6] font-black text-white disabled:opacity-50"
                 >
-                  {isOwner ? 'Send Verification' : 'Send Login Link'}
+                  {loading
+                    ? 'Sending...'
+                    : isOwner
+                    ? 'Send Verification'
+                    : 'Send Login Link'}
                 </button>
               </div>
             ) : (
               <div className="text-center">
                 <p className="text-[11px] font-black uppercase text-[#7A8B9D]">
-                  {isOwner ? 'Verification sent to' : 'Link sent to'}
+                  {isOwner ? 'Verification for' : 'Link sent to'}
                 </p>
 
                 <p className="mt-2 break-all text-[17px] font-black">{contact}</p>
@@ -176,7 +223,7 @@ const Verify = () => {
 
                   <p className="text-[14px] text-[#6F8194]">
                     {isOwner
-                      ? 'Open the secure link and continue to complete your vehicle owner account.'
+                      ? 'Your verification link is being opened so you can complete your vehicle owner account.'
                       : 'Open the secure link from your inbox and continue to your profile setup.'}
                   </p>
                 </div>
