@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -50,7 +50,7 @@ const Verify = () => {
   const state = location.state as VerifyLocationState | null;
   const mode: VerifyMode = state?.mode || 'reporter';
   const isOwner = mode === 'owner';
-  const vehicleId = state?.vehicleId || null;
+  const vehicleId = state?.vehicleId ?? null;
 
   const storageKey = isOwner ? 'pendingPhone' : 'pendingEmail';
   const storedContact = localStorage.getItem(storageKey) || '';
@@ -59,8 +59,22 @@ const Verify = () => {
   const [linkSent, setLinkSent] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
+  useEffect(() => {
+    if (isOwner && !vehicleId) {
+      console.error('❌ Missing vehicleId in owner verify flow');
+      alert('Vehicle registration failed. Please add vehicle again.');
+      navigate('/vehicle/add-onboarding', { replace: true });
+    }
+  }, [isOwner, vehicleId, navigate]);
+
   const handleSendLink = async (): Promise<void> => {
     if (!contact.trim()) return;
+
+    if (isOwner && !vehicleId) {
+      alert('Vehicle ID is missing. Please add vehicle again.');
+      navigate('/vehicle/add-onboarding', { replace: true });
+      return;
+    }
 
     if (isOwner && !isValidFrenchIntl(contact)) {
       alert('Enter valid French number (e.g. +33 6 12 34 56 78)');
@@ -70,16 +84,20 @@ const Verify = () => {
     try {
       setLoading(true);
 
+      const payload = {
+        contact: contact.trim(),
+        role: isOwner ? 'vehicle_owner' : 'reporter',
+        vehicleId: isOwner ? vehicleId : null,
+      };
+
+      console.log('🚀 VERIFY PAYLOAD:', payload);
+
       const response = await fetch(`${API_BASE_URL}/auth/send-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          contact: contact.trim(),
-          role: isOwner ? 'vehicle_owner' : 'reporter',
-          vehicleId: isOwner ? vehicleId : null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -93,13 +111,11 @@ const Verify = () => {
       localStorage.setItem(storageKey, contact.trim());
       setLinkSent(true);
 
-      // ✅ OWNER MOCK FLOW: auto-open backend-generated link
       if (isOwner && result?.data?.verificationLink) {
         window.location.href = result.data.verificationLink;
         return;
       }
 
-      // Reporter email flow keeps old UX
       alert(result?.message || 'Verification sent successfully');
     } catch (error: any) {
       console.error('Send verification error:', error);
