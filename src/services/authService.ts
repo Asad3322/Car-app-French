@@ -84,31 +84,59 @@ export const isProfileComplete = async () => {
   };
 };
 
-export const saveUserProfile = async (profileData: {
+type SaveUserProfilePayload = {
   name: string;
   username?: string;
+  email?: string;
   phone?: string;
   primaryContact?: 'email' | 'phone';
   profileImage?: string;
-}) => {
-  console.log('🔥 NEW saveUserProfile is running');
-  console.log('✅ Using auth_user_id (NOT upsert)');
+  role?: 'reporter' | 'vehicle_owner';
+  verifiedPhone?: string;
+  vehicleId?: string;
+};
+
+export const saveUserProfile = async (
+  profileData: SaveUserProfilePayload
+) => {
+  console.log('🔥 NEW saveUserProfile (FULL FLOW)');
+
+  const isOwnerFlow = profileData.role === 'vehicle_owner';
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) throw sessionError;
+
+  // ✅ Reporter must have Supabase session
+  // ✅ Owner flow is allowed without Supabase session
+  if (!session?.access_token && !isOwnerFlow) {
+    throw new Error('User not authenticated');
+  }
+
+  const token = session?.access_token || '';
 
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError) throw userError;
+  // For reporter: user is required
+  // For owner: user can be null in your current architecture
+  if (userError && !isOwnerFlow) throw userError;
 
-  if (!user) {
+  if (!user && !isOwnerFlow) {
     throw new Error('User not authenticated');
   }
 
-  console.log('👤 Logged-in user:', user.id);
+  console.log('👤 Logged-in user:', user?.id || 'OWNER_FLOW_NO_AUTH_USER');
 
   const trimmedName = profileData.name?.trim();
-  const trimmedUsername = profileData.username?.trim().toLowerCase() || trimmedName?.toLowerCase();
+  const trimmedUsername =
+    profileData.username?.trim().toLowerCase() ||
+    trimmedName?.toLowerCase();
 
   if (!trimmedName) {
     throw new Error('Name is required');
@@ -123,7 +151,9 @@ export const saveUserProfile = async (profileData: {
   }
 
   if (!/^[a-z0-9_.]+$/.test(trimmedUsername)) {
-    throw new Error('Username can only contain letters, numbers, underscore, and dot');
+    throw new Error(
+      'Username can only contain letters, numbers, underscore, and dot'
+    );
   }
 
   const { data: usernameMatches, error: usernameCheckError } = await supabase
@@ -136,10 +166,19 @@ export const saveUserProfile = async (profileData: {
     throw usernameCheckError;
   }
 
-  const usernameTakenByAnotherUser = (usernameMatches || []).some((item: any) => {
-    const ownerId = item?.auth_user_id || item?.id;
-    return ownerId !== user.id;
-  });
+  const usernameTakenByAnotherUser = (usernameMatches || []).some(
+    (item: any) => {
+      const ownerId = item?.auth_user_id || item?.id;
+
+      // Reporter flow → compare against current auth user
+      if (user?.id) {
+        return ownerId !== user.id;
+      }
+
+      // Owner flow without auth user → any match means taken
+      return true;
+    }
+  );
 
   if (usernameTakenByAnotherUser) {
     const duplicateError: any = new Error('This username is already taken');
@@ -147,24 +186,81 @@ export const saveUserProfile = async (profileData: {
     throw duplicateError;
   }
 
+  // ✅ BACKEND CALL FOR OWNER / REPORTER FLOW
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/auth/create-profile`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          role: profileData.role || 'reporter',
+          verifiedPhone: profileData.verifiedPhone || '',
+          vehicleId: profileData.vehicleId || '',
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('❌ Backend create-profile failed:', result);
+      throw new Error(result?.message || 'Failed to create profile on backend');
+    }
+
+    console.log('✅ Backend profile flow complete:', result);
+  } catch (err) {
+    console.error('❌ Backend profile call failed:', err);
+    throw err;
+  }
+
   const payload = {
-    auth_user_id: user.id,
-    email: user.email || null,
+    auth_user_id: user?.id || null,
+    email: profileData.email || user?.email || null,
     name: trimmedName,
     username: trimmedUsername,
-    phone: profileData.phone?.trim() || null,
-    primary_contact: profileData.primaryContact || 'email',
+    phone: profileData.verifiedPhone || profileData.phone?.trim() || null,
+    primary_contact:
+      profileData.role === 'vehicle_owner'
+        ? 'SMS'
+        : profileData.primaryContact === 'phone'
+        ? 'phone'
+        : 'email',
     avatar_url: profileData.profileImage || null,
     updated_at: new Date().toISOString(),
   };
 
   console.log('📦 Payload:', payload);
 
-  const { data: existingProfile, error: fetchError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('auth_user_id', user.id)
-    .maybeSingle();
+  // Reporter flow → check by auth_user_id
+  // Owner flow without auth user → try by phone
+  let existingProfile = null;
+  let fetchError = null;
+
+  if (user?.id) {
+    const result = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    existingProfile = result.data;
+    fetchError = result.error;
+  } else if (profileData.verifiedPhone || profileData.phone?.trim()) {
+    const ownerPhone = profileData.verifiedPhone || profileData.phone?.trim();
+
+    const result = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('phone', ownerPhone)
+      .maybeSingle();
+
+    existingProfile = result.data;
+    fetchError = result.error;
+  }
 
   if (fetchError) {
     console.error('❌ Fetch existing profile error:', fetchError);
@@ -179,7 +275,7 @@ export const saveUserProfile = async (profileData: {
     const { data, error } = await supabase
       .from('profiles')
       .update(payload)
-      .eq('auth_user_id', user.id)
+      .eq('id', existingProfile.id)
       .select()
       .single();
 
@@ -237,6 +333,10 @@ export const getMyProfile = async () => {
 
 export const signOutUser = async () => {
   localStorage.removeItem('token');
+  localStorage.removeItem('verifiedPhone');
+  localStorage.removeItem('vehicleId');
+  localStorage.removeItem('role');
+
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 };

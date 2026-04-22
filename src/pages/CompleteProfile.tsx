@@ -9,6 +9,7 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  Phone,
 } from 'lucide-react';
 
 const avatars = [
@@ -20,68 +21,116 @@ const avatars = [
 
 type AuthUserShape = {
   id: string;
-  email?: string;
+  email?: string | null;
+  phone?: string | null;
+};
+
+type FlowRole = 'reporter' | 'vehicle_owner';
+
+const normalizeUsername = (value: string): string => value.trim().toLowerCase();
+
+const validateUsername = (value: string): string => {
+  const normalized = normalizeUsername(value);
+
+  if (!normalized) return 'Username is required';
+  if (normalized.length < 3 || normalized.length > 20) {
+    return 'Username must be between 3 and 20 characters';
+  }
+  if (!/^[a-z0-9_.]+$/.test(normalized)) {
+    return 'Use only letters, numbers, underscore, and dot';
+  }
+
+  return '';
 };
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
 
   const [authUser, setAuthUser] = useState<AuthUserShape | null>(null);
+  const [role, setRole] = useState<FlowRole>('reporter');
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [vehicleId, setVehicleId] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
-  const [primaryContact, setPrimaryContact] = useState<'email' | 'phone'>(
-    'email'
-  );
+  const [primaryContact, setPrimaryContact] = useState<'email' | 'phone'>('email');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
   const [usernameError, setUsernameError] = useState('');
 
+  const isOwner = role === 'vehicle_owner';
+
   useEffect(() => {
     const loadUser = async () => {
       try {
         setIsLoadingUser(true);
+
+        const storedRole = (localStorage.getItem('role') as FlowRole | null) || 'reporter';
+        const storedVerifiedPhone = localStorage.getItem('verifiedPhone') || '';
+        const storedVehicleId = localStorage.getItem('vehicleId') || '';
+
+        setRole(storedRole);
+        setVehicleId(storedVehicleId);
+        setPrimaryContact(storedRole === 'vehicle_owner' ? 'phone' : 'email');
 
         const {
           data: { user },
           error,
         } = await supabase.auth.getUser();
 
-        if (error) {
-          throw error;
-        }
+        // Reporter flow normally has Supabase user/session
+        if (!error && user) {
+          setAuthUser({
+            id: user.id,
+            email: user.email || '',
+            phone: user.phone || '',
+          });
 
-        if (!user) {
-          navigate('/auth');
+          setEmail(user.email || '');
+
+          if (storedRole === 'vehicle_owner') {
+            setPhone(storedVerifiedPhone || user.phone || '');
+          } else {
+            setPhone(user.phone || '');
+          }
+
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('auth_user_id', user.id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Load existing profile error:', profileError);
+          }
+
+          if (profile) {
+            setUsername(profile.username || profile.name || '');
+            setPhone(profile.phone || (storedRole === 'vehicle_owner' ? storedVerifiedPhone : user.phone || ''));
+            setEmail(profile.email || user.email || '');
+            setSelectedAvatar(profile.avatar_url || avatars[0]);
+            setPrimaryContact(
+              profile.primary_contact === 'SMS' || profile.primary_contact === 'phone'
+                ? 'phone'
+                : 'email'
+            );
+          }
+
           return;
         }
 
-        setAuthUser({
-          id: user.id,
-          email: user.email || '',
-        });
-
-        setEmail(user.email || '');
-
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('auth_user_id', user.id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error('Load existing profile error:', profileError);
+        // Owner SMS flow can land here without Supabase session yet
+        if (storedRole === 'vehicle_owner' && storedVerifiedPhone) {
+          setPhone(storedVerifiedPhone);
+          setEmail('');
+          setAuthUser(null);
+          return;
         }
 
-        if (profile) {
-          setUsername(profile.username || profile.name || '');
-          setPhone(profile.phone || '');
-          setSelectedAvatar(profile.avatar_url || avatars[0]);
-          setPrimaryContact(profile.primary_contact || 'email');
-        }
+        navigate('/auth');
       } catch (err) {
         console.error('Load auth user error:', err);
         navigate('/auth');
@@ -93,29 +142,7 @@ const CompleteProfile = () => {
     loadUser();
   }, [navigate]);
 
-  const normalizeUsername = (value: string) => value.trim().toLowerCase();
-
-  const validateUsername = (value: string) => {
-    const normalized = normalizeUsername(value);
-
-    if (!normalized) {
-      return 'Username is required';
-    }
-
-    if (normalized.length < 3 || normalized.length > 20) {
-      return 'Username must be between 3 and 20 characters';
-    }
-
-    if (!/^[a-z0-9_.]+$/.test(normalized)) {
-      return 'Use only letters, numbers, underscore, and dot';
-    }
-
-    return '';
-  };
-
   useEffect(() => {
-    if (!authUser) return;
-
     const raw = username;
     const normalized = normalizeUsername(raw);
     const validationMessage = validateUsername(raw);
@@ -150,7 +177,7 @@ const CompleteProfile = () => {
 
         const takenByAnotherUser = (data || []).some((item: any) => {
           const profileOwnerId = item?.auth_user_id || item?.id;
-          return profileOwnerId !== authUser.id;
+          return authUser?.id ? profileOwnerId !== authUser.id : true;
         });
 
         setIsUsernameAvailable(!takenByAnotherUser);
@@ -168,13 +195,21 @@ const CompleteProfile = () => {
   const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!authUser) return;
-
     const normalizedUsername = normalizeUsername(username);
     const validationMessage = validateUsername(username);
 
     if (validationMessage) {
       setUsernameError(validationMessage);
+      return;
+    }
+
+    if (isOwner && !phone.trim()) {
+      alert('Verified phone number is required');
+      return;
+    }
+
+    if (!isOwner && !email.trim()) {
+      alert('Email is required');
       return;
     }
 
@@ -192,7 +227,7 @@ const CompleteProfile = () => {
 
       const takenByAnotherUser = (data || []).some((item: any) => {
         const profileOwnerId = item?.auth_user_id || item?.id;
-        return profileOwnerId !== authUser.id;
+        return authUser?.id ? profileOwnerId !== authUser.id : true;
       });
 
       if (takenByAnotherUser) {
@@ -205,10 +240,20 @@ const CompleteProfile = () => {
       await saveUserProfile({
         name: normalizedUsername,
         username: normalizedUsername,
-        phone,
-        primaryContact,
+        email: isOwner ? '' : email,
+        phone: isOwner ? phone : phone,
+        primaryContact: isOwner ? 'phone' : primaryContact,
         profileImage: selectedAvatar,
+        role,
+        verifiedPhone: isOwner ? phone : '',
+        vehicleId: isOwner ? vehicleId : '',
       });
+
+      if (isOwner) {
+        localStorage.removeItem('verifiedPhone');
+        localStorage.removeItem('vehicleId');
+        localStorage.removeItem('role');
+      }
 
       navigate('/app/home');
     } catch (err: any) {
@@ -227,14 +272,14 @@ const CompleteProfile = () => {
 
   if (isLoadingUser) {
     return (
-      <div className="relative flex min-h-[100dvh] w-full items-center justify-center bg-[#D6E2EC] text-[#0B1A2B]">
+      <div className="relative flex min-h-[100svh] w-full items-center justify-center bg-[#D6E2EC] text-[#0B1A2B]">
         <p className="text-sm font-semibold text-[#6F8194]">Loading profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full flex-col bg-[#D6E2EC] text-[#0B1A2B]">
+    <div className="relative flex min-h-[100svh] w-full flex-col bg-[#D6E2EC] text-[#0B1A2B]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#2F93F6]/10 blur-3xl" />
         <div className="absolute right-0 top-1/3 h-48 w-48 rounded-full bg-white/30 blur-3xl" />
@@ -267,12 +312,12 @@ const CompleteProfile = () => {
                 <Sparkles size={30} className="text-[#2F93F6]" />
               </div>
 
-              <h2 className="text-[24px] font-black">
-                Set up your profile
-              </h2>
+              <h2 className="text-[24px] font-black">Set up your profile</h2>
 
               <p className="mt-2 text-[14px] text-[#6F8194]">
-                Add your details and choose your emoji avatar before entering the app.
+                {isOwner
+                  ? 'Your vehicle was saved. Now complete your owner profile to receive incident notifications.'
+                  : 'Add your details and choose your emoji avatar before entering the app.'}
               </p>
             </section>
 
@@ -374,8 +419,12 @@ const CompleteProfile = () => {
                     />
                     <input
                       value={email}
-                      readOnly
-                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
+                      onChange={(e) => setEmail(e.target.value)}
+                      readOnly={isOwner}
+                      placeholder={isOwner ? 'Optional for owner flow' : 'name@example.com'}
+                      className={`h-[58px] w-full rounded-[20px] border border-[#D9E5F1] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none ${
+                        isOwner ? 'bg-[#F8FBFD]' : 'bg-white'
+                      }`}
                     />
                   </div>
                 </div>
@@ -386,17 +435,27 @@ const CompleteProfile = () => {
                   </label>
 
                   <div className="relative mt-2">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-[#0B1A2B]">
-                      🇫🇷 +33
-                    </div>
+                    <Phone
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
+                      size={17}
+                    />
 
                     <input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="6 12 34 56 78"
-                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-20 pr-4 text-[15px] text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
+                      readOnly={isOwner}
+                      placeholder={isOwner ? '+33 6 12 34 56 78' : 'Optional phone'}
+                      className={`h-[58px] w-full rounded-[20px] border border-[#D9E5F1] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none ${
+                        isOwner ? 'bg-[#F8FBFD]' : 'bg-white'
+                      }`}
                     />
                   </div>
+
+                  {isOwner && (
+                    <p className="mt-2 text-[11px] font-semibold text-[#6F8194]">
+                      Verified phone number is locked for owner flow.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -407,12 +466,12 @@ const CompleteProfile = () => {
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => setPrimaryContact('email')}
+                      onClick={() => !isOwner && setPrimaryContact('email')}
                       className={`h-[54px] rounded-[18px] text-[15px] font-medium transition-all ${
                         primaryContact === 'email'
                           ? 'bg-[#2F93F6] text-white'
                           : 'border border-[#D9E5F1] bg-white text-[#0B1A2B]'
-                      }`}
+                      } ${isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       Email
                     </button>
@@ -424,7 +483,7 @@ const CompleteProfile = () => {
                         primaryContact === 'phone'
                           ? 'bg-[#2F93F6] text-white'
                           : 'border border-[#D9E5F1] bg-white text-[#0B1A2B]'
-                      }`}
+                      } ${isOwner ? 'cursor-default' : ''}`}
                     >
                       Phone
                     </button>
