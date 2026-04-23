@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../supabase';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const EditProfile = () => {
   const navigate = useNavigate();
 
@@ -216,26 +218,54 @@ const EditProfile = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          username: normalizedUsername,
-          name: normalizedUsername,
-          phone: phone.trim() || null,
-          email: email.trim() || authUser.email || null,
-          avatar_url: profileImage || null,
-          is_vehicle_owner: phoneVerified,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('auth_user_id', authUser.id);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (error) {
-        throw error;
+      const token = session?.access_token || localStorage.getItem('token');
+
+      if (!token) {
+        throw new Error('Missing authentication token');
+      }
+
+      const payload = {
+        role: phoneVerified ? 'vehicle_owner' : 'reporter',
+        verifiedPhone: phoneVerified ? phone.trim() : '',
+        vehicleId: localStorage.getItem('vehicleId') || '',
+        name: normalizedUsername,
+        username: normalizedUsername,
+        email: email.trim() || authUser.email || '',
+        phone: phone.trim() || '',
+        profileImage: profileImage || '',
+        primaryContact: phoneVerified ? 'phone' : 'email',
+      };
+
+      console.log('🔥 Edit profile payload:', payload);
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      console.log('✅ Backend profile update:', result);
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Failed to update profile');
       }
 
       navigate('/app/profile');
     } catch (err: any) {
-      console.error('Update profile error:', err);
+      console.error('Update profile error FULL:', err);
+      console.error('Update profile error message:', err?.message);
+      console.error('Update profile error details:', err?.details);
+      console.error('Update profile error hint:', err?.hint);
+      console.error('Update profile error code:', err?.code);
 
       if (err?.code === '23505' || err?.message?.toLowerCase()?.includes('duplicate')) {
         setUsernameError('This username is already taken');
