@@ -5,7 +5,7 @@ import type {
   Incident,
   UserProfile,
   LeaderboardEntry,
-  AppContextType
+  AppContextType,
 } from './types';
 
 const emptyUser: UserProfile = {
@@ -22,14 +22,16 @@ const emptyUser: UserProfile = {
   coins: 0,
   badges: [],
   totalIncidentsReported: 0,
-  profileImage: ''
+  profileImage: '',
 };
 
 const emptyLeaderboard: LeaderboardEntry[] = [];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('carapp_user');
     return saved ? JSON.parse(saved) : emptyUser;
@@ -46,6 +48,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const syncLoggedInUser = async () => {
       try {
+        // ✅ IMPORTANT FIX:
+        // First check session. Do NOT call getUser() when no session exists.
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+
+        if (sessionError) {
+          console.error('Store session fetch error:', sessionError);
+          return;
+        }
+
+        if (!sessionData?.session) {
+          return;
+        }
+
         const {
           data: { user: authUser },
           error: authError,
@@ -71,7 +87,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!profileByIdError && profileById) {
           profileData = profileById as Record<string, any>;
         } else {
-          const { data: profileByAuthUserId, error: profileByAuthUserIdError } = await supabase
+          const {
+            data: profileByAuthUserId,
+            error: profileByAuthUserIdError,
+          } = await supabase
             .from('profiles')
             .select('*')
             .eq('auth_user_id', authUser.id)
@@ -83,8 +102,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         const fallbackUsername =
-          (typeof profileData?.username === 'string' ? profileData.username.trim() : '') ||
-          (typeof profileData?.name === 'string' ? profileData.name.trim() : '') ||
+          (typeof profileData?.username === 'string'
+            ? profileData.username.trim()
+            : '') ||
+          (typeof profileData?.name === 'string'
+            ? profileData.name.trim()
+            : '') ||
           (typeof authUser.user_metadata?.name === 'string'
             ? authUser.user_metadata.name.trim()
             : '') ||
@@ -103,17 +126,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             authUser.email ??
             null,
           verifiedPhone:
-            profileData?.verifiedPhone ??
-            user.verifiedPhone ??
-            null,
+            profileData?.verifiedPhone ?? user.verifiedPhone ?? null,
           isPhoneVerified:
-            profileData?.isPhoneVerified ??
-            user.isPhoneVerified ??
-            false,
+            profileData?.isPhoneVerified ?? user.isPhoneVerified ?? false,
           isVehicleOwner:
-            profileData?.isVehicleOwner ??
-            user.isVehicleOwner ??
-            false,
+            profileData?.isVehicleOwner ?? user.isVehicleOwner ?? false,
           primaryContactMethod:
             profileData?.primaryContactMethod ||
             user.primaryContactMethod ||
@@ -150,7 +167,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setVehicles,
         incidents,
         setIncidents,
-        leaderboard
+        leaderboard,
       }}
     >
       {children}
@@ -160,8 +177,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useStore = () => {
   const context = useContext(AppContext);
+
   if (!context) {
     throw new Error('useStore must be used within a StoreProvider');
   }
+
   return context;
 };
