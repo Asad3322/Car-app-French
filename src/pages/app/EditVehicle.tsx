@@ -62,7 +62,11 @@ const EditVehicle = () => {
           const normalized = normalizeVehicle(storeVehicle);
           setVehicle(normalized);
           setName(normalized.name);
-          setImage(normalized.image);
+          setImage(
+            normalized.vehicle_media?.[0] ||
+              normalized.image ||
+              FALLBACK_VEHICLE_IMAGE
+          );
           setIsLoading(false);
           return;
         }
@@ -112,7 +116,11 @@ const EditVehicle = () => {
 
         setVehicle(normalized);
         setName(normalized.name);
-        setImage(normalized.image);
+        setImage(
+          normalized.vehicle_media?.[0] ||
+            normalized.image ||
+            FALLBACK_VEHICLE_IMAGE
+        );
 
         setVehicles((prev: any[]) => {
           const exists = prev.some((item: any) => item.id === normalized.id);
@@ -173,10 +181,14 @@ const EditVehicle = () => {
     );
   }
 
+  const displayImage =
+    image ||
+    vehicle.vehicle_media?.[0] ||
+    vehicle.image ||
+    FALLBACK_VEHICLE_IMAGE;
+
   const hasChanges =
     (name.trim() !== '' && name !== vehicle.name) || image !== vehicle.image;
-
-  const displayImage = image || vehicle.image || FALLBACK_VEHICLE_IMAGE;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -192,25 +204,56 @@ const EditVehicle = () => {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!hasChanges) return;
 
-    setVehicles((prev: any[]) =>
-      prev.map((v: any) =>
-        v.id === id
-          ? {
-              ...v,
-              name,
-              image,
-              vehicle_media: image ? [image] : v.vehicle_media,
-            }
-          : v
-      )
-    );
+    try {
+      const token = localStorage.getItem('token');
+      const ownerAccess = localStorage.getItem('ownerAccess');
 
-    navigate('/app/vehicles');
+      setVehicles((prev: any[]) =>
+        prev.map((v: any) =>
+          v.id === id
+            ? {
+                ...v,
+                name,
+                image,
+                vehicle_media: image ? [image] : v.vehicle_media,
+              }
+            : v
+        )
+      );
+
+      if (token && ownerAccess !== 'true') {
+        try {
+          const response = await fetch(`${API_URL}/api/vehicles/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              vehicleName: name,
+            }),
+          });
+
+          if (response.ok) {
+            console.log('Vehicle updated on backend');
+          } else {
+            console.warn('Backend update route not available yet');
+          }
+        } catch (backendError) {
+          console.warn('Backend update skipped:', backendError);
+        }
+      }
+
+      navigate('/app/vehicles');
+    } catch (error) {
+      console.error('Update error:', error);
+      alert('Failed to update vehicle');
+    }
   };
 
   const handleDelete = () => {
