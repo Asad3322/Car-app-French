@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -11,16 +11,138 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../utils/store';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
+const FALLBACK_VEHICLE_IMAGE =
+  'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=600';
+
+const normalizeVehicle = (vehicle: any) => ({
+  id: vehicle.id,
+  name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
+  plate: vehicle.licence_plate || vehicle.plate || '',
+  image:
+    vehicle.image ||
+    vehicle.vehicle_media?.[0] ||
+    vehicle.vehicleMediaUrls?.[0] ||
+    '',
+  vehicle_media: Array.isArray(vehicle.vehicle_media)
+    ? vehicle.vehicle_media
+    : vehicle.image
+      ? [vehicle.image]
+      : [],
+  vehicleMediaUrls: Array.isArray(vehicle.vehicleMediaUrls)
+    ? vehicle.vehicleMediaUrls
+    : [],
+});
+
 const EditVehicle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { vehicles, setVehicles } = useStore();
 
-  const vehicle = vehicles.find((v) => v.id === id);
+  const storeVehicle = useMemo(
+    () => vehicles.find((v: any) => v.id === id),
+    [vehicles, id]
+  );
 
-  const [name, setName] = useState(vehicle?.name || '');
-  const [image, setImage] = useState<string | undefined>(vehicle?.image);
+  const [vehicle, setVehicle] = useState<any>(storeVehicle || null);
+  const [name, setName] = useState(storeVehicle?.name || '');
+  const [image, setImage] = useState<string | undefined>(
+    storeVehicle?.image || ''
+  );
   const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadVehicle = async () => {
+      try {
+        setIsLoading(true);
+
+        if (storeVehicle) {
+          const normalized = normalizeVehicle(storeVehicle);
+          setVehicle(normalized);
+          setName(normalized.name);
+          setImage(normalized.image);
+          setIsLoading(false);
+          return;
+        }
+
+        const token = localStorage.getItem('token') || '';
+        const ownerAccess = localStorage.getItem('ownerAccess');
+        const ownerPhone = localStorage.getItem('ownerPhone');
+
+        let response: Response;
+
+        if (ownerAccess === 'true' && ownerPhone) {
+          response = await fetch(
+            `${API_URL}/api/vehicles/owner-phone?phone=${encodeURIComponent(
+              ownerPhone
+            )}`,
+            { method: 'GET' }
+          );
+        } else if (token) {
+          response = await fetch(`${API_URL}/api/vehicles`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        } else {
+          throw new Error('No vehicle access found');
+        }
+
+        const result = await response.json();
+
+        console.log('Edit vehicle fetch response:', result);
+
+        if (!response.ok) {
+          throw new Error(result?.message || 'Failed to fetch vehicle');
+        }
+
+        const foundVehicle = Array.isArray(result?.data)
+          ? result.data.find((item: any) => item.id === id)
+          : null;
+
+        if (!foundVehicle) {
+          setVehicle(null);
+          return;
+        }
+
+        const normalized = normalizeVehicle(foundVehicle);
+
+        setVehicle(normalized);
+        setName(normalized.name);
+        setImage(normalized.image);
+
+        setVehicles((prev: any[]) => {
+          const exists = prev.some((item: any) => item.id === normalized.id);
+
+          if (exists) {
+            return prev.map((item: any) =>
+              item.id === normalized.id ? { ...item, ...normalized } : item
+            );
+          }
+
+          return [...prev, normalized];
+        });
+      } catch (error) {
+        console.error('Load vehicle error:', error);
+        setVehicle(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVehicle();
+  }, [id, storeVehicle, setVehicles]);
+
+  if (isLoading) {
+    return (
+      <div className="relative flex h-full flex-col items-center justify-center bg-transparent px-6 py-10 text-center">
+        <p className="text-sm font-black text-[#64748B]">Loading vehicle...</p>
+      </div>
+    );
+  }
 
   if (!vehicle) {
     return (
@@ -54,42 +176,56 @@ const EditVehicle = () => {
   const hasChanges =
     (name.trim() !== '' && name !== vehicle.name) || image !== vehicle.image;
 
+  const displayImage = image || vehicle.image || FALLBACK_VEHICLE_IMAGE;
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (file) {
       const reader = new FileReader();
+
       reader.onloadend = () => {
         setImage(reader.result as string);
       };
+
       reader.readAsDataURL(file);
     }
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!hasChanges) return;
 
-    setVehicles((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, name, image } : v))
+    setVehicles((prev: any[]) =>
+      prev.map((v: any) =>
+        v.id === id
+          ? {
+              ...v,
+              name,
+              image,
+              vehicle_media: image ? [image] : v.vehicle_media,
+            }
+          : v
+      )
     );
+
     navigate('/app/vehicles');
   };
 
   const handleDelete = () => {
     setShowModal(false);
-    setVehicles((prev) => prev.filter((v) => v.id !== id));
+    setVehicles((prev: any[]) => prev.filter((v: any) => v.id !== id));
     navigate('/app/vehicles');
   };
 
   return (
     <div className="relative flex h-full flex-col bg-transparent px-5 pt-10 pb-10">
-      {/* Soft atmosphere */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[220px] w-[220px] -translate-x-1/2 rounded-full bg-white/35 blur-3xl" />
         <div className="absolute right-[-40px] top-24 h-[180px] w-[180px] rounded-full bg-[#D8EAFF]/35 blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="relative z-10 mb-8 flex items-center justify-between">
         <button
           onClick={() => navigate('/app/vehicles')}
@@ -115,24 +251,22 @@ const EditVehicle = () => {
         </button>
       </header>
 
-      {/* Content */}
       <div className="scrollbar-hide relative z-10 flex-1 overflow-y-auto pb-44">
         <form
           id="app-edit-vehicle"
           onSubmit={handleSave}
           className="flex flex-col gap-6"
         >
-          {/* Hero preview */}
           <section className="rounded-[28px] border border-[#DCE6F2] bg-white/90 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl">
             <div className="flex items-center gap-4">
               <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[22px] border border-[#E5EDF6] bg-white shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
                 <img
-                  src={
-                    image ||
-                    'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=600'
-                  }
+                  src={displayImage}
                   alt="Vehicle Preview"
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
+                  }}
                 />
               </div>
 
@@ -150,50 +284,37 @@ const EditVehicle = () => {
             </div>
           </section>
 
-          {/* Photo Section */}
           <section>
             <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
               Vehicle Photo
             </label>
 
             <div className="group relative overflow-hidden rounded-[28px] border border-[#DCE6F2] bg-white/90 p-1 shadow-[0_12px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all">
-              {image ? (
-                <div className="relative h-52 w-full overflow-hidden rounded-[24px]">
-                  <img
-                    src={image}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.14)_100%)]" />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 opacity-0 transition-opacity group-hover:opacity-100">
-                    <UploadCloud className="mb-2 text-white" size={32} />
-                    <span className="text-xs font-black uppercase tracking-widest text-white">
-                      Change Photo
-                    </span>
-                  </div>
+              <div className="relative h-52 w-full overflow-hidden rounded-[24px]">
+                <img
+                  src={displayImage}
+                  alt="Preview"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
+                  }}
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.14)_100%)]" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 opacity-0 transition-opacity group-hover:opacity-100">
+                  <UploadCloud className="mb-2 text-white" size={32} />
+                  <span className="text-xs font-black uppercase tracking-widest text-white">
+                    Change Photo
+                  </span>
                 </div>
-              ) : (
-                <div className="relative h-52 w-full overflow-hidden rounded-[24px]">
-                  <img
-                    src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=600"
-                    alt="Default car"
-                    className="h-full w-full object-cover opacity-40 grayscale transition-all duration-700 group-hover:opacity-55"
-                  />
+
+                {!displayImage && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                     <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-[#DCE6F2] bg-white/85 shadow-[0_10px_24px_rgba(15,23,42,0.10)]">
                       <Camera size={28} className="text-[#2563EB]" />
                     </div>
-                    <div className="px-4 text-center">
-                      <p className="text-[15px] font-black tracking-tight text-[#0F172A]">
-                        Change photo
-                      </p>
-                      <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">
-                        Identity verification
-                      </p>
-                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <input
                 type="file"
@@ -204,7 +325,6 @@ const EditVehicle = () => {
             </div>
           </section>
 
-          {/* Plate + status */}
           <section className="grid grid-cols-1 gap-4">
             <div className="rounded-[28px] border border-[#DCE6F2] bg-white/90 p-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
               <span className="mb-4 block text-[10px] font-black uppercase tracking-[0.18em] text-[#94A3B8]">
@@ -233,7 +353,6 @@ const EditVehicle = () => {
             </div>
           </section>
 
-          {/* Nickname */}
           <section>
             <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
               Nickname
@@ -247,7 +366,6 @@ const EditVehicle = () => {
             />
           </section>
 
-          {/* Documents */}
           <section>
             <label className="mb-4 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
               Linked Documents
@@ -267,7 +385,6 @@ const EditVehicle = () => {
         </form>
       </div>
 
-      {/* Bottom actions */}
       <div className="absolute bottom-0 left-0 right-0 z-50 border-t border-[#DCE6F2] bg-white/95 p-5 backdrop-blur-xl">
         <div className="mx-auto flex max-w-md gap-3">
           <button
@@ -289,7 +406,6 @@ const EditVehicle = () => {
         </div>
       </div>
 
-      {/* Delete modal */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/45 p-6 backdrop-blur-sm sm:items-center">
           <div className="w-full max-w-[360px] rounded-[32px] border border-[#E5E7EB] bg-white p-7 shadow-2xl">
