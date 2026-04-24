@@ -33,9 +33,7 @@ export const handleMagicLinkLogin = async () => {
     .eq('auth_user_id', user.id)
     .maybeSingle();
 
-  if (profileError) {
-    throw profileError;
-  }
+  if (profileError) throw profileError;
 
   if (!profile || !profile.name) {
     return { needsProfileCompletion: true, user, profile: null };
@@ -56,9 +54,7 @@ export const getCurrentUser = async () => {
   try {
     const { data } = await supabase.auth.getSession();
 
-    if (!data?.session) {
-      return null;
-    }
+    if (!data?.session) return null;
 
     const { data: userData, error } = await supabase.auth.getUser();
 
@@ -108,9 +104,7 @@ type SaveUserProfilePayload = {
   vehicleId?: string;
 };
 
-export const saveUserProfile = async (
-  profileData: SaveUserProfilePayload
-) => {
+export const saveUserProfile = async (profileData: SaveUserProfilePayload) => {
   console.log('🔥 NEW saveUserProfile (FULL FLOW SAFE AUTH)');
 
   const isOwnerFlow = profileData.role === 'vehicle_owner';
@@ -127,13 +121,8 @@ export const saveUserProfile = async (
   }
 
   const token = session?.access_token || '';
-
   let user: any = null;
 
-  // ✅ IMPORTANT FIX:
-  // Only call getUser() when Supabase session exists.
-  // Owner phone flow has no Supabase session, so calling getUser()
-  // causes AuthSessionMissingError.
   if (session?.access_token) {
     const {
       data: { user: authUser },
@@ -153,16 +142,10 @@ export const saveUserProfile = async (
 
   const trimmedName = profileData.name?.trim();
   const trimmedUsername =
-    profileData.username?.trim().toLowerCase() ||
-    trimmedName?.toLowerCase();
+    profileData.username?.trim().toLowerCase() || trimmedName?.toLowerCase();
 
-  if (!trimmedName) {
-    throw new Error('Name is required');
-  }
-
-  if (!trimmedUsername) {
-    throw new Error('Username is required');
-  }
+  if (!trimmedName) throw new Error('Name is required');
+  if (!trimmedUsername) throw new Error('Username is required');
 
   if (trimmedUsername.length < 3 || trimmedUsername.length > 20) {
     throw new Error('Username must be between 3 and 20 characters');
@@ -202,34 +185,43 @@ export const saveUserProfile = async (
     throw duplicateError;
   }
 
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/auth/create-profile`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          role: profileData.role || 'reporter',
-          verifiedPhone: profileData.verifiedPhone || '',
-          vehicleId: profileData.vehicleId || '',
-        }),
+  // ✅ IMPORTANT FIX:
+  // This backend route requires Authorization token.
+  // Owner flow has no Supabase session/token, so we skip it for owner flow.
+  if (token) {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auth/create-profile`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            role: profileData.role || 'reporter',
+            verifiedPhone: profileData.verifiedPhone || '',
+            vehicleId: profileData.vehicleId || '',
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Backend create-profile failed:', result);
+        throw new Error(
+          result?.message || 'Failed to create profile on backend'
+        );
       }
-    );
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error('❌ Backend create-profile failed:', result);
-      throw new Error(result?.message || 'Failed to create profile on backend');
+      console.log('✅ Backend profile flow complete:', result);
+    } catch (err) {
+      console.error('❌ Backend profile call failed:', err);
+      throw err;
     }
-
-    console.log('✅ Backend profile flow complete:', result);
-  } catch (err) {
-    console.error('❌ Backend profile call failed:', err);
-    throw err;
+  } else {
+    console.log('🟢 Owner flow: skipping protected backend create-profile route');
   }
 
   const payload = {
@@ -355,6 +347,7 @@ export const signOutUser = async () => {
   localStorage.removeItem('verifiedPhone');
   localStorage.removeItem('vehicleId');
   localStorage.removeItem('role');
+  localStorage.removeItem('ownerAccess');
 
   const { error } = await supabase.auth.signOut();
 
