@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveUserProfile } from "../services/authService";
-import { supabase } from "../supabase";
+import { User, Mail, ArrowRight, X, Phone } from "lucide-react";
+
+const avatars = [
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=A",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=B",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=C",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=D",
+];
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
@@ -11,6 +18,7 @@ const CompleteProfile = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [vehicleId, setVehicleId] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -18,52 +26,21 @@ const CompleteProfile = () => {
   const isOwner = role === "vehicle_owner";
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedRole = localStorage.getItem("role") || "reporter";
-        const storedPhone = localStorage.getItem("verifiedPhone") || "";
-        const storedVehicleId = localStorage.getItem("vehicleId") || "";
+    const storedRole = localStorage.getItem("role") || "reporter";
+    const storedPhone = localStorage.getItem("verifiedPhone") || "";
+    const storedVehicleId = localStorage.getItem("vehicleId") || "";
 
-        setRole(storedRole as any);
-        setPhone(storedPhone);
-        setVehicleId(storedVehicleId);
+    setRole(storedRole as any);
+    setPhone(storedPhone);
+    setVehicleId(storedVehicleId);
 
-        const { data: sessionData } = await supabase.auth.getSession();
-
-        if (sessionData?.session) {
-          const { data } = await supabase.auth.getUser();
-
-          if (data?.user?.email) {
-            setEmail(data.user.email);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUser();
+    setLoading(false);
   }, []);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!username.trim()) {
-      alert("Username required");
-      return;
-    }
-
-    if (isOwner && !phone) {
-      alert("Phone required");
-      return;
-    }
-
-    if (!isOwner && !email) {
-      alert("Email required");
-      return;
-    }
+    if (!username.trim()) return alert("Username required");
 
     setSubmitting(true);
 
@@ -76,9 +53,10 @@ const CompleteProfile = () => {
         role,
         verifiedPhone: isOwner ? phone : "",
         vehicleId: isOwner ? vehicleId : "",
+        profileImage: selectedAvatar,
       });
 
-      // ✅ FINAL OWNER FLOW FIX
+      // ✅ owner flow fix
       const storedRole = localStorage.getItem("role");
       const storedPhone = localStorage.getItem("verifiedPhone");
       const storedVehicleId = localStorage.getItem("vehicleId");
@@ -91,65 +69,85 @@ const CompleteProfile = () => {
 
       if (isOwnerFlow) {
         localStorage.setItem("ownerAccess", "true");
-        localStorage.setItem("role", "vehicle_owner");
-
-        localStorage.removeItem("verifiedPhone");
-        localStorage.removeItem("vehicleId");
       }
 
       navigate("/app/vehicles", { replace: true });
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Error saving profile");
+      alert(err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
-      </div>
-    );
-  }
+  if (loading) return <div className="p-10">Loading...</div>;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EEF3F8]">
+    <div className="min-h-screen bg-[#D6E2EC] flex flex-col">
+      {/* HEADER */}
+      <div className="flex justify-between items-center p-4">
+        <h1 className="text-xl font-bold">Complete Profile</h1>
+        <button onClick={() => navigate("/app/vehicles")}>
+          <X />
+        </button>
+      </div>
+
+      {/* CONTENT */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow w-full max-w-md"
+        className="bg-white m-4 p-6 rounded-3xl flex flex-col gap-4"
       >
-        <h2 className="text-xl font-bold mb-4">Complete Profile</h2>
+        {/* AVATAR */}
+        <div className="flex gap-3 justify-center">
+          {avatars.map((a, i) => (
+            <img
+              key={i}
+              src={a}
+              onClick={() => setSelectedAvatar(a)}
+              className={`w-14 h-14 rounded-xl cursor-pointer border ${
+                selectedAvatar === a ? "border-blue-500" : ""
+              }`}
+            />
+          ))}
+        </div>
 
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full border p-2 mb-3"
-        />
-
-        {!isOwner && (
+        {/* USERNAME */}
+        <div className="relative">
+          <User className="absolute left-3 top-4 text-gray-400" size={18} />
           <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border p-2 mb-3"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="pl-10 w-full border p-3 rounded-xl"
           />
+        </div>
+
+        {/* EMAIL */}
+        {!isOwner && (
+          <div className="relative">
+            <Mail className="absolute left-3 top-4 text-gray-400" size={18} />
+            <input
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-10 w-full border p-3 rounded-xl"
+            />
+          </div>
         )}
 
-        <input
-          placeholder="Phone"
-          value={phone}
-          readOnly={isOwner}
-          className="w-full border p-2 mb-3"
-        />
+        {/* PHONE */}
+        <div className="relative">
+          <Phone className="absolute left-3 top-4 text-gray-400" size={18} />
+          <input
+            value={phone}
+            readOnly={isOwner}
+            className="pl-10 w-full border p-3 rounded-xl bg-gray-100"
+          />
+        </div>
 
-        <button
-          disabled={submitting}
-          className="w-full bg-blue-500 text-white p-2 rounded"
-        >
+        {/* BUTTON */}
+        <button className="bg-blue-500 text-white p-3 rounded-xl flex justify-center items-center gap-2">
           {submitting ? "Saving..." : "Continue"}
+          {!submitting && <ArrowRight size={16} />}
         </button>
       </form>
     </div>
