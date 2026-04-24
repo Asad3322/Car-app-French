@@ -15,15 +15,12 @@ const AuthCallback = () => {
       try {
         const url = new URL(window.location.href);
 
-        const code = url.searchParams.get('code'); // email flow
-        const phoneToken = url.searchParams.get('phone_token'); // owner phone-link flow
+        const code = url.searchParams.get('code');
+        const phoneToken = url.searchParams.get('phone_token');
 
         // =========================
-        // 🟢 PHONE FLOW (OWNER)
+        // OWNER PHONE LINK FLOW
         // =========================
-        // IMPORTANT:
-        // This flow does NOT create a Supabase session in your current architecture.
-        // It only verifies the backend phone link and stores temporary data for CompleteProfile.
         if (phoneToken) {
           const res = await fetch(
             `${import.meta.env.VITE_API_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
@@ -39,13 +36,12 @@ const AuthCallback = () => {
           localStorage.setItem('vehicleId', data?.data?.vehicleId || '');
           localStorage.setItem('role', 'vehicle_owner');
 
-          // Do NOT call handleMagicLinkLogin here because it requires a Supabase session.
           navigate('/complete-profile', { replace: true });
           return;
         }
 
         // =========================
-        // 🔵 EMAIL FLOW (REPORTER)
+        // EMAIL MAGIC LINK FLOW
         // =========================
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -55,9 +51,6 @@ const AuthCallback = () => {
           }
         }
 
-        // =========================
-        // 🔐 GET SESSION (REPORTER)
-        // =========================
         const {
           data: { session },
           error: sessionError,
@@ -67,20 +60,22 @@ const AuthCallback = () => {
           throw sessionError;
         }
 
-        if (session?.access_token) {
-          localStorage.setItem('token', session.access_token);
+        if (!session?.access_token) {
+          navigate('/auth', { replace: true });
+          return;
         }
 
-        // =========================
-        // 🎯 REPORTER NEXT STEP
-        // =========================
+        localStorage.setItem('token', session.access_token);
+
         const result = await handleMagicLinkLogin();
 
         if (result?.needsProfileCompletion) {
           navigate('/complete-profile', { replace: true });
-        } else {
-          navigate('/app/home', { replace: true });
+          return;
         }
+
+        // ✅ Important: after login, go to vehicles, not home
+        navigate('/app/vehicles', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
         navigate('/auth', { replace: true });
