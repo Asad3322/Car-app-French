@@ -94,7 +94,11 @@ const CompleteProfile = () => {
           });
 
           setEmail(user.email || "");
-          setPhone(storedRole === "vehicle_owner" ? storedVerifiedPhone : user.phone || "");
+          setPhone(
+            storedRole === "vehicle_owner"
+              ? storedVerifiedPhone
+              : user.phone || ""
+          );
 
           const { data: profile } = await supabase
             .from("profiles")
@@ -225,7 +229,7 @@ const CompleteProfile = () => {
         name: normalizedUsername,
         username: normalizedUsername,
         email: isOwner ? "" : email,
-        phone,
+        phone: isOwner ? phone : "",
         primaryContact: isOwner ? "phone" : "email",
         profileImage: selectedAvatar,
         role,
@@ -271,7 +275,9 @@ const CompleteProfile = () => {
   if (isLoadingUser) {
     return (
       <div className="relative flex min-h-[100svh] w-full items-center justify-center bg-[#D6E2EC] text-[#0B1A2B]">
-        <p className="text-sm font-semibold text-[#6F8194]">Loading profile...</p>
+        <p className="text-sm font-semibold text-[#6F8194]">
+          Loading profile...
+        </p>
       </div>
     );
   }
@@ -401,48 +407,49 @@ const CompleteProfile = () => {
                 )}
               </div>
 
-              <div>
-                <label className="text-[11px] font-bold uppercase text-[#6F8194]">
-                  Email
-                </label>
-                <div className="relative mt-2">
-                  <Mail
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
-                    size={17}
-                  />
-                  <input
-                    value={email}
-                    readOnly
-                    placeholder={isOwner ? "Owner flow uses phone verification" : "Login email"}
-                    className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
-                  />
+              {!isOwner && (
+                <div>
+                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
+                    Email
+                  </label>
+                  <div className="relative mt-2">
+                    <Mail
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
+                      size={17}
+                    />
+                    <input
+                      value={email}
+                      readOnly
+                      placeholder="Login email"
+                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="text-[11px] font-bold uppercase text-[#6F8194]">
-                  Phone Number
-                </label>
-                <div className="relative mt-2">
-                  <Phone
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
-                    size={17}
-                  />
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    readOnly={isOwner}
-                    placeholder={isOwner ? "+33 6 12 34 56 78" : "Optional phone"}
-                    className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
-                  />
-                </div>
+              {isOwner && (
+                <div>
+                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
+                    Phone Number
+                  </label>
+                  <div className="relative mt-2">
+                    <Phone
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
+                      size={17}
+                    />
+                    <input
+                      value={phone}
+                      readOnly
+                      placeholder="+33 6 12 34 56 78"
+                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
+                    />
+                  </div>
 
-                {isOwner && (
                   <p className="mt-2 text-[11px] font-semibold text-[#6F8194]">
-                    Verified phone number is locked for owner flow.
+                    Verified phone number is required for owner flow.
                   </p>
-                )}
-              </div>
+                </div>
+              )}
 
               <button
                 type="submit"
