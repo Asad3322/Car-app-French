@@ -22,14 +22,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     const deny = () => {
       if (!isMounted) return;
+      localStorage.removeItem('token');
       setValid(false);
       setLoading(false);
     };
 
     const checkAuth = async () => {
       try {
-        // ✅ 1. Owner phone flow access
-        // Owner flow does not have Supabase session, so allow it after profile completion.
         const ownerAccess = localStorage.getItem('ownerAccess');
 
         if (ownerAccess === 'true') {
@@ -37,37 +36,17 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           return;
         }
 
-        // ✅ 2. Backend/Supabase token access
-        const token = localStorage.getItem('token');
-
-        if (token) {
-          allow();
-          return;
-        }
-
-        // ✅ 3. Check Supabase session BEFORE calling getUser()
-        const { data: sessionData, error: sessionError } =
-          await supabase.auth.getSession();
-
-        if (sessionError || !sessionData?.session) {
-          deny();
-          return;
-        }
-
-        if (sessionData.session.access_token) {
-          localStorage.setItem('token', sessionData.session.access_token);
-        }
-
         const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-        if (userError || !user) {
+        if (error || !session?.access_token) {
           deny();
           return;
         }
 
+        localStorage.setItem('token', session.access_token);
         allow();
       } catch (error) {
         console.error('ProtectedRoute error:', error);
@@ -85,22 +64,16 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       const ownerAccess = localStorage.getItem('ownerAccess');
 
       if (ownerAccess === 'true') {
-        setValid(true);
-        setLoading(false);
+        allow();
         return;
       }
 
-      if (session?.user) {
-        setValid(true);
-
-        if (session.access_token) {
-          localStorage.setItem('token', session.access_token);
-        }
+      if (session?.access_token) {
+        localStorage.setItem('token', session.access_token);
+        allow();
       } else {
-        setValid(false);
+        deny();
       }
-
-      setLoading(false);
     });
 
     return () => {
