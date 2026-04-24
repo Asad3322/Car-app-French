@@ -16,6 +16,18 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     const checkAuth = async () => {
       try {
+        // ✅ 1. Check backend token FIRST
+        const token = localStorage.getItem('token');
+
+        if (token) {
+          if (isMounted) {
+            setValid(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // ✅ 2. Fallback to Supabase session
         const {
           data: { user },
           error,
@@ -27,6 +39,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           setValid(false);
         } else {
           setValid(true);
+
+          // ✅ Save token if session exists
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.access_token) {
+            localStorage.setItem('token', sessionData.session.access_token);
+          }
         }
       } catch (error) {
         console.error('ProtectedRoute error:', error);
@@ -46,7 +64,18 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
-      setValid(!!session?.user);
+
+      if (session?.user) {
+        setValid(true);
+
+        // ✅ Sync token
+        if (session.access_token) {
+          localStorage.setItem('token', session.access_token);
+        }
+      } else {
+        setValid(false);
+      }
+
       setLoading(false);
     });
 
