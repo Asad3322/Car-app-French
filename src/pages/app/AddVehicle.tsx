@@ -126,12 +126,21 @@ const AddVehicle = () => {
         throw new Error(validationMessage);
       }
 
-      // ✅ CHANGED ONLY THIS PART:
-      // old: navigate('/auth?role=owner');
+      const savedVehicleId = result?.data?.id;
+
+      console.log('Vehicle saved ID:', savedVehicleId);
+
+      if (!savedVehicleId) {
+        throw new Error('Vehicle registered but backend did not return vehicle ID');
+      }
+
+      localStorage.setItem('vehicleId', savedVehicleId);
+      localStorage.setItem('role', 'vehicle_owner');
+
       navigate('/verify', {
         state: {
           mode: 'owner',
-          vehicleId: result?.data?.id || null,
+          vehicleId: savedVehicleId,
         },
       });
     } catch (error: any) {
