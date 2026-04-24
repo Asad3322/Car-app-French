@@ -11,7 +11,6 @@ import PlainAppLayout from './components/layout/PlainAppLayout';
 import PublicFlowLayout from './components/layout/PublicFlowLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// App Routes
 import Home from './pages/app/Home';
 import Vehicles from './pages/app/Vehicles';
 import AddVehicle from './pages/app/AddVehicle';
@@ -36,7 +35,6 @@ function App() {
     <StoreProvider>
       <Router>
         <Routes>
-          {/* Public Flow */}
           <Route element={<PublicFlowLayout />}>
             <Route path="/" element={<Onboarding />} />
             <Route path="/verify" element={<Verify />} />
@@ -47,18 +45,16 @@ function App() {
             <Route path="/vehicle/add-onboarding" element={<AddVehicleOnboarding />} />
           </Route>
 
-          {/* Public Plain Routes */}
           <Route element={<PlainAppLayout />}>
             <Route path="/app/reports" element={<ReportDetails />} />
             <Route path="/app/report-details" element={<ReportDetails />} />
 
-            {/* PUBLIC ADD VEHICLE ROUTE */}
+            {/* ✅ PUBLIC ADD VEHICLE ROUTES */}
             <Route path="/vehicle/add" element={<AddVehicle />} />
+            <Route path="/app/vehicles/add" element={<AddVehicle />} />
           </Route>
 
-          {/* Protected App Flow */}
           <Route path="/app" element={<ProtectedOutlet />}>
-            {/* WITH Bottom Nav */}
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/app/home" replace />} />
               <Route path="home" element={<Home />} />
@@ -68,16 +64,13 @@ function App() {
               <Route path="profile" element={<Profile />} />
             </Route>
 
-            {/* WITHOUT Bottom Nav */}
             <Route element={<PlainAppLayout />}>
-              <Route path="vehicles/add" element={<AddVehicle />} />
               <Route path="vehicles/:id/edit" element={<EditVehicle />} />
               <Route path="incidents/:id" element={<IncidentDetails />} />
               <Route path="profile/edit" element={<EditProfile />} />
             </Route>
           </Route>
 
-          {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
