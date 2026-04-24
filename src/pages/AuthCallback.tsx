@@ -7,6 +7,45 @@ const AuthCallback = () => {
   const navigate = useNavigate();
   const hasRun = useRef(false);
 
+  const claimPendingVehicle = async (token: string) => {
+    try {
+      const vehicleId = localStorage.getItem('vehicleId');
+      const role = localStorage.getItem('role');
+
+      if (!token || !vehicleId || role !== 'vehicle_owner') {
+        return;
+      }
+
+      console.log('🚗 Claiming pending vehicle:', vehicleId);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auth/create-profile`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            role: 'vehicle_owner',
+            vehicleId,
+            verifiedPhone: localStorage.getItem('verifiedPhone') || null,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      console.log('✅ Claim/profile response:', result);
+
+      if (!response.ok) {
+        console.error('Claim vehicle failed:', result);
+      }
+    } catch (error) {
+      console.error('Claim pending vehicle error:', error);
+    }
+  };
+
   useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
@@ -69,12 +108,13 @@ const AuthCallback = () => {
 
         const result = await handleMagicLinkLogin();
 
+        await claimPendingVehicle(session.access_token);
+
         if (result?.needsProfileCompletion) {
           navigate('/complete-profile', { replace: true });
           return;
         }
 
-        // ✅ Important: after login, go to vehicles, not home
         navigate('/app/vehicles', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
