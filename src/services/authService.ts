@@ -52,10 +52,13 @@ export const getCurrentSession = async () => {
 };
 
 export const getCurrentUser = async () => {
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error) throw error;
-  return data.user;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) return null;
+    return data.user || null;
+  } catch {
+    return null;
+  }
 };
 
 export const isProfileComplete = async () => {
