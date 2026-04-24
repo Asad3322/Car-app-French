@@ -92,7 +92,7 @@ const Verify = () => {
 
       console.log('🚀 VERIFY PAYLOAD:', payload);
 
-      const response = await fetch(`${API_BASE_URL}/auth/send-verification`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/send-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
