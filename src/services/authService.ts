@@ -185,9 +185,6 @@ export const saveUserProfile = async (profileData: SaveUserProfilePayload) => {
     throw duplicateError;
   }
 
-  // ✅ IMPORTANT FIX:
-  // This backend route requires Authorization token.
-  // Owner flow has no Supabase session/token, so we skip it for owner flow.
   if (token) {
     try {
       const response = await fetch(
@@ -291,6 +288,25 @@ export const saveUserProfile = async (profileData: SaveUserProfilePayload) => {
 
     console.log('✅ Profile updated successfully:', data);
     return data;
+  }
+
+  // ✅ FINAL FIX:
+  // Owner flow has no Supabase auth session, so RLS blocks frontend insert.
+  // Do not insert owner profile from frontend.
+  if (isOwnerFlow && !token) {
+    console.log('🟢 Owner flow: skipping Supabase insert because RLS requires auth');
+
+    return {
+      success: true,
+      message: 'Owner flow completed without frontend profile insert',
+      data: {
+        name: trimmedName,
+        username: trimmedUsername,
+        phone: profileData.verifiedPhone || profileData.phone || null,
+        vehicleId: profileData.vehicleId || null,
+        role: 'vehicle_owner',
+      },
+    };
   }
 
   console.log('🟢 Creating new profile');
