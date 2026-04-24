@@ -249,7 +249,9 @@ const CompleteProfile = () => {
 
       if (isOwnerFlow) {
         localStorage.setItem("ownerAccess", "true");
+        localStorage.setItem("ownerPhone", phone);
         localStorage.setItem("role", "vehicle_owner");
+
         localStorage.removeItem("verifiedPhone");
         localStorage.removeItem("vehicleId");
       }

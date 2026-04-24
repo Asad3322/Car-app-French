@@ -56,6 +56,7 @@ const normalizeVehicle = (vehicle: any) => ({
 
 const Vehicles = () => {
   const navigate = useNavigate();
+
   const [vehicles, setVehicles] = useState<
     (Vehicle & {
       image?: string;
@@ -63,6 +64,7 @@ const Vehicles = () => {
       vehicleMediaUrls?: string[];
     })[]
   >([]);
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -71,13 +73,39 @@ const Vehicles = () => {
         setIsLoading(true);
 
         const token = localStorage.getItem('token') || '';
+        const ownerAccess = localStorage.getItem('ownerAccess');
+        const ownerPhone = localStorage.getItem('ownerPhone');
 
-        const response = await fetch(`${API_URL}/api/vehicles`, {
-          method: 'GET',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+        console.log('🚗 Vehicle fetch localStorage:', {
+          hasToken: Boolean(token),
+          ownerAccess,
+          ownerPhone,
         });
+
+        let response: Response;
+
+        // ✅ IMPORTANT:
+        // Owner phone flow must be checked FIRST.
+        // Otherwise an old/expired token calls protected route and fails.
+        if (ownerAccess === 'true' && ownerPhone) {
+          response = await fetch(
+            `${API_URL}/api/vehicles/owner-phone?phone=${encodeURIComponent(
+              ownerPhone
+            )}`,
+            {
+              method: 'GET',
+            }
+          );
+        } else if (token) {
+          response = await fetch(`${API_URL}/api/vehicles`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        } else {
+          throw new Error('No vehicle access found');
+        }
 
         const result = await response.json();
 
@@ -128,7 +156,7 @@ const Vehicles = () => {
 
           <div className="flex shrink-0 items-center gap-2 pt-1">
             <button
-              onClick={() => navigate('/app/vehicles/add')}
+              onClick={() => navigate('/vehicle/add')}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8E3F0] bg-white text-[#7E8CA3] shadow-[0_12px_26px_rgba(15,23,42,0.12)] transition-all hover:scale-[1.03] hover:text-[#3B82F6] active:scale-95"
               aria-label="Add vehicle"
             >
@@ -178,7 +206,7 @@ const Vehicles = () => {
             </p>
 
             <button
-              onClick={() => navigate('/app/vehicles/add')}
+              onClick={() => navigate('/vehicle/add')}
               className="mt-6 inline-flex items-center justify-center rounded-[18px] bg-[#111827] px-5 py-3 text-[12px] font-black uppercase tracking-[0.16em] text-white shadow-[0_16px_34px_rgba(15,23,42,0.18)] transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               Add Vehicle
