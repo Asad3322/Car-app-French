@@ -14,47 +14,64 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   useEffect(() => {
     let isMounted = true;
 
+    const allow = () => {
+      if (!isMounted) return;
+      setValid(true);
+      setLoading(false);
+    };
+
+    const deny = () => {
+      if (!isMounted) return;
+      setValid(false);
+      setLoading(false);
+    };
+
     const checkAuth = async () => {
       try {
-        // ✅ 1. Check backend token FIRST
-        const token = localStorage.getItem('token');
+        // ✅ 1. Owner phone flow access
+        // Owner flow does not have Supabase session, so allow it after profile completion.
+        const ownerAccess = localStorage.getItem('ownerAccess');
 
-        if (token) {
-          if (isMounted) {
-            setValid(true);
-            setLoading(false);
-          }
+        if (ownerAccess === 'true') {
+          allow();
           return;
         }
 
-        // ✅ 2. Fallback to Supabase session
+        // ✅ 2. Backend/Supabase token access
+        const token = localStorage.getItem('token');
+
+        if (token) {
+          allow();
+          return;
+        }
+
+        // ✅ 3. Check Supabase session BEFORE calling getUser()
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+
+        if (sessionError || !sessionData?.session) {
+          deny();
+          return;
+        }
+
+        if (sessionData.session.access_token) {
+          localStorage.setItem('token', sessionData.session.access_token);
+        }
+
         const {
           data: { user },
-          error,
+          error: userError,
         } = await supabase.auth.getUser();
 
-        if (!isMounted) return;
-
-        if (error || !user) {
-          setValid(false);
-        } else {
-          setValid(true);
-
-          // ✅ Save token if session exists
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session?.access_token) {
-            localStorage.setItem('token', sessionData.session.access_token);
-          }
+        if (userError || !user) {
+          deny();
+          return;
         }
+
+        allow();
       } catch (error) {
         console.error('ProtectedRoute error:', error);
-        if (isMounted) {
-          setValid(false);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        deny();
       }
     };
 
@@ -65,10 +82,17 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
 
+      const ownerAccess = localStorage.getItem('ownerAccess');
+
+      if (ownerAccess === 'true') {
+        setValid(true);
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
         setValid(true);
 
-        // ✅ Sync token
         if (session.access_token) {
           localStorage.setItem('token', session.access_token);
         }

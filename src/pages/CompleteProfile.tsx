@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { saveUserProfile } from '../services/authService';
-import { supabase } from '../supabase';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { saveUserProfile } from "../services/authService";
+import { supabase } from "../supabase";
 import {
   User,
   Mail,
@@ -10,13 +10,13 @@ import {
   CheckCircle2,
   Sparkles,
   Phone,
-} from 'lucide-react';
+} from "lucide-react";
 
 const avatars = [
-  'https://api.dicebear.com/9.x/fun-emoji/svg?seed=A',
-  'https://api.dicebear.com/9.x/fun-emoji/svg?seed=B',
-  'https://api.dicebear.com/9.x/fun-emoji/svg?seed=C',
-  'https://api.dicebear.com/9.x/fun-emoji/svg?seed=D',
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=A",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=B",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=C",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=D",
 ];
 
 type AuthUserShape = {
@@ -25,36 +25,36 @@ type AuthUserShape = {
   phone?: string | null;
 };
 
-type FlowRole = 'reporter' | 'vehicle_owner';
+type FlowRole = "reporter" | "vehicle_owner";
 
 const normalizeUsername = (value: string): string => value.trim().toLowerCase();
 
 const validateUsername = (value: string): string => {
   const normalized = normalizeUsername(value);
 
-  if (!normalized) return 'Username is required';
+  if (!normalized) return "Username is required";
   if (normalized.length < 3 || normalized.length > 20) {
-    return 'Username must be between 3 and 20 characters';
+    return "Username must be between 3 and 20 characters";
   }
   if (!/^[a-z0-9_.]+$/.test(normalized)) {
-    return 'Use only letters, numbers, underscore, and dot';
+    return "Use only letters, numbers, underscore, and dot";
   }
 
-  return '';
+  return "";
 };
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
 
   const [authUser, setAuthUser] = useState<AuthUserShape | null>(null);
-  const [role, setRole] = useState<FlowRole>('reporter');
-  const [username, setUsername] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [vehicleId, setVehicleId] = useState('');
+  const [role, setRole] = useState<FlowRole>("reporter");
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [vehicleId, setVehicleId] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
-  const [primaryContact, setPrimaryContact] = useState<'email' | 'phone'>(
-    'email'
+  const [primaryContact, setPrimaryContact] = useState<"email" | "phone">(
+    "email",
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,9 +63,9 @@ const CompleteProfile = () => {
   const [isUsernameAvailable, setIsUsernameAvailable] = useState<
     boolean | null
   >(null);
-  const [usernameError, setUsernameError] = useState('');
+  const [usernameError, setUsernameError] = useState("");
 
-  const isOwner = role === 'vehicle_owner';
+  const isOwner = role === "vehicle_owner";
 
   useEffect(() => {
     const loadUser = async () => {
@@ -73,13 +73,13 @@ const CompleteProfile = () => {
         setIsLoadingUser(true);
 
         const storedRole =
-          (localStorage.getItem('role') as FlowRole | null) || 'reporter';
-        const storedVerifiedPhone = localStorage.getItem('verifiedPhone') || '';
-        const storedVehicleId = localStorage.getItem('vehicleId') || '';
+          (localStorage.getItem("role") as FlowRole | null) || "reporter";
+        const storedVerifiedPhone = localStorage.getItem("verifiedPhone") || "";
+        const storedVehicleId = localStorage.getItem("vehicleId") || "";
 
         setRole(storedRole);
         setVehicleId(storedVehicleId);
-        setPrimaryContact(storedRole === 'vehicle_owner' ? 'phone' : 'email');
+        setPrimaryContact(storedRole === "vehicle_owner" ? "phone" : "email");
 
         const { data: sessionData } = await supabase.auth.getSession();
 
@@ -95,60 +95,60 @@ const CompleteProfile = () => {
         if (!error && user) {
           setAuthUser({
             id: user.id,
-            email: user.email || '',
-            phone: user.phone || '',
+            email: user.email || "",
+            phone: user.phone || "",
           });
 
-          setEmail(user.email || '');
+          setEmail(user.email || "");
 
-          if (storedRole === 'vehicle_owner') {
-            setPhone(storedVerifiedPhone || user.phone || '');
+          if (storedRole === "vehicle_owner") {
+            setPhone(storedVerifiedPhone || user.phone || "");
           } else {
-            setPhone(user.phone || '');
+            setPhone(user.phone || "");
           }
 
           const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('auth_user_id', user.id)
+            .from("profiles")
+            .select("*")
+            .eq("auth_user_id", user.id)
             .maybeSingle();
 
           if (profileError) {
-            console.error('Load existing profile error:', profileError);
+            console.error("Load existing profile error:", profileError);
           }
 
           if (profile) {
-            setUsername(profile.username || profile.name || '');
+            setUsername(profile.username || profile.name || "");
             setPhone(
               profile.phone ||
-                (storedRole === 'vehicle_owner'
+                (storedRole === "vehicle_owner"
                   ? storedVerifiedPhone
-                  : user.phone || '')
+                  : user.phone || ""),
             );
-            setEmail(profile.email || user.email || '');
+            setEmail(profile.email || user.email || "");
             setSelectedAvatar(profile.avatar_url || avatars[0]);
             setPrimaryContact(
-              profile.primary_contact === 'SMS' ||
-                profile.primary_contact === 'phone'
-                ? 'phone'
-                : 'email'
+              profile.primary_contact === "SMS" ||
+                profile.primary_contact === "phone"
+                ? "phone"
+                : "email",
             );
           }
 
           return;
         }
 
-        if (storedRole === 'vehicle_owner' && storedVerifiedPhone) {
+        if (storedRole === "vehicle_owner" && storedVerifiedPhone) {
           setPhone(storedVerifiedPhone);
-          setEmail('');
+          setEmail("");
           setAuthUser(null);
           return;
         }
 
-        navigate('/auth', { replace: true });
+        navigate("/auth", { replace: true });
       } catch (err) {
-        console.error('Load auth user error:', err);
-        navigate('/auth', { replace: true });
+        console.error("Load auth user error:", err);
+        navigate("/auth", { replace: true });
       } finally {
         setIsLoadingUser(false);
       }
@@ -163,7 +163,7 @@ const CompleteProfile = () => {
     const validationMessage = validateUsername(raw);
 
     if (!normalized) {
-      setUsernameError('');
+      setUsernameError("");
       setIsUsernameAvailable(null);
       setIsCheckingUsername(false);
       return;
@@ -176,15 +176,15 @@ const CompleteProfile = () => {
       return;
     }
 
-    setUsernameError('');
+    setUsernameError("");
     setIsCheckingUsername(true);
 
     const timer = setTimeout(async () => {
       try {
         const { data, error } = await supabase
-          .from('profiles')
-          .select('id, auth_user_id, username')
-          .ilike('username', normalized);
+          .from("profiles")
+          .select("id, auth_user_id, username")
+          .ilike("username", normalized);
 
         if (error) throw error;
 
@@ -195,7 +195,7 @@ const CompleteProfile = () => {
 
         setIsUsernameAvailable(!takenByAnotherUser);
       } catch (err) {
-        console.error('Username check error:', err);
+        console.error("Username check error:", err);
         setIsUsernameAvailable(null);
       } finally {
         setIsCheckingUsername(false);
@@ -217,12 +217,12 @@ const CompleteProfile = () => {
     }
 
     if (isOwner && !phone.trim()) {
-      alert('Verified phone number is required');
+      alert("Verified phone number is required");
       return;
     }
 
     if (!isOwner && !email.trim()) {
-      alert('Email is required');
+      alert("Email is required");
       return;
     }
 
@@ -230,9 +230,9 @@ const CompleteProfile = () => {
 
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, auth_user_id, username')
-        .ilike('username', normalizedUsername);
+        .from("profiles")
+        .select("id, auth_user_id, username")
+        .ilike("username", normalizedUsername);
 
       if (error) throw error;
 
@@ -242,7 +242,7 @@ const CompleteProfile = () => {
       });
 
       if (takenByAnotherUser) {
-        setUsernameError('This username is already taken');
+        setUsernameError("This username is already taken");
         setIsUsernameAvailable(false);
         setIsSubmitting(false);
         return;
@@ -251,33 +251,37 @@ const CompleteProfile = () => {
       await saveUserProfile({
         name: normalizedUsername,
         username: normalizedUsername,
-        email: isOwner ? '' : email,
+        email: isOwner ? "" : email,
         phone,
-        primaryContact: isOwner ? 'phone' : primaryContact,
+        primaryContact: isOwner ? "phone" : primaryContact,
         profileImage: selectedAvatar,
         role,
-        verifiedPhone: isOwner ? phone : '',
-        vehicleId: isOwner ? vehicleId : '',
+        verifiedPhone: isOwner ? phone : "",
+        vehicleId: isOwner ? vehicleId : "",
       });
 
       if (isOwner) {
-        localStorage.removeItem('verifiedPhone');
-        localStorage.removeItem('vehicleId');
-        localStorage.removeItem('role');
-      }
+        // ✅ allow protected routes
+        localStorage.setItem("ownerAccess", "true");
 
-      navigate('/app/vehicles', { replace: true });
+        // optional cleanup
+        localStorage.removeItem("verifiedPhone");
+        localStorage.removeItem("vehicleId");
+
+        // ❌ DO NOT remove role here
+      }
+      navigate("/app/vehicles", { replace: true });
     } catch (err: any) {
-      console.error('Save profile error:', err);
+      console.error("Save profile error:", err);
 
       if (
-        err?.code === '23505' ||
-        err?.message?.toLowerCase()?.includes('duplicate')
+        err?.code === "23505" ||
+        err?.message?.toLowerCase()?.includes("duplicate")
       ) {
-        setUsernameError('This username is already taken');
+        setUsernameError("This username is already taken");
         setIsUsernameAvailable(false);
       } else {
-        alert(err?.message || 'Failed to save profile');
+        alert(err?.message || "Failed to save profile");
       }
     } finally {
       setIsSubmitting(false);
@@ -313,7 +317,7 @@ const CompleteProfile = () => {
         </div>
 
         <button
-          onClick={() => navigate('/app/vehicles', { replace: true })}
+          onClick={() => navigate("/app/vehicles", { replace: true })}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#B8C9D6] bg-white text-[#6F8194] shadow-sm hover:bg-[#F8FBFD]"
         >
           <X size={18} />
@@ -332,8 +336,8 @@ const CompleteProfile = () => {
 
               <p className="mt-2 text-[14px] text-[#6F8194]">
                 {isOwner
-                  ? 'Your vehicle was saved. Now complete your owner profile to receive incident notifications.'
-                  : 'Add your details and choose your emoji avatar before entering the app.'}
+                  ? "Your vehicle was saved. Now complete your owner profile to receive incident notifications."
+                  : "Add your details and choose your emoji avatar before entering the app."}
               </p>
             </section>
 
@@ -369,8 +373,8 @@ const CompleteProfile = () => {
                           onClick={() => setSelectedAvatar(avatar)}
                           className={`h-14 w-14 rounded-[18px] border p-0.5 transition-all duration-200 ${
                             isActive
-                              ? 'border-[#2F93F6] bg-[#EAF4FF]'
-                              : 'border-[#D9E5F1] bg-white'
+                              ? "border-[#2F93F6] bg-[#EAF4FF]"
+                              : "border-[#D9E5F1] bg-white"
                           }`}
                         >
                           <img
@@ -401,25 +405,25 @@ const CompleteProfile = () => {
                     />
                   </div>
 
-                  {username.trim() !== '' && (
+                  {username.trim() !== "" && (
                     <p
                       className={`mt-2 text-[11px] font-semibold ${
                         usernameError
-                          ? 'text-red-500'
+                          ? "text-red-500"
                           : isCheckingUsername
-                          ? 'text-[#6F8194]'
-                          : isUsernameAvailable
-                          ? 'text-emerald-600'
-                          : 'text-[#6F8194]'
+                            ? "text-[#6F8194]"
+                            : isUsernameAvailable
+                              ? "text-emerald-600"
+                              : "text-[#6F8194]"
                       }`}
                     >
                       {usernameError
                         ? usernameError
                         : isCheckingUsername
-                        ? 'Checking username...'
-                        : isUsernameAvailable
-                        ? 'Username is available'
-                        : ''}
+                          ? "Checking username..."
+                          : isUsernameAvailable
+                            ? "Username is available"
+                            : ""}
                     </p>
                   )}
                 </div>
@@ -438,10 +442,10 @@ const CompleteProfile = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       readOnly={isOwner}
                       placeholder={
-                        isOwner ? 'Optional for owner flow' : 'name@example.com'
+                        isOwner ? "Optional for owner flow" : "name@example.com"
                       }
                       className={`h-[58px] w-full rounded-[20px] border border-[#D9E5F1] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none ${
-                        isOwner ? 'bg-[#F8FBFD]' : 'bg-white'
+                        isOwner ? "bg-[#F8FBFD]" : "bg-white"
                       }`}
                     />
                   </div>
@@ -463,10 +467,10 @@ const CompleteProfile = () => {
                       onChange={(e) => setPhone(e.target.value)}
                       readOnly={isOwner}
                       placeholder={
-                        isOwner ? '+33 6 12 34 56 78' : 'Optional phone'
+                        isOwner ? "+33 6 12 34 56 78" : "Optional phone"
                       }
                       className={`h-[58px] w-full rounded-[20px] border border-[#D9E5F1] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none ${
-                        isOwner ? 'bg-[#F8FBFD]' : 'bg-white'
+                        isOwner ? "bg-[#F8FBFD]" : "bg-white"
                       }`}
                     />
                   </div>
@@ -486,24 +490,24 @@ const CompleteProfile = () => {
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => !isOwner && setPrimaryContact('email')}
+                      onClick={() => !isOwner && setPrimaryContact("email")}
                       className={`h-[54px] rounded-[18px] text-[15px] font-medium transition-all ${
-                        primaryContact === 'email'
-                          ? 'bg-[#2F93F6] text-white'
-                          : 'border border-[#D9E5F1] bg-white text-[#0B1A2B]'
-                      } ${isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        primaryContact === "email"
+                          ? "bg-[#2F93F6] text-white"
+                          : "border border-[#D9E5F1] bg-white text-[#0B1A2B]"
+                      } ${isOwner ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       Email
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setPrimaryContact('phone')}
+                      onClick={() => setPrimaryContact("phone")}
                       className={`h-[54px] rounded-[18px] text-[15px] font-medium transition-all ${
-                        primaryContact === 'phone'
-                          ? 'bg-[#2F93F6] text-white'
-                          : 'border border-[#D9E5F1] bg-white text-[#0B1A2B]'
-                      } ${isOwner ? 'cursor-default' : ''}`}
+                        primaryContact === "phone"
+                          ? "bg-[#2F93F6] text-white"
+                          : "border border-[#D9E5F1] bg-white text-[#0B1A2B]"
+                      } ${isOwner ? "cursor-default" : ""}`}
                     >
                       Phone
                     </button>
@@ -513,7 +517,7 @@ const CompleteProfile = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => navigate('/app/vehicles', { replace: true })}
+                    onClick={() => navigate("/app/vehicles", { replace: true })}
                     className="h-[58px] rounded-[20px] border border-[#D9E5F1] bg-white text-[15px] font-medium text-[#0B1A2B]"
                   >
                     Cancel
@@ -530,7 +534,7 @@ const CompleteProfile = () => {
                     }
                     className="flex h-[58px] items-center justify-center gap-2 rounded-[20px] bg-[#2F93F6] text-[15px] font-medium text-white disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Saving...' : 'Continue'}
+                    {isSubmitting ? "Saving..." : "Continue"}
                     {!isSubmitting && <ArrowRight size={17} />}
                   </button>
                 </div>
