@@ -48,8 +48,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const syncLoggedInUser = async () => {
       try {
-        // ✅ IMPORTANT FIX:
-        // First check session. Do NOT call getUser() when no session exists.
         const { data: sessionData, error: sessionError } =
           await supabase.auth.getSession();
 
@@ -58,9 +56,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        if (!sessionData?.session) {
+        if (!sessionData?.session?.access_token) {
           return;
         }
+
+        localStorage.setItem('token', sessionData.session.access_token);
 
         const {
           data: { user: authUser },
@@ -76,29 +76,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        let profileData: Record<string, any> | null = null;
-
-        const { data: profileById, error: profileByIdError } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', authUser.id)
+          .eq('auth_user_id', authUser.id)
           .maybeSingle();
 
-        if (!profileByIdError && profileById) {
-          profileData = profileById as Record<string, any>;
-        } else {
-          const {
-            data: profileByAuthUserId,
-            error: profileByAuthUserIdError,
-          } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('auth_user_id', authUser.id)
-            .maybeSingle();
-
-          if (!profileByAuthUserIdError && profileByAuthUserId) {
-            profileData = profileByAuthUserId as Record<string, any>;
-          }
+        if (profileError) {
+          console.error('Store profile fetch error:', profileError);
         }
 
         const fallbackUsername =
@@ -111,42 +96,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
           (typeof authUser.user_metadata?.name === 'string'
             ? authUser.user_metadata.name.trim()
             : '') ||
-          '';
+          (authUser.email ? authUser.email.split('@')[0] : '') ||
+          'User';
 
         const mergedUser: UserProfile = {
           ...emptyUser,
-          ...user,
-          id: profileData?.id || authUser.id,
+          id: authUser.id,
           username: fallbackUsername,
-          phone: profileData?.phone || user.phone || '',
-          email: profileData?.email || authUser.email || user.email || '',
-          verifiedEmail:
-            profileData?.verifiedEmail ??
-            user.verifiedEmail ??
-            authUser.email ??
-            null,
-          verifiedPhone:
-            profileData?.verifiedPhone ?? user.verifiedPhone ?? null,
-          isPhoneVerified:
-            profileData?.isPhoneVerified ?? user.isPhoneVerified ?? false,
+          phone: profileData?.phone || '',
+          email: profileData?.email || authUser.email || '',
+          verifiedEmail: authUser.email || null,
+          verifiedPhone: profileData?.phone || null,
+          isPhoneVerified: Boolean(profileData?.phone),
           isVehicleOwner:
-            profileData?.isVehicleOwner ?? user.isVehicleOwner ?? false,
+            profileData?.role === 'vehicle_owner' ||
+            profileData?.is_vehicle_owner === true ||
+            false,
           primaryContactMethod:
-            profileData?.primaryContactMethod ||
-            user.primaryContactMethod ||
-            'email',
-          streak: profileData?.streak ?? user.streak ?? 0,
-          coins: profileData?.coins ?? user.coins ?? 0,
-          badges: profileData?.badges ?? user.badges ?? [],
-          totalIncidentsReported:
-            profileData?.totalIncidentsReported ??
-            user.totalIncidentsReported ??
-            0,
+            profileData?.primary_contact === 'SMS' ? 'sms' : 'email',
+          streak: profileData?.streak ?? 0,
+          coins: profileData?.coins ?? 0,
+          badges: profileData?.badges ?? [],
+          totalIncidentsReported: profileData?.totalIncidentsReported ?? 0,
           profileImage:
-            profileData?.profileImage ||
-            profileData?.avatar_url ||
-            user.profileImage ||
-            '',
+            profileData?.profileImage || profileData?.avatar_url || '',
         };
 
         setUser(mergedUser);
@@ -156,6 +129,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     syncLoggedInUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) {
+        localStorage.setItem('token', session.access_token);
+        syncLoggedInUser();
+      } else {
+        localStorage.removeItem('token');
+        setUser(emptyUser);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

@@ -23,19 +23,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     const deny = () => {
       if (!isMounted) return;
       localStorage.removeItem('token');
+      localStorage.removeItem('ownerAccess');
+      localStorage.removeItem('ownerPhone');
       setValid(false);
       setLoading(false);
     };
 
     const checkAuth = async () => {
       try {
-        const ownerAccess = localStorage.getItem('ownerAccess');
-
-        if (ownerAccess === 'true') {
-          allow();
-          return;
-        }
-
         const {
           data: { session },
           error,
@@ -60,13 +55,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
-
-      const ownerAccess = localStorage.getItem('ownerAccess');
-
-      if (ownerAccess === 'true') {
-        allow();
-        return;
-      }
 
       if (session?.access_token) {
         localStorage.setItem('token', session.access_token);

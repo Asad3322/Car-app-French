@@ -29,6 +29,7 @@ type ProfileUser = {
   email?: string;
   profileImage?: string;
   avatar_url?: string;
+  role?: string;
   isVehicleOwner?: boolean;
   is_vehicle_owner?: boolean;
 };
@@ -45,6 +46,8 @@ type ProfileIncident = {
   id: string;
   reporterId?: string;
   reporter_id?: string;
+  receiverId?: string;
+  receiver_id?: string;
   plate?: string;
   licence_plate?: string;
 };
@@ -54,7 +57,8 @@ const Profile = () => {
 
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [vehicles, setVehicles] = useState<ProfileVehicle[]>([]);
-  const [incidents, setIncidents] = useState<ProfileIncident[]>([]);
+  const [sentIncidents, setSentIncidents] = useState<ProfileIncident[]>([]);
+  const [receivedIncidents, setReceivedIncidents] = useState<ProfileIncident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [, setLanguage] = useState(
@@ -77,25 +81,34 @@ const Profile = () => {
         setIsLoading(true);
 
         const {
-          data: { user: authUser },
-          error: authError,
-        } = await supabase.auth.getUser();
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-        if (authError) {
-          console.error('Auth user fetch error:', authError);
+        if (sessionError || !session?.access_token) {
           if (isMounted) {
             setUser(null);
             setVehicles([]);
-            setIncidents([]);
+            setSentIncidents([]);
+            setReceivedIncidents([]);
           }
           return;
         }
 
-        if (!authUser) {
+        localStorage.setItem('token', session.access_token);
+
+        const {
+          data: { user: authUser },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !authUser) {
+          console.error('Auth user fetch error:', authError);
           if (isMounted) {
             setUser(null);
             setVehicles([]);
-            setIncidents([]);
+            setSentIncidents([]);
+            setReceivedIncidents([]);
           }
           return;
         }
@@ -107,20 +120,16 @@ const Profile = () => {
           username:
             (authUser.user_metadata?.name as string) ||
             (authUser.user_metadata?.username as string) ||
-            'User',
+            (authUser.email ? authUser.email.split('@')[0] : 'User'),
           name:
             (authUser.user_metadata?.name as string) ||
             (authUser.user_metadata?.username as string) ||
-            'User',
+            (authUser.email ? authUser.email.split('@')[0] : 'User'),
           phone: (authUser.user_metadata?.phone as string) || '',
           avatar_url:
             (authUser.user_metadata?.avatar_url as string) || DEFAULT_AVATAR,
           is_vehicle_owner: false,
         };
-
-        if (isMounted) {
-          setUser(fallbackProfile);
-        }
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -130,89 +139,29 @@ const Profile = () => {
 
         if (profileError) {
           console.error('Profile fetch failed:', profileError);
-        } else if (profile) {
-          if (isMounted) {
-            setUser({
-              ...fallbackProfile,
-              ...profile,
-            });
-          }
-        } else {
-          console.warn('No profile row found, creating fallback profile');
-
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              auth_user_id: authUser.id,
-              email: authUser.email || null,
-              name:
-                (authUser.user_metadata?.name as string) ||
-                (authUser.user_metadata?.username as string) ||
-                'User',
-              username:
-                (authUser.user_metadata?.name as string) ||
-                (authUser.user_metadata?.username as string) ||
-                'User',
-              phone: (authUser.user_metadata?.phone as string) || null,
-              avatar_url:
-                (authUser.user_metadata?.avatar_url as string) || null,
-              primary_contact: 'email',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-
-          if (insertError) {
-            console.error('Auto-create profile row failed:', insertError);
-          } else {
-            const { data: newProfile, error: newProfileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('auth_user_id', authUser.id)
-              .maybeSingle();
-
-            if (!newProfileError && newProfile && isMounted) {
-              setUser({
-                ...fallbackProfile,
-                ...newProfile,
-              });
-            }
-          }
         }
 
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error('Session fetch error:', sessionError);
-          if (isMounted) {
-            setVehicles([]);
-            setIncidents([]);
-          }
-          return;
-        }
-
-        const accessToken = session?.access_token;
-
-        if (!accessToken) {
-          if (isMounted) {
-            setVehicles([]);
-            setIncidents([]);
-          }
-          return;
+        if (isMounted) {
+          setUser({
+            ...fallbackProfile,
+            ...(profile || {}),
+          });
         }
 
         const headers = {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${session.access_token}`,
         };
 
-        const [vehiclesRes, incidentsRes] = await Promise.allSettled([
+        const [vehiclesRes, sentRes, receivedRes] = await Promise.allSettled([
           fetch(`${API_URL}/api/vehicles`, {
             method: 'GET',
             headers,
           }),
-          fetch(`${API_URL}/api/incidents`, {
+          fetch(`${API_URL}/api/reports/sent`, {
+            method: 'GET',
+            headers,
+          }),
+          fetch(`${API_URL}/api/reports/received`, {
             method: 'GET',
             headers,
           }),
@@ -235,26 +184,42 @@ const Profile = () => {
           setVehicles([]);
         }
 
-        if (incidentsRes.status === 'fulfilled') {
-          const response = incidentsRes.value;
+        if (sentRes.status === 'fulfilled') {
+          const response = sentRes.value;
           const result = await response.json();
 
           if (response.ok) {
-            setIncidents(Array.isArray(result?.data) ? result.data : []);
+            setSentIncidents(Array.isArray(result?.data) ? result.data : []);
           } else {
-            console.error('Incidents fetch failed:', result);
-            setIncidents([]);
+            console.error('Sent incidents fetch failed:', result);
+            setSentIncidents([]);
           }
         } else {
-          console.error('Incidents request error:', incidentsRes.reason);
-          setIncidents([]);
+          console.error('Sent incidents request error:', sentRes.reason);
+          setSentIncidents([]);
+        }
+
+        if (receivedRes.status === 'fulfilled') {
+          const response = receivedRes.value;
+          const result = await response.json();
+
+          if (response.ok) {
+            setReceivedIncidents(Array.isArray(result?.data) ? result.data : []);
+          } else {
+            console.error('Received incidents fetch failed:', result);
+            setReceivedIncidents([]);
+          }
+        } else {
+          console.error('Received incidents request error:', receivedRes.reason);
+          setReceivedIncidents([]);
         }
       } catch (error) {
         console.error('Profile fetch error:', error);
         if (isMounted) {
           setUser(null);
           setVehicles([]);
-          setIncidents([]);
+          setSentIncidents([]);
+          setReceivedIncidents([]);
         }
       } finally {
         if (isMounted) {
@@ -271,7 +236,8 @@ const Profile = () => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setVehicles([]);
-        setIncidents([]);
+        setSentIncidents([]);
+        setReceivedIncidents([]);
       }
     });
 
@@ -281,25 +247,18 @@ const Profile = () => {
     };
   }, []);
 
-  const sentCount = user
-    ? incidents.filter(
-        (i) =>
-          (i.reporterId || i.reporter_id) === (user.auth_user_id || user.id)
-      ).length
-    : 0;
-
-  const receivedCount = incidents.filter((i) =>
-    vehicles.some(
-      (v) =>
-        (v.plate || v.licence_plate || '').toUpperCase() ===
-        (i.plate || i.licence_plate || '').toUpperCase()
-    )
-  ).length;
+  const sentCount = sentIncidents.length;
+  const receivedCount = receivedIncidents.length;
 
   const avatarSrc =
     !imageError && (user?.profileImage || user?.avatar_url)
       ? (user?.profileImage || user?.avatar_url)!
       : DEFAULT_AVATAR;
+
+  const isVerifiedOwner =
+    user?.role === 'vehicle_owner' ||
+    user?.isVehicleOwner ||
+    user?.is_vehicle_owner;
 
   if (isLoading) {
     return (
@@ -393,7 +352,7 @@ const Profile = () => {
                   Community Driver
                 </p>
 
-                {(user?.isVehicleOwner || user?.is_vehicle_owner) && (
+                {isVerifiedOwner && (
                   <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[9px] font-bold uppercase text-emerald-600">
                     <ShieldCheck size={12} />
                     Verified

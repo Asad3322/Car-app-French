@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, CarFront, ChevronRight, AlertCircle } from 'lucide-react';
+import { supabase } from '../../supabase';
 import type { Vehicle } from '../../utils/types';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -72,40 +73,30 @@ const Vehicles = () => {
       try {
         setIsLoading(true);
 
-        const token = localStorage.getItem('token') || '';
-        const ownerAccess = localStorage.getItem('ownerAccess');
-        const ownerPhone = localStorage.getItem('ownerPhone');
+        localStorage.removeItem('ownerAccess');
+        localStorage.removeItem('ownerPhone');
+
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError || !session?.access_token) {
+          throw new Error('No valid session found');
+        }
+
+        localStorage.setItem('token', session.access_token);
 
         console.log('🚗 Vehicle fetch localStorage:', {
-          hasToken: Boolean(token),
-          ownerAccess,
-          ownerPhone,
+          hasToken: Boolean(session.access_token),
         });
 
-        let response: Response;
-
-        // ✅ IMPORTANT:
-        // Owner phone flow must be checked FIRST.
-        // Otherwise an old/expired token calls protected route and fails.
-        if (ownerAccess === 'true' && ownerPhone) {
-          response = await fetch(
-            `${API_URL}/api/vehicles/owner-phone?phone=${encodeURIComponent(
-              ownerPhone
-            )}`,
-            {
-              method: 'GET',
-            }
-          );
-        } else if (token) {
-          response = await fetch(`${API_URL}/api/vehicles`, {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        } else {
-          throw new Error('No vehicle access found');
-        }
+        const response = await fetch(`${API_URL}/api/vehicles`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
 
         const result = await response.json();
 
