@@ -58,7 +58,9 @@ const Profile = () => {
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [vehicles, setVehicles] = useState<ProfileVehicle[]>([]);
   const [sentIncidents, setSentIncidents] = useState<ProfileIncident[]>([]);
-  const [receivedIncidents, setReceivedIncidents] = useState<ProfileIncident[]>([]);
+  const [receivedIncidents, setReceivedIncidents] = useState<ProfileIncident[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   const [, setLanguage] = useState(
@@ -97,60 +99,67 @@ const Profile = () => {
 
         localStorage.setItem('token', session.access_token);
 
-        const {
-          data: { user: authUser },
-          error: authError,
-        } = await supabase.auth.getUser();
+        const headers = {
+          Authorization: `Bearer ${session.access_token}`,
+        };
 
-        if (authError || !authUser) {
-          console.error('Auth user fetch error:', authError);
+        const meRes = await fetch(`${API_URL}/api/auth/me`, {
+          method: 'GET',
+          headers,
+        });
+
+        const meResult = await meRes.json();
+
+        if (!meRes.ok) {
+          console.error('Profile /me fetch failed:', meResult);
           if (isMounted) {
             setUser(null);
-            setVehicles([]);
-            setSentIncidents([]);
-            setReceivedIncidents([]);
           }
           return;
         }
 
+        const authUser = meResult?.data?.auth;
+        const profile = meResult?.data?.profile;
+
         const fallbackProfile: ProfileUser = {
-          id: authUser.id,
-          auth_user_id: authUser.id,
-          email: authUser.email || '',
+          id: authUser?.id || '',
+          auth_user_id: authUser?.id || '',
+          email: authUser?.email || '',
           username:
-            (authUser.user_metadata?.name as string) ||
-            (authUser.user_metadata?.username as string) ||
-            (authUser.email ? authUser.email.split('@')[0] : 'User'),
+            profile?.username ||
+            profile?.name ||
+            authUser?.email?.split('@')?.[0] ||
+            'User',
           name:
-            (authUser.user_metadata?.name as string) ||
-            (authUser.user_metadata?.username as string) ||
-            (authUser.email ? authUser.email.split('@')[0] : 'User'),
-          phone: (authUser.user_metadata?.phone as string) || '',
-          avatar_url:
-            (authUser.user_metadata?.avatar_url as string) || DEFAULT_AVATAR,
+            profile?.name ||
+            profile?.username ||
+            authUser?.email?.split('@')?.[0] ||
+            'User',
+          phone: authUser?.phone || '',
+          avatar_url: DEFAULT_AVATAR,
+          role: 'reporter',
           is_vehicle_owner: false,
         };
-
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('auth_user_id', authUser.id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error('Profile fetch failed:', profileError);
-        }
 
         if (isMounted) {
           setUser({
             ...fallbackProfile,
             ...(profile || {}),
+            id: authUser?.id || profile?.auth_user_id || fallbackProfile.id,
+            username:
+              profile?.username ||
+              profile?.name ||
+              fallbackProfile.username ||
+              'User',
+            name:
+              profile?.name ||
+              profile?.username ||
+              fallbackProfile.name ||
+              'User',
+            email: profile?.email || authUser?.email || '',
+            phone: profile?.phone || authUser?.phone || '',
           });
         }
-
-        const headers = {
-          Authorization: `Bearer ${session.access_token}`,
-        };
 
         const [vehiclesRes, sentRes, receivedRes] = await Promise.allSettled([
           fetch(`${API_URL}/api/vehicles`, {
@@ -255,7 +264,7 @@ const Profile = () => {
       ? (user?.profileImage || user?.avatar_url)!
       : DEFAULT_AVATAR;
 
-  const isVerifiedOwner =
+  const isOwner =
     user?.role === 'vehicle_owner' ||
     user?.isVehicleOwner ||
     user?.is_vehicle_owner;
@@ -264,7 +273,9 @@ const Profile = () => {
     return (
       <div className="relative flex h-full flex-col overflow-hidden bg-[#D6E2EC] text-[#0B1A2B]">
         <div className="relative z-20 flex flex-1 items-center justify-center px-5">
-          <p className="text-sm font-semibold text-[#6F8194]">Loading profile...</p>
+          <p className="text-sm font-semibold text-[#6F8194]">
+            Loading profile...
+          </p>
         </div>
       </div>
     );
@@ -352,33 +363,35 @@ const Profile = () => {
                   Community Driver
                 </p>
 
-                {isVerifiedOwner && (
+                {isOwner && (
                   <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[9px] font-bold uppercase text-emerald-600">
                     <ShieldCheck size={12} />
-                    Verified
+                    Verified Owner
                   </div>
                 )}
               </div>
             </div>
 
             <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-3 rounded-[18px] border bg-white px-3 py-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E4F0FC]">
-                  <PhoneIcon size={14} className="text-[#2F93F6]" />
+              {isOwner ? (
+                <div className="flex items-center gap-3 rounded-[18px] border bg-white px-3 py-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E4F0FC]">
+                    <PhoneIcon size={14} className="text-[#2F93F6]" />
+                  </div>
+                  <p className="text-[13px] text-[#0B1A2B]">
+                    {user?.phone || 'No phone'}
+                  </p>
                 </div>
-                <p className="text-[13px] text-[#0B1A2B]">
-                  {user?.phone ?? ''}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3 rounded-[18px] border bg-white px-3 py-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E4F0FC]">
-                  <Mail size={14} className="text-[#2F93F6]" />
+              ) : (
+                <div className="flex items-center gap-3 rounded-[18px] border bg-white px-3 py-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E4F0FC]">
+                    <Mail size={14} className="text-[#2F93F6]" />
+                  </div>
+                  <p className="text-[13px] text-[#0B1A2B]">
+                    {user?.email || 'No email'}
+                  </p>
                 </div>
-                <p className="text-[13px] text-[#0B1A2B]">
-                  {user?.email ?? ''}
-                </p>
-              </div>
+              )}
             </div>
           </section>
 

@@ -51,75 +51,52 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
         const { data: sessionData, error: sessionError } =
           await supabase.auth.getSession();
 
-        if (sessionError) {
-          console.error('Store session fetch error:', sessionError);
+        if (sessionError || !sessionData?.session?.access_token) return;
+
+        const token = sessionData.session.access_token;
+        localStorage.setItem('token', token);
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          console.error('Store /me fetch error:', result);
           return;
         }
 
-        if (!sessionData?.session?.access_token) {
-          return;
-        }
+        const authUser = result?.data?.auth;
+        const profile = result?.data?.profile;
 
-        localStorage.setItem('token', sessionData.session.access_token);
+        const role = profile?.role || 'reporter';
+        const isOwner = role === 'vehicle_owner';
 
-        const {
-          data: { user: authUser },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError) {
-          console.error('Store auth fetch error:', authError);
-          return;
-        }
-
-        if (!authUser) {
-          return;
-        }
-
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('auth_user_id', authUser.id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error('Store profile fetch error:', profileError);
-        }
-
-        const fallbackUsername =
-          (typeof profileData?.username === 'string'
-            ? profileData.username.trim()
-            : '') ||
-          (typeof profileData?.name === 'string'
-            ? profileData.name.trim()
-            : '') ||
-          (typeof authUser.user_metadata?.name === 'string'
-            ? authUser.user_metadata.name.trim()
-            : '') ||
-          (authUser.email ? authUser.email.split('@')[0] : '') ||
+        const username =
+          profile?.username?.trim() ||
+          profile?.name?.trim() ||
+          authUser?.email?.split('@')?.[0] ||
           'User';
 
         const mergedUser: UserProfile = {
           ...emptyUser,
-          id: authUser.id,
-          username: fallbackUsername,
-          phone: profileData?.phone || '',
-          email: profileData?.email || authUser.email || '',
-          verifiedEmail: authUser.email || null,
-          verifiedPhone: profileData?.phone || null,
-          isPhoneVerified: Boolean(profileData?.phone),
-          isVehicleOwner:
-            profileData?.role === 'vehicle_owner' ||
-            profileData?.is_vehicle_owner === true ||
-            false,
-          primaryContactMethod:
-            profileData?.primary_contact === 'SMS' ? 'sms' : 'email',
-          streak: profileData?.streak ?? 0,
-          coins: profileData?.coins ?? 0,
-          badges: profileData?.badges ?? [],
-          totalIncidentsReported: profileData?.totalIncidentsReported ?? 0,
-          profileImage:
-            profileData?.profileImage || profileData?.avatar_url || '',
+          id: authUser?.id || profile?.auth_user_id || '',
+          username,
+          phone: profile?.phone || authUser?.phone || '',
+          email: profile?.email || authUser?.email || '',
+          verifiedEmail: profile?.email || authUser?.email || null,
+          verifiedPhone: profile?.phone || authUser?.phone || null,
+          isPhoneVerified: Boolean(profile?.phone || authUser?.phone),
+          isVehicleOwner: isOwner,
+          primaryContactMethod: isOwner ? 'sms' : 'email',
+          streak: profile?.streak ?? 0,
+          coins: profile?.coins ?? 0,
+          badges: profile?.badges ?? [],
+          totalIncidentsReported: profile?.totalIncidentsReported ?? 0,
+          profileImage: profile?.profileImage || profile?.avatar_url || '',
         };
 
         setUser(mergedUser);
@@ -138,6 +115,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
         syncLoggedInUser();
       } else {
         localStorage.removeItem('token');
+        localStorage.removeItem('carapp_user');
         setUser(emptyUser);
       }
     });
