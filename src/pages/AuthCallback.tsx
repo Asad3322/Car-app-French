@@ -19,7 +19,7 @@ const AuthCallback = () => {
         const phoneToken = url.searchParams.get('phone_token');
 
         // =========================
-        // OWNER PHONE LINK FLOW
+        // OWNER PHONE VERIFY FLOW
         // =========================
         if (phoneToken) {
           const res = await fetch(
@@ -36,7 +36,6 @@ const AuthCallback = () => {
           localStorage.setItem('vehicleId', data?.data?.vehicleId || '');
           localStorage.setItem('role', 'vehicle_owner');
 
-          // Phone verified. Now user must create real Supabase session by email.
           navigate('/auth', { replace: true });
           return;
         }
@@ -68,17 +67,36 @@ const AuthCallback = () => {
 
         localStorage.setItem('token', session.access_token);
 
+        const result = await handleMagicLinkLogin();
+
+        const profile = result?.profile;
         const pendingRole = localStorage.getItem('role');
         const pendingVehicleId = localStorage.getItem('vehicleId');
 
-        // If owner has pending vehicle, always complete profile first so backend can claim vehicle.
+        // =========================
+        // EXISTING USER FLOW
+        // =========================
+        if (profile) {
+          if (profile.role === 'vehicle_owner') {
+            navigate('/app/vehicles', { replace: true });
+            return;
+          }
+
+          navigate('/app/home', { replace: true });
+          return;
+        }
+
+        // =========================
+        // NEW OWNER WITH PENDING VEHICLE
+        // =========================
         if (pendingRole === 'vehicle_owner' && pendingVehicleId) {
           navigate('/complete-profile', { replace: true });
           return;
         }
 
-        const result = await handleMagicLinkLogin();
-
+        // =========================
+        // NEW REPORTER
+        // =========================
         if (result?.needsProfileCompletion) {
           navigate('/complete-profile', { replace: true });
           return;
