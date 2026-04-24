@@ -53,12 +53,16 @@ const CompleteProfile = () => {
   const [email, setEmail] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
-  const [primaryContact, setPrimaryContact] = useState<'email' | 'phone'>('email');
+  const [primaryContact, setPrimaryContact] = useState<'email' | 'phone'>(
+    'email'
+  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<
+    boolean | null
+  >(null);
   const [usernameError, setUsernameError] = useState('');
 
   const isOwner = role === 'vehicle_owner';
@@ -68,7 +72,8 @@ const CompleteProfile = () => {
       try {
         setIsLoadingUser(true);
 
-        const storedRole = (localStorage.getItem('role') as FlowRole | null) || 'reporter';
+        const storedRole =
+          (localStorage.getItem('role') as FlowRole | null) || 'reporter';
         const storedVerifiedPhone = localStorage.getItem('verifiedPhone') || '';
         const storedVehicleId = localStorage.getItem('vehicleId') || '';
 
@@ -76,12 +81,17 @@ const CompleteProfile = () => {
         setVehicleId(storedVehicleId);
         setPrimaryContact(storedRole === 'vehicle_owner' ? 'phone' : 'email');
 
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
+        const { data: sessionData } = await supabase.auth.getSession();
 
-        // Reporter flow normally has Supabase user/session
+        let user: any = null;
+        let error: any = null;
+
+        if (sessionData?.session) {
+          const res = await supabase.auth.getUser();
+          user = res.data.user;
+          error = res.error;
+        }
+
         if (!error && user) {
           setAuthUser({
             id: user.id,
@@ -109,11 +119,17 @@ const CompleteProfile = () => {
 
           if (profile) {
             setUsername(profile.username || profile.name || '');
-            setPhone(profile.phone || (storedRole === 'vehicle_owner' ? storedVerifiedPhone : user.phone || ''));
+            setPhone(
+              profile.phone ||
+                (storedRole === 'vehicle_owner'
+                  ? storedVerifiedPhone
+                  : user.phone || '')
+            );
             setEmail(profile.email || user.email || '');
             setSelectedAvatar(profile.avatar_url || avatars[0]);
             setPrimaryContact(
-              profile.primary_contact === 'SMS' || profile.primary_contact === 'phone'
+              profile.primary_contact === 'SMS' ||
+                profile.primary_contact === 'phone'
                 ? 'phone'
                 : 'email'
             );
@@ -122,7 +138,6 @@ const CompleteProfile = () => {
           return;
         }
 
-        // Owner SMS flow can land here without Supabase session yet
         if (storedRole === 'vehicle_owner' && storedVerifiedPhone) {
           setPhone(storedVerifiedPhone);
           setEmail('');
@@ -130,10 +145,10 @@ const CompleteProfile = () => {
           return;
         }
 
-        navigate('/auth');
+        navigate('/auth', { replace: true });
       } catch (err) {
         console.error('Load auth user error:', err);
-        navigate('/auth');
+        navigate('/auth', { replace: true });
       } finally {
         setIsLoadingUser(false);
       }
@@ -171,9 +186,7 @@ const CompleteProfile = () => {
           .select('id, auth_user_id, username')
           .ilike('username', normalized);
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         const takenByAnotherUser = (data || []).some((item: any) => {
           const profileOwnerId = item?.auth_user_id || item?.id;
@@ -221,9 +234,7 @@ const CompleteProfile = () => {
         .select('id, auth_user_id, username')
         .ilike('username', normalizedUsername);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       const takenByAnotherUser = (data || []).some((item: any) => {
         const profileOwnerId = item?.auth_user_id || item?.id;
@@ -241,7 +252,7 @@ const CompleteProfile = () => {
         name: normalizedUsername,
         username: normalizedUsername,
         email: isOwner ? '' : email,
-        phone: isOwner ? phone : phone,
+        phone,
         primaryContact: isOwner ? 'phone' : primaryContact,
         profileImage: selectedAvatar,
         role,
@@ -255,11 +266,14 @@ const CompleteProfile = () => {
         localStorage.removeItem('role');
       }
 
-      navigate('/app/home');
+      navigate('/app/vehicles', { replace: true });
     } catch (err: any) {
       console.error('Save profile error:', err);
 
-      if (err?.code === '23505' || err?.message?.toLowerCase()?.includes('duplicate')) {
+      if (
+        err?.code === '23505' ||
+        err?.message?.toLowerCase()?.includes('duplicate')
+      ) {
         setUsernameError('This username is already taken');
         setIsUsernameAvailable(false);
       } else {
@@ -273,7 +287,9 @@ const CompleteProfile = () => {
   if (isLoadingUser) {
     return (
       <div className="relative flex min-h-[100svh] w-full items-center justify-center bg-[#D6E2EC] text-[#0B1A2B]">
-        <p className="text-sm font-semibold text-[#6F8194]">Loading profile...</p>
+        <p className="text-sm font-semibold text-[#6F8194]">
+          Loading profile...
+        </p>
       </div>
     );
   }
@@ -297,7 +313,7 @@ const CompleteProfile = () => {
         </div>
 
         <button
-          onClick={() => navigate('/app/home')}
+          onClick={() => navigate('/app/vehicles', { replace: true })}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#B8C9D6] bg-white text-[#6F8194] shadow-sm hover:bg-[#F8FBFD]"
         >
           <X size={18} />
@@ -421,7 +437,9 @@ const CompleteProfile = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       readOnly={isOwner}
-                      placeholder={isOwner ? 'Optional for owner flow' : 'name@example.com'}
+                      placeholder={
+                        isOwner ? 'Optional for owner flow' : 'name@example.com'
+                      }
                       className={`h-[58px] w-full rounded-[20px] border border-[#D9E5F1] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none ${
                         isOwner ? 'bg-[#F8FBFD]' : 'bg-white'
                       }`}
@@ -444,7 +462,9 @@ const CompleteProfile = () => {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       readOnly={isOwner}
-                      placeholder={isOwner ? '+33 6 12 34 56 78' : 'Optional phone'}
+                      placeholder={
+                        isOwner ? '+33 6 12 34 56 78' : 'Optional phone'
+                      }
                       className={`h-[58px] w-full rounded-[20px] border border-[#D9E5F1] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none ${
                         isOwner ? 'bg-[#F8FBFD]' : 'bg-white'
                       }`}
@@ -493,7 +513,7 @@ const CompleteProfile = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => navigate('/app/home')}
+                    onClick={() => navigate('/app/vehicles', { replace: true })}
                     className="h-[58px] rounded-[20px] border border-[#D9E5F1] bg-white text-[15px] font-medium text-[#0B1A2B]"
                   >
                     Cancel

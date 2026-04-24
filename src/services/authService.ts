@@ -48,14 +48,23 @@ export const getCurrentSession = async () => {
   const { data, error } = await supabase.auth.getSession();
 
   if (error) throw error;
+
   return data.session;
 };
 
 export const getCurrentUser = async () => {
   try {
-    const { data, error } = await supabase.auth.getUser();
+    const { data } = await supabase.auth.getSession();
+
+    if (!data?.session) {
+      return null;
+    }
+
+    const { data: userData, error } = await supabase.auth.getUser();
+
     if (error) return null;
-    return data.user || null;
+
+    return userData.user || null;
   } catch {
     return null;
   }
@@ -102,7 +111,7 @@ type SaveUserProfilePayload = {
 export const saveUserProfile = async (
   profileData: SaveUserProfilePayload
 ) => {
-  console.log('🔥 NEW saveUserProfile (FULL FLOW)');
+  console.log('🔥 NEW saveUserProfile (FULL FLOW SAFE AUTH)');
 
   const isOwnerFlow = profileData.role === 'vehicle_owner';
 
@@ -113,22 +122,28 @@ export const saveUserProfile = async (
 
   if (sessionError) throw sessionError;
 
-  // ✅ Reporter must have Supabase session
-  // ✅ Owner flow is allowed without Supabase session
   if (!session?.access_token && !isOwnerFlow) {
     throw new Error('User not authenticated');
   }
 
   const token = session?.access_token || '';
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  let user: any = null;
 
-  // For reporter: user is required
-  // For owner: user can be null in your current architecture
-  if (userError && !isOwnerFlow) throw userError;
+  // ✅ IMPORTANT FIX:
+  // Only call getUser() when Supabase session exists.
+  // Owner phone flow has no Supabase session, so calling getUser()
+  // causes AuthSessionMissingError.
+  if (session?.access_token) {
+    const {
+      data: { user: authUser },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError && !isOwnerFlow) throw userError;
+
+    user = authUser;
+  }
 
   if (!user && !isOwnerFlow) {
     throw new Error('User not authenticated');
@@ -173,12 +188,10 @@ export const saveUserProfile = async (
     (item: any) => {
       const ownerId = item?.auth_user_id || item?.id;
 
-      // Reporter flow → compare against current auth user
       if (user?.id) {
         return ownerId !== user.id;
       }
 
-      // Owner flow without auth user → any match means taken
       return true;
     }
   );
@@ -189,7 +202,6 @@ export const saveUserProfile = async (
     throw duplicateError;
   }
 
-  // ✅ BACKEND CALL FOR OWNER / REPORTER FLOW
   try {
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/api/auth/create-profile`,
@@ -238,8 +250,6 @@ export const saveUserProfile = async (
 
   console.log('📦 Payload:', payload);
 
-  // Reporter flow → check by auth_user_id
-  // Owner flow without auth user → try by phone
   let existingProfile = null;
   let fetchError = null;
 
@@ -312,6 +322,12 @@ export const saveUserProfile = async (
 };
 
 export const getMyProfile = async () => {
+  const { data } = await supabase.auth.getSession();
+
+  if (!data?.session) {
+    throw new Error('User not authenticated');
+  }
+
   const {
     data: { user },
     error: userError,
@@ -323,7 +339,7 @@ export const getMyProfile = async () => {
     throw new Error('User not authenticated');
   }
 
-  const { data, error } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('auth_user_id', user.id)
@@ -331,7 +347,7 @@ export const getMyProfile = async () => {
 
   if (error) throw error;
 
-  return data;
+  return profile;
 };
 
 export const signOutUser = async () => {
@@ -341,5 +357,6 @@ export const signOutUser = async () => {
   localStorage.removeItem('role');
 
   const { error } = await supabase.auth.signOut();
+
   if (error) throw error;
 };
