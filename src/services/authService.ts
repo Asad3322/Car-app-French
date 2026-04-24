@@ -17,7 +17,10 @@ export const handleMagicLinkLogin = async () => {
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    return { needsProfileCompletion: false };
+    return {
+      needsProfileCompletion: true,
+      profile: null,
+    };
   }
 
   localStorage.setItem('token', session.access_token);
@@ -36,42 +39,12 @@ export const handleMagicLinkLogin = async () => {
 
   return {
     needsProfileCompletion: !result?.data?.profile,
+    profile: result?.data?.profile || null,
   };
 };
 
 export const saveUserProfile = async (profileData: any) => {
   try {
-    const isOwnerFlow = profileData.role === 'vehicle_owner';
-
-    // ✅ OWNER PHONE FLOW FIRST — do not use token
-    if (isOwnerFlow) {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/vehicles/claim-owner-phone`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            vehicleId: profileData.vehicleId,
-            phone: profileData.verifiedPhone || profileData.phone,
-            username: profileData.username,
-            name: profileData.name,
-            profileImage: profileData.profileImage || null,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.message || 'Failed to claim vehicle');
-      }
-
-      return result;
-    }
-
-    // ✅ REPORTER / EMAIL AUTH FLOW
     const token = localStorage.getItem('token');
 
     if (!token) {

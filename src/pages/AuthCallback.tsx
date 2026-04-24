@@ -7,45 +7,6 @@ const AuthCallback = () => {
   const navigate = useNavigate();
   const hasRun = useRef(false);
 
-  const claimPendingVehicle = async (token: string) => {
-    try {
-      const vehicleId = localStorage.getItem('vehicleId');
-      const role = localStorage.getItem('role');
-
-      if (!token || !vehicleId || role !== 'vehicle_owner') {
-        return;
-      }
-
-      console.log('🚗 Claiming pending vehicle:', vehicleId);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/auth/create-profile`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            role: 'vehicle_owner',
-            vehicleId,
-            verifiedPhone: localStorage.getItem('verifiedPhone') || null,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      console.log('✅ Claim/profile response:', result);
-
-      if (!response.ok) {
-        console.error('Claim vehicle failed:', result);
-      }
-    } catch (error) {
-      console.error('Claim pending vehicle error:', error);
-    }
-  };
-
   useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
@@ -75,7 +36,8 @@ const AuthCallback = () => {
           localStorage.setItem('vehicleId', data?.data?.vehicleId || '');
           localStorage.setItem('role', 'vehicle_owner');
 
-          navigate('/complete-profile', { replace: true });
+          // Phone verified. Now user must create real Supabase session by email.
+          navigate('/auth', { replace: true });
           return;
         }
 
@@ -106,16 +68,23 @@ const AuthCallback = () => {
 
         localStorage.setItem('token', session.access_token);
 
-        const result = await handleMagicLinkLogin();
+        const pendingRole = localStorage.getItem('role');
+        const pendingVehicleId = localStorage.getItem('vehicleId');
 
-        await claimPendingVehicle(session.access_token);
+        // If owner has pending vehicle, always complete profile first so backend can claim vehicle.
+        if (pendingRole === 'vehicle_owner' && pendingVehicleId) {
+          navigate('/complete-profile', { replace: true });
+          return;
+        }
+
+        const result = await handleMagicLinkLogin();
 
         if (result?.needsProfileCompletion) {
           navigate('/complete-profile', { replace: true });
           return;
         }
 
-        navigate('/app/vehicles', { replace: true });
+        navigate('/app/home', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
         navigate('/auth', { replace: true });

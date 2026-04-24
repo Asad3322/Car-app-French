@@ -180,7 +180,7 @@ const Verify = () => {
                     ? 'Enter your phone number to receive a secure verification link.'
                     : 'Enter your email to receive a secure login link.'
                   : isOwner
-                    ? 'We generated a secure verification link for your phone. Continuing now...'
+                    ? 'Phone verified. Next, login with email to create your secure account.'
                     : 'We sent a secure login link to your email. Open it to continue.'}
               </p>
             </div>
@@ -239,7 +239,7 @@ const Verify = () => {
 
                   <p className="text-[14px] text-[#6F8194]">
                     {isOwner
-                      ? 'Your verification link is being opened so you can complete your vehicle owner account.'
+                      ? 'After phone verification, login with email to complete your owner profile.'
                       : 'Open the secure link from your inbox and continue to your profile setup.'}
                   </p>
                 </div>

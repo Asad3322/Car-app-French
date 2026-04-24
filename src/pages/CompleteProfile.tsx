@@ -77,53 +77,54 @@ const CompleteProfile = () => {
         setRole(storedRole);
         setVehicleId(storedVehicleId);
 
-        const { data: sessionData } = await supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
 
-        let user: any = null;
-
-        if (sessionData?.session) {
-          const res = await supabase.auth.getUser();
-          user = res.data.user;
+        if (sessionError) {
+          throw sessionError;
         }
 
-        if (user) {
-          setAuthUser({
-            id: user.id,
-            email: user.email || "",
-            phone: user.phone || "",
-          });
-
-          setEmail(user.email || "");
-          setPhone(
-            storedRole === "vehicle_owner"
-              ? storedVerifiedPhone
-              : user.phone || ""
-          );
-
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("auth_user_id", user.id)
-            .maybeSingle();
-
-          if (profile) {
-            setUsername(profile.username || profile.name || "");
-            setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
-            setEmail(profile.email || user.email || "");
-            setSelectedAvatar(profile.avatar_url || avatars[0]);
-          }
-
+        if (!sessionData?.session) {
+          navigate("/auth", { replace: true });
           return;
         }
 
-        if (storedRole === "vehicle_owner" && storedVerifiedPhone) {
-          setPhone(storedVerifiedPhone);
-          setEmail("");
-          setAuthUser(null);
-          return;
+        localStorage.setItem("token", sessionData.session.access_token);
+
+        const { data: userData, error: userError } =
+          await supabase.auth.getUser();
+
+        if (userError || !userData?.user) {
+          throw userError || new Error("User not found");
         }
 
-        navigate("/auth", { replace: true });
+        const user = userData.user;
+
+        setAuthUser({
+          id: user.id,
+          email: user.email || "",
+          phone: user.phone || "",
+        });
+
+        setEmail(user.email || "");
+        setPhone(
+          storedRole === "vehicle_owner"
+            ? storedVerifiedPhone
+            : user.phone || ""
+        );
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+
+        if (profile) {
+          setUsername(profile.username || profile.name || "");
+          setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
+          setEmail(profile.email || user.email || "");
+          setSelectedAvatar(profile.avatar_url || avatars[0]);
+        }
       } catch (err) {
         console.error("Load auth user error:", err);
         navigate("/auth", { replace: true });
@@ -166,8 +167,8 @@ const CompleteProfile = () => {
         if (error) throw error;
 
         const takenByAnotherUser = (data || []).some((item: any) => {
-          const profileOwnerId = item?.auth_user_id || item?.id;
-          return authUser?.id ? profileOwnerId !== authUser.id : true;
+          if (!item?.auth_user_id) return false;
+          return authUser?.id ? item.auth_user_id !== authUser.id : true;
         });
 
         setIsUsernameAvailable(!takenByAnotherUser);
@@ -193,6 +194,12 @@ const CompleteProfile = () => {
       return;
     }
 
+    if (!authUser?.id) {
+      alert("User session missing. Please login again.");
+      navigate("/auth", { replace: true });
+      return;
+    }
+
     if (isOwner && !phone.trim()) {
       alert("Verified phone number is required");
       return;
@@ -214,8 +221,8 @@ const CompleteProfile = () => {
       if (error) throw error;
 
       const takenByAnotherUser = (data || []).some((item: any) => {
-        const profileOwnerId = item?.auth_user_id || item?.id;
-        return authUser?.id ? profileOwnerId !== authUser.id : true;
+        if (!item?.auth_user_id) return false;
+        return item.auth_user_id !== authUser.id;
       });
 
       if (takenByAnotherUser) {
@@ -237,32 +244,25 @@ const CompleteProfile = () => {
         vehicleId: isOwner ? vehicleId : "",
       });
 
-      const storedRole = localStorage.getItem("role");
-      const storedPhone = localStorage.getItem("verifiedPhone");
-      const storedVehicleId = localStorage.getItem("vehicleId");
-
-      const isOwnerFlow =
-        role === "vehicle_owner" ||
-        storedRole === "vehicle_owner" ||
-        !!storedPhone ||
-        !!storedVehicleId;
-
-      if (isOwnerFlow) {
-        localStorage.setItem("ownerAccess", "true");
-        localStorage.setItem("ownerPhone", phone);
+      if (isOwner) {
         localStorage.setItem("role", "vehicle_owner");
-
         localStorage.removeItem("verifiedPhone");
         localStorage.removeItem("vehicleId");
+        localStorage.removeItem("ownerAccess");
+        localStorage.removeItem("ownerPhone");
+        navigate("/app/vehicles", { replace: true });
+        return;
       }
 
-      navigate("/app/vehicles", { replace: true });
+      localStorage.setItem("role", "reporter");
+      navigate("/app/home", { replace: true });
     } catch (err: any) {
       console.error("Save profile error:", err);
 
       if (
         err?.code === "23505" ||
-        err?.message?.toLowerCase()?.includes("duplicate")
+        err?.message?.toLowerCase()?.includes("duplicate") ||
+        err?.message?.toLowerCase()?.includes("already taken")
       ) {
         setUsernameError("This username is already taken");
         setIsUsernameAvailable(false);
