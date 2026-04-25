@@ -123,7 +123,9 @@ const CompleteProfile = () => {
           setUsername(profile.username || profile.name || "");
           setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
           setEmail(profile.email || user.email || "");
-          setSelectedAvatar(profile.avatar_url || avatars[0]);
+          setSelectedAvatar(
+            profile.profileImage || profile.avatar_url || avatars[0]
+          );
         }
       } catch (err) {
         console.error("Load auth user error:", err);
@@ -232,17 +234,33 @@ const CompleteProfile = () => {
         return;
       }
 
-      await saveUserProfile({
+      const profilePayload = {
         name: normalizedUsername,
         username: normalizedUsername,
-        email: isOwner ? "" : email,
-        phone: isOwner ? phone : "",
+
+        // IMPORTANT:
+        // Keep auth user id unchanged.
+        // Owner still keeps email from Supabase auth if available.
+        email: email || authUser.email || "",
+
+        // Owner uses verified phone, reporter uses auth phone if available.
+        phone: isOwner ? phone : authUser.phone || "",
+
         primaryContact: isOwner ? "phone" : "email",
         profileImage: selectedAvatar,
-        role,
+        avatar_url: selectedAvatar,
+
+        role: isOwner ? "vehicle_owner" : "reporter",
+        isVehicleOwner: isOwner,
+        is_vehicle_owner: isOwner,
+
         verifiedPhone: isOwner ? phone : "",
         vehicleId: isOwner ? vehicleId : "",
-      });
+      };
+
+      console.log("PROFILE PAYLOAD:", profilePayload);
+
+      await saveUserProfile(profilePayload);
 
       if (isOwner) {
         localStorage.setItem("role", "vehicle_owner");
