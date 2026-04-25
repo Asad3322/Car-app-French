@@ -27,9 +27,6 @@ type UiIncident = {
   receiverId: string;
 };
 
-const normalizePlate = (value: string = '') =>
-  String(value).replace(/\s+/g, '').trim().toUpperCase();
-
 const normalizeStatus = (status?: string): Status => {
   const value = String(status || '').toLowerCase();
 
@@ -37,9 +34,7 @@ const normalizeStatus = (status?: string): Status => {
     return 'reported';
   }
 
-  if (value === 'seen') {
-    return 'seen';
-  }
+  if (value === 'seen') return 'seen';
 
   if (value === 'resolved' || value === 'closed' || value === 'acknowledged') {
     return 'resolved';
@@ -48,23 +43,20 @@ const normalizeStatus = (status?: string): Status => {
   return 'reported';
 };
 
-const mapBackendIncident = (incident: BackendIncident): UiIncident => {
-  return {
-    id: incident.id,
-    plate: normalizePlate(incident.licence_plate || ''),
-    description: incident.description || '',
-    status: normalizeStatus(incident.status),
-    date: incident.created_at || incident.updated_at || '',
-    reporterId: incident.reporter_id || '',
-    receiverId: incident.receiver_id || '',
-  };
-};
+const mapBackendIncident = (incident: BackendIncident): UiIncident => ({
+  id: incident.id,
+  plate: incident.licence_plate || '',
+  description: incident.description || '',
+  status: normalizeStatus(incident.status),
+  date: incident.created_at || incident.updated_at || '',
+  reporterId: incident.reporter_id || '',
+  receiverId: incident.receiver_id || '',
+});
 
 const Incidents = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const { user, vehicles } = useStore();
+  const { user } = useStore();
 
   const [incidents, setIncidents] = useState<UiIncident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +74,12 @@ const Incidents = () => {
 
         const token = localStorage.getItem('token');
 
-        const response = await fetch(`${API_BASE_URL}/api/reports`, {
+        const endpoint =
+          activeGroup === 'sent'
+            ? `${API_BASE_URL}/api/reports/sent`
+            : `${API_BASE_URL}/api/reports/received`;
+
+        const response = await fetch(endpoint, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -93,6 +90,7 @@ const Incidents = () => {
         const result = await response.json();
 
         console.log('Incidents fetch response:', result);
+        console.log('Current user:', user);
 
         if (!response.ok) {
           console.error('Incidents fetch failed:', result);
@@ -100,11 +98,8 @@ const Incidents = () => {
           return;
         }
 
-        const mapped = Array.isArray(result?.data)
-          ? result.data.map(mapBackendIncident)
-          : [];
-
-        setIncidents(mapped);
+        const reports = Array.isArray(result?.data) ? result.data : [];
+        setIncidents(reports.map(mapBackendIncident));
       } catch (error) {
         console.error('Incidents fetch error:', error);
         setIncidents([]);
@@ -114,22 +109,12 @@ const Incidents = () => {
     };
 
     fetchIncidents();
-  }, []);
-
-  const groupedIncidents = incidents.filter((incident) => {
-    if (activeGroup === 'sent') {
-      return incident.reporterId === user.id;
-    }
-
-    return vehicles.some(
-      (vehicle) => normalizePlate(vehicle.plate) === normalizePlate(incident.plate)
-    );
-  });
+  }, [activeGroup, user]);
 
   const filtered =
     activeFilter === 'all'
-      ? groupedIncidents
-      : groupedIncidents.filter((incident) => incident.status === activeFilter);
+      ? incidents
+      : incidents.filter((incident) => incident.status === activeFilter);
 
   const getStatusStyle = (status: Status) => {
     switch (status) {
