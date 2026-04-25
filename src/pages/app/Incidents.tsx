@@ -27,6 +27,9 @@ type UiIncident = {
   receiverId: string;
 };
 
+const normalizePlate = (value: string = '') =>
+  String(value).replace(/\s+/g, '').trim().toUpperCase();
+
 const normalizeStatus = (status?: string): Status => {
   const value = String(status || '').toLowerCase();
 
@@ -48,7 +51,7 @@ const normalizeStatus = (status?: string): Status => {
 const mapBackendIncident = (incident: BackendIncident): UiIncident => {
   return {
     id: incident.id,
-    plate: incident.licence_plate || '',
+    plate: normalizePlate(incident.licence_plate || ''),
     description: incident.description || '',
     status: normalizeStatus(incident.status),
     date: incident.created_at || incident.updated_at || '',
@@ -61,7 +64,6 @@ const Incidents = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // keep old store usage for user + vehicles so old screen behavior stays the same
   const { user, vehicles } = useStore();
 
   const [incidents, setIncidents] = useState<UiIncident[]>([]);
@@ -70,6 +72,7 @@ const Incidents = () => {
   const [activeGroup, setActiveGroup] = useState<'sent' | 'received'>(
     (location.state as { filter?: 'sent' | 'received' } | null)?.filter || 'received'
   );
+
   const [activeFilter, setActiveFilter] = useState<Status | 'all'>('all');
 
   useEffect(() => {
@@ -114,8 +117,13 @@ const Incidents = () => {
   }, []);
 
   const groupedIncidents = incidents.filter((incident) => {
-    if (activeGroup === 'sent') return incident.reporterId === user.id;
-    return vehicles.some((vehicle) => vehicle.plate === incident.plate);
+    if (activeGroup === 'sent') {
+      return incident.reporterId === user.id;
+    }
+
+    return vehicles.some(
+      (vehicle) => normalizePlate(vehicle.plate) === normalizePlate(incident.plate)
+    );
   });
 
   const filtered =
@@ -196,7 +204,9 @@ const Incidents = () => {
       <div className="scrollbar-hide relative z-10 flex-1 overflow-y-auto pb-32">
         {loading ? (
           <div className="mt-10 rounded-[28px] border border-[#DCE6F2] bg-white/85 p-10 text-center shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-            <h3 className="text-[18px] font-black text-[#0F172A]">Loading reports...</h3>
+            <h3 className="text-[18px] font-black text-[#0F172A]">
+              Loading reports...
+            </h3>
             <p className="mt-2 text-[14px] font-medium text-[#64748B]">
               Please wait while we fetch your activity.
             </p>
