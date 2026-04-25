@@ -77,17 +77,26 @@ const AuthCallback = () => {
         // EXISTING USER FLOW
         // =========================
         if (profile) {
+          // 🔥 CLEAN OLD TEMP DATA
+          localStorage.removeItem('verifiedPhone');
+          localStorage.removeItem('vehicleId');
+          localStorage.removeItem('ownerAccess');
+          localStorage.removeItem('ownerPhone');
+
+          // 🔥 SAVE ROLE CORRECTLY
           if (profile.role === 'vehicle_owner') {
+            localStorage.setItem('role', 'vehicle_owner');
             navigate('/app/vehicles', { replace: true });
             return;
           }
 
+          localStorage.setItem('role', 'reporter');
           navigate('/app/home', { replace: true });
           return;
         }
 
         // =========================
-        // NEW OWNER WITH PENDING VEHICLE
+        // NEW OWNER (WITH VEHICLE)
         // =========================
         if (pendingRole === 'vehicle_owner' && pendingVehicleId) {
           navigate('/complete-profile', { replace: true });
@@ -102,6 +111,9 @@ const AuthCallback = () => {
           return;
         }
 
+        // =========================
+        // FALLBACK
+        // =========================
         navigate('/app/home', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
