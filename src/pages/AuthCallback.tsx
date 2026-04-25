@@ -70,20 +70,22 @@ const AuthCallback = () => {
         const result = await handleMagicLinkLogin();
 
         const profile = result?.profile;
-        const pendingRole = localStorage.getItem('role');
+
+        const pendingVerifiedPhone = localStorage.getItem('verifiedPhone');
         const pendingVehicleId = localStorage.getItem('vehicleId');
+        const isPendingOwnerFlow = Boolean(pendingVerifiedPhone && pendingVehicleId);
 
         // =========================
         // EXISTING USER FLOW
+        // Reporter -> Home
+        // Owner -> Vehicles
         // =========================
         if (profile) {
-          // 🔥 CLEAN OLD TEMP DATA
           localStorage.removeItem('verifiedPhone');
           localStorage.removeItem('vehicleId');
           localStorage.removeItem('ownerAccess');
           localStorage.removeItem('ownerPhone');
 
-          // 🔥 SAVE ROLE CORRECTLY
           if (profile.role === 'vehicle_owner') {
             localStorage.setItem('role', 'vehicle_owner');
             navigate('/app/vehicles', { replace: true });
@@ -96,9 +98,11 @@ const AuthCallback = () => {
         }
 
         // =========================
-        // NEW OWNER (WITH VEHICLE)
+        // NEW OWNER
+        // Only owner if verified phone + vehicleId exists
         // =========================
-        if (pendingRole === 'vehicle_owner' && pendingVehicleId) {
+        if (isPendingOwnerFlow) {
+          localStorage.setItem('role', 'vehicle_owner');
           navigate('/complete-profile', { replace: true });
           return;
         }
@@ -107,13 +111,12 @@ const AuthCallback = () => {
         // NEW REPORTER
         // =========================
         if (result?.needsProfileCompletion) {
+          localStorage.setItem('role', 'reporter');
           navigate('/complete-profile', { replace: true });
           return;
         }
 
-        // =========================
-        // FALLBACK
-        // =========================
+        localStorage.setItem('role', 'reporter');
         navigate('/app/home', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
