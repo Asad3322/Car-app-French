@@ -9,68 +9,88 @@ const API_URL = import.meta.env.VITE_API_URL;
 const FALLBACK_VEHICLE_IMAGE =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400';
 
+const cleanUrl = (url: any): string => {
+  if (typeof url !== 'string') return '';
+
+  return url
+    .trim()
+    .replace(/^"+|"+$/g, '')
+    .replace(/\\\//g, '/');
+};
+
 const parseVehicleMedia = (media: any): string[] => {
+  if (!media) return [];
+
   if (Array.isArray(media)) {
-    return media.filter((item) => typeof item === 'string' && item.trim());
+    return media.map(cleanUrl).filter((item) => item.startsWith('http'));
   }
 
-  if (typeof media === 'string' && media.trim()) {
+  if (typeof media === 'string') {
+    const cleaned = cleanUrl(media);
+
     try {
-      const parsed = JSON.parse(media);
+      const parsed = JSON.parse(cleaned);
 
       if (Array.isArray(parsed)) {
-        return parsed.filter((item) => typeof item === 'string' && item.trim());
+        return parsed.map(cleanUrl).filter((item) => item.startsWith('http'));
       }
 
-      if (typeof parsed === 'string' && parsed.trim()) {
-        return [parsed];
+      if (typeof parsed === 'string') {
+        const parsedUrl = cleanUrl(parsed);
+        return parsedUrl.startsWith('http') ? [parsedUrl] : [];
       }
-
-      return [];
     } catch {
-      return media.trim().startsWith('http') ? [media.trim()] : [];
+      return cleaned.startsWith('http') ? [cleaned] : [];
     }
   }
 
   return [];
 };
 
-const getVehicleImage = (vehicle: any) => {
-  if (!vehicle) return FALLBACK_VEHICLE_IMAGE;
+const getVehicleImage = (vehicle: any): string => {
+  const media = parseVehicleMedia(vehicle?.vehicle_media);
 
-  const media = parseVehicleMedia(vehicle.vehicle_media);
+  if (media.length > 0) return media[0];
 
-  if (media.length > 0) {
-    return media[0];
-  }
+  const legacyMedia = parseVehicleMedia(vehicle?.vehicleMediaUrls);
 
-  const legacyMedia = parseVehicleMedia(vehicle.vehicleMediaUrls);
+  if (legacyMedia.length > 0) return legacyMedia[0];
 
-  if (legacyMedia.length > 0) {
-    return legacyMedia[0];
-  }
+  const image = cleanUrl(vehicle?.image);
 
-  if (typeof vehicle.image === 'string' && vehicle.image.trim()) {
-    return vehicle.image;
-  }
+  if (image.startsWith('http')) return image;
 
   return FALLBACK_VEHICLE_IMAGE;
 };
 
+const extractVehiclesArray = (result: any): any[] => {
+  if (Array.isArray(result)) return result;
+
+  if (Array.isArray(result?.data)) return result.data;
+
+  if (Array.isArray(result?.vehicles)) return result.vehicles;
+
+  if (Array.isArray(result?.data?.vehicles)) return result.data.vehicles;
+
+  if (Array.isArray(result?.data?.data)) return result.data.data;
+
+  return [];
+};
+
 const normalizeVehicle = (vehicle: any) => {
-  const media = parseVehicleMedia(vehicle.vehicle_media);
-  const legacyMedia = parseVehicleMedia(vehicle.vehicleMediaUrls);
+  const media = parseVehicleMedia(vehicle?.vehicle_media);
+  const legacyMedia = parseVehicleMedia(vehicle?.vehicleMediaUrls);
   const image =
     media[0] ||
     legacyMedia[0] ||
-    (typeof vehicle.image === 'string' ? vehicle.image : '') ||
-    '';
+    cleanUrl(vehicle?.image) ||
+    FALLBACK_VEHICLE_IMAGE;
 
   return {
-    id: vehicle.id,
-    name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
-    plate: vehicle.licence_plate || vehicle.plate || '',
-    reportsCount: vehicle.reports_count ?? vehicle.reportsCount ?? 0,
+    id: vehicle?.id,
+    name: vehicle?.vehicle_name || vehicle?.vehicleName || vehicle?.name || 'Unnamed Vehicle',
+    plate: vehicle?.licence_plate || vehicle?.license_plate || vehicle?.plate || '',
+    reportsCount: vehicle?.reports_count ?? vehicle?.reportsCount ?? 0,
     image,
     vehicle_media: media.length > 0 ? media : image ? [image] : [],
     vehicleMediaUrls: legacyMedia,
@@ -95,9 +115,6 @@ const Vehicles = () => {
       try {
         setIsLoading(true);
 
-        localStorage.removeItem('ownerAccess');
-        localStorage.removeItem('ownerPhone');
-
         const {
           data: { session },
           error: sessionError,
@@ -109,7 +126,7 @@ const Vehicles = () => {
 
         localStorage.setItem('token', session.access_token);
 
-        console.log('🚗 Vehicle fetch localStorage:', {
+        console.log('🚗 Vehicle fetch token:', {
           hasToken: Boolean(session.access_token),
         });
 
@@ -117,20 +134,29 @@ const Vehicles = () => {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
           },
         });
 
         const result = await response.json();
 
-        console.log('Vehicles fetch response:', result);
+        console.log('🚗 Vehicles fetch response FULL:', result);
 
         if (!response.ok) {
-          throw new Error(result.message || 'Failed to fetch vehicles');
+          throw new Error(result?.message || 'Failed to fetch vehicles');
         }
 
-        const normalizedVehicles = Array.isArray(result?.data)
-          ? result.data.map(normalizeVehicle)
-          : [];
+        const vehiclesArray = extractVehiclesArray(result);
+
+        console.log('🚗 Extracted vehicles array:', vehiclesArray);
+
+        const normalizedVehicles = vehiclesArray.map(normalizeVehicle);
+
+        console.log('🚗 Normalized vehicles:', normalizedVehicles);
+        console.log(
+          '🚗 Vehicle images:',
+          normalizedVehicles.map((v) => getVehicleImage(v))
+        );
 
         setVehicles(normalizedVehicles);
       } catch (error) {
@@ -251,64 +277,70 @@ const VehicleCard = ({
     vehicleMediaUrls?: string[];
   };
   onClick: () => void;
-}) => (
-  <div
-    onClick={onClick}
-    className="group flex cursor-pointer flex-col gap-4 rounded-[28px] border border-[#DCE6F2] bg-[#F7FAFD]/96 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-[1px] hover:shadow-[0_18px_36px_rgba(15,23,42,0.12)] active:scale-[0.985]"
-  >
-    <div className="flex items-center gap-4">
-      <div className="flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[20px] border border-[#E5EDF6] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-        <img
-          src={getVehicleImage(vehicle)}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          alt="Vehicle"
-          onError={(e) => {
-            e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
-          }}
-        />
-      </div>
+}) => {
+  const imageUrl = getVehicleImage(vehicle);
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h3 className="truncate text-[18px] font-black tracking-tight text-[#0F172A]">
-            {vehicle.name}
-          </h3>
-
-          {vehicle.reportsCount > 0 && (
-            <div className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-red-400" />
-          )}
+  return (
+    <div
+      onClick={onClick}
+      className="group flex cursor-pointer flex-col gap-4 rounded-[28px] border border-[#DCE6F2] bg-[#F7FAFD]/96 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-[1px] hover:shadow-[0_18px_36px_rgba(15,23,42,0.12)] active:scale-[0.985]"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[20px] border border-[#E5EDF6] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+          <img
+            src={imageUrl}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            alt={vehicle.name || 'Vehicle'}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              console.log('❌ Vehicle image failed:', imageUrl);
+              e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
+            }}
+          />
         </div>
 
-        <div className="mt-2">
-          <span className="inline-flex rounded-lg border border-[#D9E4F1] bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B] shadow-sm">
-            {vehicle.plate}
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-[18px] font-black tracking-tight text-[#0F172A]">
+              {vehicle.name}
+            </h3>
+
+            {vehicle.reportsCount > 0 && (
+              <div className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-red-400" />
+            )}
+          </div>
+
+          <div className="mt-2">
+            <span className="inline-flex rounded-lg border border-[#D9E4F1] bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B] shadow-sm">
+              {vehicle.plate}
+            </span>
+          </div>
+        </div>
+
+        <div className="text-[#A3AFBF] transition-colors group-hover:text-[#3B82F6]">
+          <ChevronRight size={19} strokeWidth={2.5} />
         </div>
       </div>
 
-      <div className="text-[#A3AFBF] transition-colors group-hover:text-[#3B82F6]">
-        <ChevronRight size={19} strokeWidth={2.5} />
+      <div className="flex items-center gap-2 border-t border-[#E6EDF5] pt-4">
+        <div
+          className={`rounded-lg p-1.5 ${
+            vehicle.reportsCount > 0
+              ? 'bg-red-50 text-red-400'
+              : 'bg-emerald-50 text-emerald-500'
+          }`}
+        >
+          <AlertCircle size={14} />
+        </div>
+
+        <p className="text-[11px] font-semibold text-[#64748B]">
+          {vehicle.reportsCount > 0
+            ? `${vehicle.reportsCount} active alerts`
+            : 'No recent incidents'}
+        </p>
       </div>
     </div>
-
-    <div className="flex items-center gap-2 border-t border-[#E6EDF5] pt-4">
-      <div
-        className={`rounded-lg p-1.5 ${
-          vehicle.reportsCount > 0
-            ? 'bg-red-50 text-red-400'
-            : 'bg-emerald-50 text-emerald-500'
-        }`}
-      >
-        <AlertCircle size={14} />
-      </div>
-
-      <p className="text-[11px] font-semibold text-[#64748B]">
-        {vehicle.reportsCount > 0
-          ? `${vehicle.reportsCount} active alerts`
-          : 'No recent incidents'}
-      </p>
-    </div>
-  </div>
-);
+  );
+};
 
 export default Vehicles;
