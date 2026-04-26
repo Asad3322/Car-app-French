@@ -12,16 +12,17 @@ const FALLBACK_VEHICLE_IMAGE =
 const getVehicleImage = (vehicle: any) => {
   if (!vehicle) return FALLBACK_VEHICLE_IMAGE;
 
-  if (typeof vehicle.image === 'string' && vehicle.image.trim()) {
-    return vehicle.image;
-  }
-
   if (
     Array.isArray(vehicle.vehicle_media) &&
+    vehicle.vehicle_media.length > 0 &&
     typeof vehicle.vehicle_media[0] === 'string' &&
     vehicle.vehicle_media[0].trim()
   ) {
     return vehicle.vehicle_media[0];
+  }
+
+  if (typeof vehicle.image === 'string' && vehicle.image.trim()) {
+    return vehicle.image;
   }
 
   if (
@@ -41,10 +42,9 @@ const normalizeVehicle = (vehicle: any) => ({
   plate: vehicle.licence_plate || vehicle.plate || '',
   reportsCount: vehicle.reports_count ?? vehicle.reportsCount ?? 0,
   image:
-    vehicle.image ||
-    vehicle.vehicle_media?.[0] ||
-    vehicle.vehicleMediaUrls?.[0] ||
-    '',
+    Array.isArray(vehicle.vehicle_media) && vehicle.vehicle_media[0]
+      ? vehicle.vehicle_media[0]
+      : vehicle.image || vehicle.vehicleMediaUrls?.[0] || '',
   vehicle_media: Array.isArray(vehicle.vehicle_media)
     ? vehicle.vehicle_media
     : vehicle.image
