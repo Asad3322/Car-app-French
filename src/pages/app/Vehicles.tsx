@@ -9,51 +9,73 @@ const API_URL = import.meta.env.VITE_API_URL;
 const FALLBACK_VEHICLE_IMAGE =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400';
 
+const parseVehicleMedia = (media: any): string[] => {
+  if (Array.isArray(media)) {
+    return media.filter((item) => typeof item === 'string' && item.trim());
+  }
+
+  if (typeof media === 'string' && media.trim()) {
+    try {
+      const parsed = JSON.parse(media);
+
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => typeof item === 'string' && item.trim());
+      }
+
+      if (typeof parsed === 'string' && parsed.trim()) {
+        return [parsed];
+      }
+
+      return [];
+    } catch {
+      return media.trim().startsWith('http') ? [media.trim()] : [];
+    }
+  }
+
+  return [];
+};
+
 const getVehicleImage = (vehicle: any) => {
   if (!vehicle) return FALLBACK_VEHICLE_IMAGE;
 
-  if (
-    Array.isArray(vehicle.vehicle_media) &&
-    vehicle.vehicle_media.length > 0 &&
-    typeof vehicle.vehicle_media[0] === 'string' &&
-    vehicle.vehicle_media[0].trim()
-  ) {
-    return vehicle.vehicle_media[0];
+  const media = parseVehicleMedia(vehicle.vehicle_media);
+
+  if (media.length > 0) {
+    return media[0];
+  }
+
+  const legacyMedia = parseVehicleMedia(vehicle.vehicleMediaUrls);
+
+  if (legacyMedia.length > 0) {
+    return legacyMedia[0];
   }
 
   if (typeof vehicle.image === 'string' && vehicle.image.trim()) {
     return vehicle.image;
   }
 
-  if (
-    Array.isArray(vehicle.vehicleMediaUrls) &&
-    typeof vehicle.vehicleMediaUrls[0] === 'string' &&
-    vehicle.vehicleMediaUrls[0].trim()
-  ) {
-    return vehicle.vehicleMediaUrls[0];
-  }
-
   return FALLBACK_VEHICLE_IMAGE;
 };
 
-const normalizeVehicle = (vehicle: any) => ({
-  id: vehicle.id,
-  name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
-  plate: vehicle.licence_plate || vehicle.plate || '',
-  reportsCount: vehicle.reports_count ?? vehicle.reportsCount ?? 0,
-  image:
-    Array.isArray(vehicle.vehicle_media) && vehicle.vehicle_media[0]
-      ? vehicle.vehicle_media[0]
-      : vehicle.image || vehicle.vehicleMediaUrls?.[0] || '',
-  vehicle_media: Array.isArray(vehicle.vehicle_media)
-    ? vehicle.vehicle_media
-    : vehicle.image
-      ? [vehicle.image]
-      : [],
-  vehicleMediaUrls: Array.isArray(vehicle.vehicleMediaUrls)
-    ? vehicle.vehicleMediaUrls
-    : [],
-});
+const normalizeVehicle = (vehicle: any) => {
+  const media = parseVehicleMedia(vehicle.vehicle_media);
+  const legacyMedia = parseVehicleMedia(vehicle.vehicleMediaUrls);
+  const image =
+    media[0] ||
+    legacyMedia[0] ||
+    (typeof vehicle.image === 'string' ? vehicle.image : '') ||
+    '';
+
+  return {
+    id: vehicle.id,
+    name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
+    plate: vehicle.licence_plate || vehicle.plate || '',
+    reportsCount: vehicle.reports_count ?? vehicle.reportsCount ?? 0,
+    image,
+    vehicle_media: media.length > 0 ? media : image ? [image] : [],
+    vehicleMediaUrls: legacyMedia,
+  };
+};
 
 const Vehicles = () => {
   const navigate = useNavigate();
