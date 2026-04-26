@@ -160,8 +160,13 @@ const ReportDetails = () => {
         formData.append("insuranceCertificate", insuranceFile);
       }
 
+      const token = localStorage.getItem("token");
+
       const response = await fetch(`${API_URL}/api/reports`, {
         method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: formData,
       });
 
