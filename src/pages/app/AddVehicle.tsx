@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   Camera,
   FileText,
-  UploadCloud,
   Plus,
   Image as ImageIcon,
   Shield,
@@ -12,13 +11,15 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+const MAX_VEHICLE_IMAGES = 4;
+
 const AddVehicle = () => {
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | undefined>(undefined);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +28,8 @@ const AddVehicle = () => {
   const insuranceInputRef = useRef<HTMLInputElement | null>(null);
   const addMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const isFormValid = name.trim() !== '' && plate.trim() !== '' && !!imageFile;
+  const isFormValid = name.trim() !== '' && plate.trim() !== '' && images.length > 0;
+  const canAddMoreImages = images.length < MAX_VEHICLE_IMAGES;
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -47,21 +49,34 @@ const AddVehicle = () => {
     };
   }, [showAddMenu]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviews]);
 
-    if (!file) {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+
+    if (selectedFiles.length === 0) {
       setShowAddMenu(false);
       return;
     }
 
-    setImageFile(file);
+    const remainingSlots = MAX_VEHICLE_IMAGES - images.length;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (remainingSlots <= 0) {
+      alert(`You can add maximum ${MAX_VEHICLE_IMAGES} vehicle images`);
+      setShowAddMenu(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+      return;
+    }
+
+    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    const previewsToAdd = filesToAdd.map((file) => URL.createObjectURL(file));
+
+    setImages((prev) => [...prev, ...filesToAdd]);
+    setImagePreviews((prev) => [...prev, ...previewsToAdd]);
 
     setShowAddMenu(false);
 
@@ -86,6 +101,25 @@ const AddVehicle = () => {
     }
   };
 
+  const removeImage = (indexToRemove: number) => {
+    setImagePreviews((prev) => {
+      const urlToRemove = prev[indexToRemove];
+      if (urlToRemove) URL.revokeObjectURL(urlToRemove);
+      return prev.filter((_, index) => index !== indexToRemove);
+    });
+
+    setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleOpenImagePicker = () => {
+    if (!canAddMoreImages) {
+      alert(`You can add maximum ${MAX_VEHICLE_IMAGES} vehicle images`);
+      return;
+    }
+
+    imageInputRef.current?.click();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid || isSubmitting) return;
@@ -98,9 +132,9 @@ const AddVehicle = () => {
       formData.append('vehicleName', name.trim());
       formData.append('licencePlate', plate.trim().toUpperCase());
 
-      if (imageFile) {
-        formData.append('vehicleMedia', imageFile);
-      }
+      images.forEach((file) => {
+        formData.append('vehicleMedia', file);
+      });
 
       if (insuranceFile) {
         formData.append('insuranceDocument', insuranceFile);
@@ -224,26 +258,92 @@ const AddVehicle = () => {
             </section>
 
             <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-5">
-              <div className="mb-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <label className="ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
                   Vehicle Photo
                 </label>
+
+                {images.length > 0 && (
+                  <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#2563EB]">
+                    {images.length}/{MAX_VEHICLE_IMAGES}
+                  </span>
+                )}
               </div>
 
-              <div className="group relative overflow-hidden rounded-[24px] border border-[#DCE6F2] bg-[#F8FBFF] p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition-all">
-                {imagePreview ? (
+              <div
+                onClick={() => {
+                  if (images.length === 0) {
+                    handleOpenImagePicker();
+                  }
+                }}
+                className={`group relative overflow-hidden rounded-[24px] border border-[#DCE6F2] bg-[#F8FBFF] p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition-all ${
+                  images.length === 0 ? 'cursor-pointer' : ''
+                }`}
+              >
+                {imagePreviews.length > 0 ? (
                   <div className="relative h-52 w-full overflow-hidden rounded-[20px]">
                     <img
-                      src={imagePreview}
-                      alt="Preview"
+                      src={imagePreviews[0]}
+                      alt="Main vehicle preview"
                       className="h-full w-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.16)_100%)]" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 opacity-0 transition-opacity group-hover:opacity-100">
-                      <UploadCloud className="mb-2 text-white" size={32} />
-                      <span className="text-xs font-black uppercase tracking-widest text-white">
-                        Change Photo
-                      </span>
+
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.20)_100%)]" />
+
+                    <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#2563EB] shadow-sm">
+                      Main Photo
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(0);
+                      }}
+                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm transition active:scale-95"
+                      aria-label="Remove main image"
+                    >
+                      ×
+                    </button>
+
+                    <div className="absolute bottom-3 left-3 right-3 flex gap-2 overflow-x-auto">
+                      {imagePreviews.map((preview, index) => (
+                        <button
+                          key={preview}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            if (index === 0) return;
+
+                            setImages((prev) => {
+                              const next = [...prev];
+                              const selected = next[index];
+                              next.splice(index, 1);
+                              next.unshift(selected);
+                              return next;
+                            });
+
+                            setImagePreviews((prev) => {
+                              const next = [...prev];
+                              const selected = next[index];
+                              next.splice(index, 1);
+                              next.unshift(selected);
+                              return next;
+                            });
+                          }}
+                          className={`h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 ${
+                            index === 0 ? 'border-[#2563EB]' : 'border-white'
+                          } bg-white shadow-sm`}
+                          aria-label={`Vehicle image ${index + 1}`}
+                        >
+                          <img
+                            src={preview}
+                            alt={`Vehicle preview ${index + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        </button>
+                      ))}
                     </div>
                   </div>
                 ) : (
@@ -276,8 +376,9 @@ const AddVehicle = () => {
                   <div className="absolute bottom-[72px] right-0 z-20 flex min-w-[180px] flex-col gap-2 rounded-[18px] border border-[#DCE6F2] bg-white/95 p-2 shadow-[0_16px_30px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                     <button
                       type="button"
-                      onClick={() => imageInputRef.current?.click()}
-                      className="flex items-center gap-3 rounded-[14px] px-3 py-3 text-left transition hover:bg-[#F3F7FB]"
+                      onClick={handleOpenImagePicker}
+                      disabled={!canAddMoreImages}
+                      className="flex items-center gap-3 rounded-[14px] px-3 py-3 text-left transition hover:bg-[#F3F7FB] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#2563EB]">
                         <ImageIcon size={18} />
@@ -320,6 +421,7 @@ const AddVehicle = () => {
                 ref={imageInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
                 onChange={handleImageUpload}
               />
