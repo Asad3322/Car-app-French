@@ -16,24 +16,56 @@ const API_URL = import.meta.env.VITE_API_URL;
 const FALLBACK_VEHICLE_IMAGE =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=600';
 
-const normalizeVehicle = (vehicle: any) => ({
-  id: vehicle.id,
-  name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
-  plate: vehicle.licence_plate || vehicle.plate || '',
-  image:
-    vehicle.image ||
-    vehicle.vehicle_media?.[0] ||
-    vehicle.vehicleMediaUrls?.[0] ||
-    '',
-  vehicle_media: Array.isArray(vehicle.vehicle_media)
-    ? vehicle.vehicle_media
-    : vehicle.image
-      ? [vehicle.image]
-      : [],
-  vehicleMediaUrls: Array.isArray(vehicle.vehicleMediaUrls)
-    ? vehicle.vehicleMediaUrls
-    : [],
-});
+const parseVehicleMedia = (media: any): string[] => {
+  if (!media) return [];
+
+  if (Array.isArray(media)) {
+    return media.filter((item) => typeof item === 'string' && item.trim());
+  }
+
+  if (typeof media === 'string') {
+    try {
+      const parsed = JSON.parse(media);
+
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => typeof item === 'string' && item.trim());
+      }
+
+      if (typeof parsed === 'string' && parsed.trim()) {
+        return [parsed];
+      }
+
+      return [];
+    } catch {
+      return media.trim() ? [media.trim()] : [];
+    }
+  }
+
+  return [];
+};
+
+const normalizeVehicle = (vehicle: any) => {
+  const media = parseVehicleMedia(vehicle.vehicle_media);
+  const legacyMedia = parseVehicleMedia(vehicle.vehicleMediaUrls);
+
+  const allImages =
+    media.length > 0
+      ? media
+      : legacyMedia.length > 0
+        ? legacyMedia
+        : vehicle.image
+          ? [vehicle.image]
+          : [];
+
+  return {
+    id: vehicle.id,
+    name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
+    plate: vehicle.licence_plate || vehicle.plate || '',
+    image: allImages[0] || '',
+    vehicle_media: allImages,
+    vehicleMediaUrls: legacyMedia,
+  };
+};
 
 const EditVehicle = () => {
   const { id } = useParams();
@@ -47,11 +79,24 @@ const EditVehicle = () => {
 
   const [vehicle, setVehicle] = useState<any>(storeVehicle || null);
   const [name, setName] = useState(storeVehicle?.name || '');
-  const [image, setImage] = useState<string | undefined>(
-    storeVehicle?.image || ''
+  const [image, setImage] = useState<string>(
+    storeVehicle?.image || FALLBACK_VEHICLE_IMAGE
   );
+  const [images, setImages] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const applyVehicleData = (rawVehicle: any) => {
+    const normalized = normalizeVehicle(rawVehicle);
+    const allImages = normalized.vehicle_media || [];
+
+    setVehicle(normalized);
+    setName(normalized.name);
+    setImages(allImages);
+    setImage(allImages[0] || normalized.image || FALLBACK_VEHICLE_IMAGE);
+
+    return normalized;
+  };
 
   useEffect(() => {
     const loadVehicle = async () => {
@@ -59,14 +104,7 @@ const EditVehicle = () => {
         setIsLoading(true);
 
         if (storeVehicle) {
-          const normalized = normalizeVehicle(storeVehicle);
-          setVehicle(normalized);
-          setName(normalized.name);
-          setImage(
-            normalized.vehicle_media?.[0] ||
-              normalized.image ||
-              FALLBACK_VEHICLE_IMAGE
-          );
+          applyVehicleData(storeVehicle);
           setIsLoading(false);
           return;
         }
@@ -103,24 +141,22 @@ const EditVehicle = () => {
           throw new Error(result?.message || 'Failed to fetch vehicle');
         }
 
-        const foundVehicle = Array.isArray(result?.data)
-          ? result.data.find((item: any) => item.id === id)
-          : null;
+        const vehiclesArray = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result?.data?.vehicles)
+            ? result.data.vehicles
+            : Array.isArray(result?.vehicles)
+              ? result.vehicles
+              : [];
+
+        const foundVehicle = vehiclesArray.find((item: any) => item.id === id);
 
         if (!foundVehicle) {
           setVehicle(null);
           return;
         }
 
-        const normalized = normalizeVehicle(foundVehicle);
-
-        setVehicle(normalized);
-        setName(normalized.name);
-        setImage(
-          normalized.vehicle_media?.[0] ||
-            normalized.image ||
-            FALLBACK_VEHICLE_IMAGE
-        );
+        const normalized = applyVehicleData(foundVehicle);
 
         setVehicles((prev: any[]) => {
           const exists = prev.some((item: any) => item.id === normalized.id);
@@ -182,10 +218,7 @@ const EditVehicle = () => {
   }
 
   const displayImage =
-    image ||
-    vehicle.vehicle_media?.[0] ||
-    vehicle.image ||
-    FALLBACK_VEHICLE_IMAGE;
+    image || images[0] || vehicle.image || FALLBACK_VEHICLE_IMAGE;
 
   const hasChanges =
     (name.trim() !== '' && name !== vehicle.name) || image !== vehicle.image;
@@ -197,7 +230,13 @@ const EditVehicle = () => {
       const reader = new FileReader();
 
       reader.onloadend = () => {
-        setImage(reader.result as string);
+        const newImage = reader.result as string;
+
+        setImage(newImage);
+        setImages((prev) => {
+          if (prev.includes(newImage)) return prev;
+          return [newImage, ...prev];
+        });
       };
 
       reader.readAsDataURL(file);
@@ -220,7 +259,7 @@ const EditVehicle = () => {
                 ...v,
                 name,
                 image,
-                vehicle_media: image ? [image] : v.vehicle_media,
+                vehicle_media: images.length > 0 ? images : v.vehicle_media,
               }
             : v
         )
@@ -329,7 +368,7 @@ const EditVehicle = () => {
 
           <section>
             <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-              Vehicle Photo
+              Vehicle Photos
             </label>
 
             <div className="group relative overflow-hidden rounded-[28px] border border-[#DCE6F2] bg-white/90 p-1 shadow-[0_12px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all">
@@ -366,6 +405,32 @@ const EditVehicle = () => {
                 onChange={handleImageUpload}
               />
             </div>
+
+            {images.length > 0 && (
+              <div className="mt-4 grid grid-cols-4 gap-3">
+                {images.map((img, index) => (
+                  <button
+                    key={`${img}-${index}`}
+                    type="button"
+                    onClick={() => setImage(img)}
+                    className={`h-20 overflow-hidden rounded-[18px] border bg-white p-1 shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition-all active:scale-95 ${
+                      img === displayImage
+                        ? 'border-[#2563EB] ring-4 ring-[#DBEAFE]'
+                        : 'border-[#DCE6F2]'
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Vehicle ${index + 1}`}
+                      className="h-full w-full rounded-[14px] object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="grid grid-cols-1 gap-4">
