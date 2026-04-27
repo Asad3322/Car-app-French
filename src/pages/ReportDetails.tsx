@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   HelpCircle,
-  Camera,
   UploadCloud,
   Car,
 } from "lucide-react";
 import type { Urgency } from "../utils/types";
+
+const DEFAULT_CAR_IMAGE =
+  "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=600";
 
 const ReportDetails = () => {
   const navigate = useNavigate();
@@ -25,7 +27,6 @@ const ReportDetails = () => {
 
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
-
   const [mediaPreview, setMediaPreview] = useState<string[]>([]);
 
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
@@ -382,9 +383,11 @@ const PhotoCard = ({ previews, mediaCount, onClick }: PhotoCardProps) => {
         </>
       ) : (
         <>
-          <div className="mb-3 text-[#4A90E2]">
-            <Camera size={22} />
-          </div>
+          <img
+            src={DEFAULT_CAR_IMAGE}
+            alt="default car evidence"
+            className="mb-3 h-[58px] w-full rounded-lg object-cover"
+          />
 
           <span className="text-center text-xs font-bold text-[#1F2A37]">
             Add Photos
