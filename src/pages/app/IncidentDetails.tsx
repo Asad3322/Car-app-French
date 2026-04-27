@@ -8,12 +8,14 @@ import {
   ThumbsDown,
   Sparkles,
   AlertTriangle,
-  CameraOff,
   Calendar,
   Info,
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+const DEFAULT_CAR_IMAGE =
+  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=900';
 
 const IncidentDetails = () => {
   const navigate = useNavigate();
@@ -59,7 +61,7 @@ const IncidentDetails = () => {
   const image =
     Array.isArray(incident?.medias) && incident.medias.length > 0
       ? incident.medias[0]
-      : '';
+      : DEFAULT_CAR_IMAGE;
 
   const urgencyLabel =
     incident?.urgency === 'urgent'
@@ -135,22 +137,14 @@ const IncidentDetails = () => {
 
       <div className="scrollbar-hide flex-1 overflow-y-auto bg-[#F3F7FB] pb-32">
         <div className="relative aspect-video w-full overflow-hidden bg-[#EAF1F8]">
-          {image ? (
-            <img
-              src={image}
-              alt="Reported car evidence"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-[#94A3B8]">
-              <div className="flex h-20 w-20 items-center justify-center rounded-[28px] border border-[#DCE6F2] bg-white shadow-[0_8px_20px_rgba(15,23,42,0.05)]">
-                <CameraOff size={36} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.16em]">
-                No car image available
-              </span>
-            </div>
-          )}
+          <img
+            src={image}
+            alt="Reported car evidence"
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = DEFAULT_CAR_IMAGE;
+            }}
+          />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
 
