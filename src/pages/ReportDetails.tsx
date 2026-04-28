@@ -25,7 +25,6 @@ const ReportDetails = () => {
 
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
-
   const [mediaPreview, setMediaPreview] = useState<string[]>([]);
 
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
@@ -179,7 +178,24 @@ const ReportDetails = () => {
         throw new Error(result.message || "Failed to submit report");
       }
 
-      navigate("/success");
+      const gamificationData =
+        result?.data?.gamification || {
+          reward: "+10 Coins",
+          points: 10,
+          streak: 1,
+          badge: "Rookie Reporter",
+        };
+
+      localStorage.setItem(
+        "lastGamificationReward",
+        JSON.stringify(gamificationData),
+      );
+
+      navigate("/success", {
+        state: {
+          gamification: gamificationData,
+        },
+      });
     } catch (error: any) {
       console.error("Submit report error:", error);
       alert(error.message || "Failed to submit report");

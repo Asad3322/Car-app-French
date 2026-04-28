@@ -1,10 +1,35 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Gift, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Gift, CheckCircle2, Trophy, Flame } from 'lucide-react';
 
 const Success = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rewardData, setRewardData] = useState<any>(null);
+
+  // ✅ MAIN: get from navigation OR fallback
+  useEffect(() => {
+    if (location.state?.gamification) {
+      setRewardData(location.state.gamification);
+
+      localStorage.setItem(
+        'lastGamificationReward',
+        JSON.stringify(location.state.gamification)
+      );
+    } else {
+      // 🔥 FIX: fallback into state
+      const stored = localStorage.getItem('lastGamificationReward');
+      if (stored) {
+        setRewardData(JSON.parse(stored));
+      }
+    }
+  }, [location.state]);
+
+  const reward = rewardData?.reward || '+10 Coins';
+  const points = rewardData?.points ?? 10;
+  const badge = rewardData?.badge || 'Rookie Reporter';
+  const streak = rewardData?.streak ?? 1;
 
   const handleClaim = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,30 +59,53 @@ const Success = () => {
             />
           </div>
 
-          <h1 className="text-[34px] font-black leading-none tracking-tight text-[#1F2A37]">
+          <h1 className="text-[34px] font-black text-[#1F2A37]">
             Thank You!
           </h1>
 
-          <p className="mt-4 max-w-[300px] text-[15px] font-bold leading-7 text-[#6B7A90]">
-            🎉 Your report is making a difference. You helped a vehicle owner and made the community safer.
+          <p className="mt-4 max-w-[320px] text-[15px] font-bold text-[#6B7A90]">
+            🎉 You just earned <span className="text-[#F4B400]">{reward}</span>.
+            Your report is making a difference.
           </p>
 
           <div className="mt-10 w-full max-w-[320px]">
-            <div className="relative overflow-hidden rounded-[32px] border border-[#D9E5F1] bg-white px-6 py-7 shadow-sm">
-              <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#5BA3F0]/10 blur-2xl" />
-              <div className="absolute -left-8 bottom-0 h-24 w-24 rounded-full bg-emerald-400/10 blur-2xl" />
-
-              <div className="relative flex flex-col items-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[22px] bg-gradient-to-br from-[#5BA3F0] to-[#4A90E2] text-white shadow-[0_12px_26px_rgba(74,144,226,0.25)]">
+            <div className="rounded-[32px] border border-[#D9E5F1] bg-white px-6 py-7 shadow-sm">
+              <div className="flex flex-col items-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[22px] bg-gradient-to-br from-[#5BA3F0] to-[#4A90E2] text-white">
                   <Gift size={30} />
                 </div>
 
                 <h2 className="text-[22px] font-black text-[#1F2A37]">
-                  Claim Your Reward
+                  Your Reward
                 </h2>
 
-                <p className="mt-3 max-w-[250px] text-[13px] font-bold leading-6 text-[#6B7A90]">
-                  Create an account to claim your reward, track your reports, and stay connected.
+                <div className="mt-5 grid w-full grid-cols-3 gap-3">
+                  <div className="rounded-[18px] border bg-[#F8FBFF] p-3">
+                    <p className="text-[18px] font-black text-[#F4B400]">
+                      {points}
+                    </p>
+                    <p className="text-[9px] uppercase text-[#9AA8BC]">
+                      Points
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border bg-[#F8FBFF] p-3">
+                    <Flame className="mx-auto text-orange-500" />
+                    <p className="text-[9px] uppercase text-[#9AA8BC]">
+                      {streak} Day
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border bg-[#F8FBFF] p-3">
+                    <Trophy className="mx-auto text-[#4A90E2]" />
+                    <p className="text-[9px] uppercase text-[#9AA8BC]">
+                      Badge
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-4 bg-[#EEF6FF] px-4 py-2 text-[11px] font-black text-[#4A90E2] rounded-full">
+                  {badge}
                 </p>
               </div>
             </div>
@@ -65,39 +113,21 @@ const Success = () => {
         </div>
 
         <div className="pb-8">
-          <div className="mx-auto flex w-full max-w-[320px] flex-col gap-3">
+          <div className="mx-auto w-full max-w-[320px] flex flex-col gap-3">
             <button
               onClick={handleClaim}
               disabled={isSubmitting}
-              className="flex h-[66px] w-full flex-col items-center justify-center rounded-[22px] border-b-4 border-[#E09E00] bg-[#F4B400] text-white shadow-[0_16px_30px_rgba(244,180,0,0.28)] transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-80 disabled:grayscale"
+              className="h-[66px] rounded-[22px] bg-[#F4B400] text-white"
             >
-              {isSubmitting ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <>
-                  <span className="text-[15px] font-black">
-                    Create my account and claim my reward
-                  </span>
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] opacity-85">
-                    Continue setup
-                  </span>
-                </>
-              )}
+              {isSubmitting ? 'Loading...' : 'Claim Reward'}
             </button>
 
             <Link
               to="/"
-              className="flex h-12 items-center justify-center rounded-[18px] border border-[#D9E5F1] bg-white text-[11px] font-black uppercase tracking-[0.12em] text-[#6B7A90] transition-all duration-300 hover:bg-[#F8FBFF] hover:text-[#1F2A37]"
+              className="h-12 flex items-center justify-center border rounded-[18px]"
             >
-              No, I don’t want to claim my reward
+              Skip
             </Link>
-
-            <a
-              href="mailto:contact@carappdomainname?subject=Support%20Request"
-              className="pt-2 text-center text-[11px] font-black uppercase tracking-[0.18em] text-[#9AA8BC] transition-colors hover:text-[#4A90E2]"
-            >
-              Contact Support Team
-            </a>
           </div>
         </div>
       </div>
