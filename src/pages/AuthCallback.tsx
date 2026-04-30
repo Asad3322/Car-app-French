@@ -84,6 +84,8 @@ const AuthCallback = () => {
             localStorage.setItem('role', 'reporter');
           }
 
+          localStorage.setItem('openIncidentsTab', 'sent');
+
           navigate('/app/incidents', {
             replace: true,
             state: { filter: 'sent' },
