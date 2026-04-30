@@ -68,30 +68,25 @@ const AuthCallback = () => {
         const pendingVehicleId = localStorage.getItem('vehicleId');
         const isPendingOwnerFlow = Boolean(pendingVerifiedPhone && pendingVehicleId);
 
-        const pendingAuthRole = localStorage.getItem('pendingAuthRole');
-        const afterMagicLinkRedirect = localStorage.getItem('afterMagicLinkRedirect');
-        const afterMagicLinkFilter = localStorage.getItem('afterMagicLinkFilter');
+        const fromReportFlow = localStorage.getItem('fromReportFlow');
 
-        if (pendingAuthRole === 'reporter') {
+        if (fromReportFlow === 'true') {
+          localStorage.removeItem('fromReportFlow');
+          localStorage.removeItem('authFlow');
+          localStorage.removeItem('redirectAfterAuth');
+          localStorage.removeItem('pendingAuthRole');
+          localStorage.removeItem('afterMagicLinkRedirect');
+          localStorage.removeItem('afterMagicLinkFilter');
+
           if (profile?.role === 'vehicle_owner') {
             localStorage.setItem('role', 'vehicle_owner');
           } else {
             localStorage.setItem('role', 'reporter');
           }
 
-          localStorage.removeItem('pendingAuthRole');
-          localStorage.removeItem('afterMagicLinkRedirect');
-          localStorage.removeItem('afterMagicLinkFilter');
-          localStorage.removeItem('authFlow');
-          localStorage.removeItem('redirectAfterAuth');
-          localStorage.removeItem('verifiedPhone');
-          localStorage.removeItem('vehicleId');
-          localStorage.removeItem('ownerAccess');
-          localStorage.removeItem('ownerPhone');
-
-          navigate(afterMagicLinkRedirect || '/app/incidents', {
+          navigate('/app/incidents', {
             replace: true,
-            state: afterMagicLinkFilter ? { filter: afterMagicLinkFilter } : undefined,
+            state: { filter: 'sent' },
           });
           return;
         }

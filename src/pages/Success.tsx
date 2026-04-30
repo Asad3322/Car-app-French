@@ -37,10 +37,12 @@ const Success = () => {
 
     localStorage.removeItem("authFlow");
     localStorage.removeItem("redirectAfterAuth");
+    localStorage.removeItem("pendingAuthRole");
+    localStorage.removeItem("afterMagicLinkRedirect");
+    localStorage.removeItem("afterMagicLinkFilter");
 
-    localStorage.setItem("pendingAuthRole", "reporter");
-    localStorage.setItem("afterMagicLinkRedirect", "/app/incidents");
-    localStorage.setItem("afterMagicLinkFilter", "sent");
+    localStorage.setItem("fromReportFlow", "true");
+
     setTimeout(() => {
       setIsSubmitting(false);
       navigate("/auth?role=reporter");
