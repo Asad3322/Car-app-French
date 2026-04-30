@@ -8,7 +8,6 @@ const Success = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rewardData, setRewardData] = useState<any>(null);
 
-  // ✅ MAIN: get from navigation OR fallback
   useEffect(() => {
     if (location.state?.gamification) {
       setRewardData(location.state.gamification);
@@ -18,7 +17,6 @@ const Success = () => {
         JSON.stringify(location.state.gamification)
       );
     } else {
-      // 🔥 FIX: fallback into state
       const stored = localStorage.getItem('lastGamificationReward');
       if (stored) {
         setRewardData(JSON.parse(stored));
@@ -36,6 +34,12 @@ const Success = () => {
     if (isSubmitting) return;
 
     setIsSubmitting(true);
+
+    localStorage.removeItem('authFlow');
+    localStorage.removeItem('redirectAfterAuth');
+
+    localStorage.setItem('pendingAuthRole', 'reporter');
+    localStorage.setItem('afterMagicLinkRedirect', '/app/home');
 
     setTimeout(() => {
       setIsSubmitting(false);

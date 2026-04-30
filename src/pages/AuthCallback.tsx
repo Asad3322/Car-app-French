@@ -18,9 +18,6 @@ const AuthCallback = () => {
         const code = url.searchParams.get('code');
         const phoneToken = url.searchParams.get('phone_token');
 
-        // =========================
-        // OWNER PHONE VERIFY FLOW
-        // =========================
         if (phoneToken) {
           const res = await fetch(
             `${import.meta.env.VITE_API_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
@@ -40,9 +37,6 @@ const AuthCallback = () => {
           return;
         }
 
-        // =========================
-        // EMAIL MAGIC LINK FLOW
-        // =========================
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -74,36 +68,25 @@ const AuthCallback = () => {
         const pendingVehicleId = localStorage.getItem('vehicleId');
         const isPendingOwnerFlow = Boolean(pendingVerifiedPhone && pendingVehicleId);
 
-        const authFlow = localStorage.getItem('authFlow');
-        const redirectAfterAuth = localStorage.getItem('redirectAfterAuth');
+        const pendingAuthRole = localStorage.getItem('pendingAuthRole');
+        const afterMagicLinkRedirect = localStorage.getItem('afterMagicLinkRedirect');
 
-        // =========================
-        // REPORT INCIDENT FLOW
-        // Same for every user:
-        // Reporter reports -> Success
-        // Owner reports -> Success
-        // =========================
-        if (authFlow === 'report_incident' || redirectAfterAuth) {
-          const redirectTo = redirectAfterAuth || '/success';
+        if (pendingAuthRole === 'reporter') {
+          localStorage.setItem('role', 'reporter');
 
+          localStorage.removeItem('pendingAuthRole');
+          localStorage.removeItem('afterMagicLinkRedirect');
           localStorage.removeItem('authFlow');
           localStorage.removeItem('redirectAfterAuth');
+          localStorage.removeItem('verifiedPhone');
+          localStorage.removeItem('vehicleId');
+          localStorage.removeItem('ownerAccess');
+          localStorage.removeItem('ownerPhone');
 
-          if (profile?.role === 'vehicle_owner') {
-            localStorage.setItem('role', 'vehicle_owner');
-          } else {
-            localStorage.setItem('role', 'reporter');
-          }
-
-          navigate(redirectTo, { replace: true });
+          navigate(afterMagicLinkRedirect || '/app/home', { replace: true });
           return;
         }
 
-        // =========================
-        // EXISTING USER NORMAL FLOW
-        // Reporter -> Home
-        // Owner -> Vehicles
-        // =========================
         if (profile) {
           localStorage.removeItem('verifiedPhone');
           localStorage.removeItem('vehicleId');
@@ -121,19 +104,12 @@ const AuthCallback = () => {
           return;
         }
 
-        // =========================
-        // NEW OWNER
-        // Only owner if verified phone + vehicleId exists
-        // =========================
         if (isPendingOwnerFlow) {
           localStorage.setItem('role', 'vehicle_owner');
           navigate('/complete-profile', { replace: true });
           return;
         }
 
-        // =========================
-        // NEW REPORTER
-        // =========================
         if (result?.needsProfileCompletion) {
           localStorage.setItem('role', 'reporter');
           navigate('/complete-profile', { replace: true });
