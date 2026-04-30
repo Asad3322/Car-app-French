@@ -14,23 +14,37 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   useEffect(() => {
     let isMounted = true;
 
-    const allow = () => {
+    const allow = (token?: string) => {
       if (!isMounted) return;
+
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+
       setValid(true);
       setLoading(false);
     };
 
     const deny = () => {
       if (!isMounted) return;
+
       localStorage.removeItem('token');
       localStorage.removeItem('ownerAccess');
       localStorage.removeItem('ownerPhone');
+
       setValid(false);
       setLoading(false);
     };
 
     const checkAuth = async () => {
       try {
+        const localToken = localStorage.getItem('token');
+
+        if (localToken) {
+          allow(localToken);
+          return;
+        }
+
         const {
           data: { session },
           error,
@@ -41,8 +55,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           return;
         }
 
-        localStorage.setItem('token', session.access_token);
-        allow();
+        allow(session.access_token);
       } catch (error) {
         console.error('ProtectedRoute error:', error);
         deny();
@@ -57,10 +70,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       if (!isMounted) return;
 
       if (session?.access_token) {
-        localStorage.setItem('token', session.access_token);
-        allow();
-      } else {
-        deny();
+        allow(session.access_token);
       }
     });
 

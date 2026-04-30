@@ -45,7 +45,7 @@ const Success = () => {
 
     setTimeout(() => {
       setIsSubmitting(false);
-      navigate("/auth?role=reporter");
+      navigate('/auth?role=reporter&from=report');
     }, 1200);
   };
 

@@ -17,6 +17,7 @@ const AuthCallback = () => {
 
         const code = url.searchParams.get('code');
         const phoneToken = url.searchParams.get('phone_token');
+        const fromParam = url.searchParams.get('from');
 
         if (phoneToken) {
           const res = await fetch(
@@ -39,10 +40,7 @@ const AuthCallback = () => {
 
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-          if (error) {
-            throw error;
-          }
+          if (error) throw error;
         }
 
         const {
@@ -50,9 +48,7 @@ const AuthCallback = () => {
           error: sessionError,
         } = await supabase.auth.getSession();
 
-        if (sessionError) {
-          throw sessionError;
-        }
+        if (sessionError) throw sessionError;
 
         if (!session?.access_token) {
           navigate('/auth', { replace: true });
@@ -68,9 +64,12 @@ const AuthCallback = () => {
         const pendingVehicleId = localStorage.getItem('vehicleId');
         const isPendingOwnerFlow = Boolean(pendingVerifiedPhone && pendingVehicleId);
 
-        const fromReportFlow = localStorage.getItem('fromReportFlow');
+        const fromReportFlow =
+          localStorage.getItem('fromReportFlow') === 'true' ||
+          localStorage.getItem('openIncidentsTab') === 'sent' ||
+          fromParam === 'report';
 
-        if (fromReportFlow === 'true') {
+        if (fromReportFlow) {
           localStorage.removeItem('fromReportFlow');
           localStorage.removeItem('authFlow');
           localStorage.removeItem('redirectAfterAuth');
@@ -86,10 +85,13 @@ const AuthCallback = () => {
 
           localStorage.setItem('openIncidentsTab', 'sent');
 
-          navigate('/app/incidents', {
-            replace: true,
-            state: { filter: 'sent' },
-          });
+          setTimeout(() => {
+            navigate('/app/incidents', {
+              replace: true,
+              state: { filter: 'sent' },
+            });
+          }, 150);
+
           return;
         }
 
