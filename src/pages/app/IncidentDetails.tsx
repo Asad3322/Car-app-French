@@ -59,9 +59,11 @@ const IncidentDetails = () => {
   }, [id]);
 
   const image =
-    Array.isArray(incident?.medias) && incident.medias.length > 0
-      ? incident.medias[0]
-      : DEFAULT_CAR_IMAGE;
+    incident?.medias?.[0] ||
+    incident?.media?.[0] ||
+    incident?.images?.[0] ||
+    incident?.image ||
+    DEFAULT_CAR_IMAGE;
 
   const urgencyLabel =
     incident?.urgency === 'urgent'
