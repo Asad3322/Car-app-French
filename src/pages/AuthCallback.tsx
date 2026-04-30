@@ -85,13 +85,10 @@ const AuthCallback = () => {
 
           localStorage.setItem('openIncidentsTab', 'sent');
 
-          setTimeout(() => {
-            navigate('/app/incidents', {
-              replace: true,
-              state: { filter: 'sent' },
-            });
-          }, 150);
-
+          navigate('/app/history', {
+            replace: true,
+            state: { filter: 'sent' },
+          });
           return;
         }
 
