@@ -68,15 +68,39 @@ const AuthCallback = () => {
         localStorage.setItem('token', session.access_token);
 
         const result = await handleMagicLinkLogin();
-
         const profile = result?.profile;
 
         const pendingVerifiedPhone = localStorage.getItem('verifiedPhone');
         const pendingVehicleId = localStorage.getItem('vehicleId');
         const isPendingOwnerFlow = Boolean(pendingVerifiedPhone && pendingVehicleId);
 
+        const authFlow = localStorage.getItem('authFlow');
+        const redirectAfterAuth = localStorage.getItem('redirectAfterAuth');
+
         // =========================
-        // EXISTING USER FLOW
+        // REPORT INCIDENT FLOW
+        // Same for every user:
+        // Reporter reports -> Success
+        // Owner reports -> Success
+        // =========================
+        if (authFlow === 'report_incident' || redirectAfterAuth) {
+          const redirectTo = redirectAfterAuth || '/success';
+
+          localStorage.removeItem('authFlow');
+          localStorage.removeItem('redirectAfterAuth');
+
+          if (profile?.role === 'vehicle_owner') {
+            localStorage.setItem('role', 'vehicle_owner');
+          } else {
+            localStorage.setItem('role', 'reporter');
+          }
+
+          navigate(redirectTo, { replace: true });
+          return;
+        }
+
+        // =========================
+        // EXISTING USER NORMAL FLOW
         // Reporter -> Home
         // Owner -> Vehicles
         // =========================
