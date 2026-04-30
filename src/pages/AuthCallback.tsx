@@ -70,12 +70,18 @@ const AuthCallback = () => {
 
         const pendingAuthRole = localStorage.getItem('pendingAuthRole');
         const afterMagicLinkRedirect = localStorage.getItem('afterMagicLinkRedirect');
+        const afterMagicLinkFilter = localStorage.getItem('afterMagicLinkFilter');
 
         if (pendingAuthRole === 'reporter') {
-          localStorage.setItem('role', 'reporter');
+          if (profile?.role === 'vehicle_owner') {
+            localStorage.setItem('role', 'vehicle_owner');
+          } else {
+            localStorage.setItem('role', 'reporter');
+          }
 
           localStorage.removeItem('pendingAuthRole');
           localStorage.removeItem('afterMagicLinkRedirect');
+          localStorage.removeItem('afterMagicLinkFilter');
           localStorage.removeItem('authFlow');
           localStorage.removeItem('redirectAfterAuth');
           localStorage.removeItem('verifiedPhone');
@@ -83,7 +89,10 @@ const AuthCallback = () => {
           localStorage.removeItem('ownerAccess');
           localStorage.removeItem('ownerPhone');
 
-          navigate(afterMagicLinkRedirect || '/app/home', { replace: true });
+          navigate(afterMagicLinkRedirect || '/app/incidents', {
+            replace: true,
+            state: afterMagicLinkFilter ? { filter: afterMagicLinkFilter } : undefined,
+          });
           return;
         }
 

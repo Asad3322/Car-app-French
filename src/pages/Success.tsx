@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Gift, CheckCircle2, Trophy, Flame } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Gift, CheckCircle2, Trophy, Flame } from "lucide-react";
 
 const Success = () => {
   const navigate = useNavigate();
@@ -13,20 +13,20 @@ const Success = () => {
       setRewardData(location.state.gamification);
 
       localStorage.setItem(
-        'lastGamificationReward',
-        JSON.stringify(location.state.gamification)
+        "lastGamificationReward",
+        JSON.stringify(location.state.gamification),
       );
     } else {
-      const stored = localStorage.getItem('lastGamificationReward');
+      const stored = localStorage.getItem("lastGamificationReward");
       if (stored) {
         setRewardData(JSON.parse(stored));
       }
     }
   }, [location.state]);
 
-  const reward = rewardData?.reward || '+10 Coins';
+  const reward = rewardData?.reward || "+10 Coins";
   const points = rewardData?.points ?? 10;
-  const badge = rewardData?.badge || 'Rookie Reporter';
+  const badge = rewardData?.badge || "Rookie Reporter";
   const streak = rewardData?.streak ?? 1;
 
   const handleClaim = (e: React.MouseEvent) => {
@@ -35,15 +35,15 @@ const Success = () => {
 
     setIsSubmitting(true);
 
-    localStorage.removeItem('authFlow');
-    localStorage.removeItem('redirectAfterAuth');
+    localStorage.removeItem("authFlow");
+    localStorage.removeItem("redirectAfterAuth");
 
-    localStorage.setItem('pendingAuthRole', 'reporter');
-    localStorage.setItem('afterMagicLinkRedirect', '/app/home');
-
+    localStorage.setItem("pendingAuthRole", "reporter");
+    localStorage.setItem("afterMagicLinkRedirect", "/app/incidents");
+    localStorage.setItem("afterMagicLinkFilter", "sent");
     setTimeout(() => {
       setIsSubmitting(false);
-      navigate('/auth?role=reporter');
+      navigate("/auth?role=reporter");
     }, 1200);
   };
 
@@ -63,9 +63,7 @@ const Success = () => {
             />
           </div>
 
-          <h1 className="text-[34px] font-black text-[#1F2A37]">
-            Thank You!
-          </h1>
+          <h1 className="text-[34px] font-black text-[#1F2A37]">Thank You!</h1>
 
           <p className="mt-4 max-w-[320px] text-[15px] font-bold text-[#6B7A90]">
             🎉 You just earned <span className="text-[#F4B400]">{reward}</span>.
@@ -102,9 +100,7 @@ const Success = () => {
 
                   <div className="rounded-[18px] border bg-[#F8FBFF] p-3">
                     <Trophy className="mx-auto text-[#4A90E2]" />
-                    <p className="text-[9px] uppercase text-[#9AA8BC]">
-                      Badge
-                    </p>
+                    <p className="text-[9px] uppercase text-[#9AA8BC]">Badge</p>
                   </div>
                 </div>
 
@@ -123,7 +119,7 @@ const Success = () => {
               disabled={isSubmitting}
               className="h-[66px] rounded-[22px] bg-[#F4B400] text-white"
             >
-              {isSubmitting ? 'Loading...' : 'Claim Reward'}
+              {isSubmitting ? "Loading..." : "Claim Reward"}
             </button>
 
             <Link
