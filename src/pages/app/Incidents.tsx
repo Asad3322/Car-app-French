@@ -53,6 +53,23 @@ const mapBackendIncident = (incident: BackendIncident): UiIncident => ({
   receiverId: incident.receiver_id || '',
 });
 
+const getInitialGroup = (): 'sent' | 'received' => {
+  const forceTab = localStorage.getItem('openIncidentsTab');
+
+  if (forceTab === 'sent' || forceTab === 'received') {
+    localStorage.removeItem('openIncidentsTab');
+    return forceTab;
+  }
+
+  const role = localStorage.getItem('role');
+
+  if (role === 'vehicle_owner') {
+    return 'received';
+  }
+
+  return 'sent';
+};
+
 const Incidents = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,10 +79,19 @@ const Incidents = () => {
   const [loading, setLoading] = useState(true);
 
   const [activeGroup, setActiveGroup] = useState<'sent' | 'received'>(
-    (location.state as { filter?: 'sent' | 'received' } | null)?.filter || 'received'
+    (location.state as { filter?: 'sent' | 'received' } | null)?.filter || getInitialGroup()
   );
 
   const [activeFilter, setActiveFilter] = useState<Status | 'all'>('all');
+
+  useEffect(() => {
+    const stateFilter = (location.state as { filter?: 'sent' | 'received' } | null)?.filter;
+
+    if (stateFilter === 'sent' || stateFilter === 'received') {
+      setActiveGroup(stateFilter);
+      setActiveFilter('all');
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const fetchIncidents = async () => {
@@ -89,6 +115,8 @@ const Incidents = () => {
 
         const result = await response.json();
 
+        console.log('Active report tab:', activeGroup);
+        console.log('Incidents fetch endpoint:', endpoint);
         console.log('Incidents fetch response:', result);
         console.log('Current user:', user);
 
