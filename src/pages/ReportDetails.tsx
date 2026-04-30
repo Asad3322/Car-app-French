@@ -133,11 +133,8 @@ const ReportDetails = () => {
     try {
       setIsSubmitting(true);
 
-      // ✅ IMPORTANT:
-      // Reporting incident should always follow reporter/report flow,
-      // even if the logged-in user is a vehicle owner.
-      localStorage.setItem("authFlow", "report_incident");
-      localStorage.setItem("redirectAfterAuth", "/success");
+      localStorage.removeItem("authFlow");
+      localStorage.removeItem("redirectAfterAuth");
 
       const formData = new FormData();
 
