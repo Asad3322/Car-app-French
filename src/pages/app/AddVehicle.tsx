@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
   Camera,
@@ -15,6 +15,9 @@ const MAX_VEHICLE_IMAGES = 4;
 
 const AddVehicle = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isOnboardingFlow = location.pathname === '/vehicle/add';
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -142,14 +145,14 @@ const AddVehicle = () => {
 
       const token = localStorage.getItem('token');
 
-      const endpoint = token
-        ? `${API_BASE_URL}/api/vehicles`
-        : `${API_BASE_URL}/api/vehicles/onboarding`;
+      const endpoint = isOnboardingFlow
+        ? `${API_BASE_URL}/api/vehicles/onboarding`
+        : `${API_BASE_URL}/api/vehicles`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(!isOnboardingFlow && token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -179,17 +182,17 @@ const AddVehicle = () => {
       localStorage.setItem('vehicleId', savedVehicleId);
       localStorage.setItem('role', 'vehicle_owner');
 
-      if (token) {
-        navigate('/app/vehicles', { replace: true });
+      if (isOnboardingFlow) {
+        navigate('/verify', {
+          state: {
+            mode: 'owner',
+            vehicleId: savedVehicleId,
+          },
+        });
         return;
       }
 
-      navigate('/verify', {
-        state: {
-          mode: 'owner',
-          vehicleId: savedVehicleId,
-        },
-      });
+      navigate('/app/vehicles', { replace: true });
     } catch (error: any) {
       console.error('Add vehicle error:', error);
 
