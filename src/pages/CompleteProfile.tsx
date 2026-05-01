@@ -12,6 +12,8 @@ import {
   Phone,
 } from "lucide-react";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const avatars = [
   "https://api.dicebear.com/9.x/fun-emoji/svg?seed=A",
   "https://api.dicebear.com/9.x/fun-emoji/svg?seed=B",
@@ -80,9 +82,7 @@ const CompleteProfile = () => {
         const { data: sessionData, error: sessionError } =
           await supabase.auth.getSession();
 
-        if (sessionError) {
-          throw sessionError;
-        }
+        if (sessionError) throw sessionError;
 
         if (!sessionData?.session) {
           navigate("/auth", { replace: true });
@@ -185,6 +185,40 @@ const CompleteProfile = () => {
     return () => clearTimeout(timer);
   }, [username, authUser]);
 
+  const claimVehicleAfterProfile = async () => {
+    const token = localStorage.getItem("token");
+    const pendingVehicleId = localStorage.getItem("vehicleId") || vehicleId;
+
+    if (!pendingVehicleId) {
+      console.warn("No pending vehicleId found to claim");
+      return;
+    }
+
+    if (!token) {
+      console.warn("No token found to claim vehicle");
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/vehicles/claim`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ vehicleId: pendingVehicleId }),
+    });
+
+    const result = await response.json();
+
+    console.log("CLAIM VEHICLE RESPONSE:", result);
+
+    if (!response.ok) {
+      throw new Error(result?.message || "Failed to claim vehicle");
+    }
+
+    return result;
+  };
+
   const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -237,23 +271,14 @@ const CompleteProfile = () => {
       const profilePayload = {
         name: normalizedUsername,
         username: normalizedUsername,
-
-        // IMPORTANT:
-        // Keep auth user id unchanged.
-        // Owner still keeps email from Supabase auth if available.
         email: email || authUser.email || "",
-
-        // Owner uses verified phone, reporter uses auth phone if available.
         phone: isOwner ? phone : authUser.phone || "",
-
         primaryContact: isOwner ? "phone" : "email",
         profileImage: selectedAvatar,
         avatar_url: selectedAvatar,
-
         role: isOwner ? "vehicle_owner" : "reporter",
         isVehicleOwner: isOwner,
         is_vehicle_owner: isOwner,
-
         verifiedPhone: isOwner ? phone : "",
         vehicleId: isOwner ? vehicleId : "",
       };
@@ -264,10 +289,14 @@ const CompleteProfile = () => {
 
       if (isOwner) {
         localStorage.setItem("role", "vehicle_owner");
+
+        await claimVehicleAfterProfile();
+
         localStorage.removeItem("verifiedPhone");
         localStorage.removeItem("vehicleId");
         localStorage.removeItem("ownerAccess");
         localStorage.removeItem("ownerPhone");
+
         navigate("/app/vehicles", { replace: true });
         return;
       }
