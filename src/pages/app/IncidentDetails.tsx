@@ -58,11 +58,47 @@ const IncidentDetails = () => {
     fetchIncident();
   }, [id]);
 
+  const getFirstImageFromValue = (value: any): string => {
+    if (!value) return '';
+
+    if (Array.isArray(value)) {
+      return value[0] || '';
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+
+      if (!trimmed) return '';
+
+      if (trimmed.startsWith('http')) {
+        return trimmed;
+      }
+
+      try {
+        const parsed = JSON.parse(trimmed);
+
+        if (Array.isArray(parsed)) {
+          return parsed[0] || '';
+        }
+
+        if (typeof parsed === 'string') {
+          return parsed;
+        }
+      } catch (err) {
+        console.error('Image parse error:', err);
+      }
+    }
+
+    return '';
+  };
+
   const image =
-    incident?.medias?.[0] ||
-    incident?.media?.[0] ||
-    incident?.images?.[0] ||
+    getFirstImageFromValue(incident?.medias) ||
+    getFirstImageFromValue(incident?.mediaUrls) ||
+    getFirstImageFromValue(incident?.media) ||
+    getFirstImageFromValue(incident?.images) ||
     incident?.image ||
+    incident?.vehicleImage ||
     DEFAULT_CAR_IMAGE;
 
   const urgencyLabel =
