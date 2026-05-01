@@ -49,9 +49,8 @@ function App() {
             <Route path="/app/reports" element={<ReportDetails />} />
             <Route path="/app/report-details" element={<ReportDetails />} />
 
-            {/* ✅ PUBLIC ADD VEHICLE ROUTES */}
+            {/* PUBLIC OWNER ONBOARDING FLOW */}
             <Route path="/vehicle/add" element={<AddVehicle />} />
-            <Route path="/app/vehicles/add" element={<AddVehicle />} />
           </Route>
 
           <Route path="/app" element={<ProtectedOutlet />}>
@@ -65,6 +64,8 @@ function App() {
             </Route>
 
             <Route element={<PlainAppLayout />}>
+              {/* DASHBOARD ADD VEHICLE FLOW */}
+              <Route path="vehicles/add" element={<AddVehicle />} />
               <Route path="vehicles/:id/edit" element={<EditVehicle />} />
               <Route path="incidents/:id" element={<IncidentDetails />} />
               <Route path="profile/edit" element={<EditProfile />} />
