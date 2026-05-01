@@ -140,13 +140,23 @@ const AddVehicle = () => {
         formData.append('insuranceDocument', insuranceFile);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/vehicles/onboarding`, {
+      const token = localStorage.getItem('token');
+
+      const endpoint = token
+        ? `${API_BASE_URL}/api/vehicles`
+        : `${API_BASE_URL}/api/vehicles/onboarding`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: formData,
       });
 
       const result = await response.json();
 
+      console.log('Vehicle API endpoint:', endpoint);
       console.log('Vehicle API response:', result);
 
       if (!response.ok) {
@@ -162,14 +172,17 @@ const AddVehicle = () => {
 
       const savedVehicleId = result?.data?.id;
 
-      console.log('Vehicle saved ID:', savedVehicleId);
-
       if (!savedVehicleId) {
         throw new Error('Vehicle registered but backend did not return vehicle ID');
       }
 
       localStorage.setItem('vehicleId', savedVehicleId);
       localStorage.setItem('role', 'vehicle_owner');
+
+      if (token) {
+        navigate('/app/vehicles', { replace: true });
+        return;
+      }
 
       navigate('/verify', {
         state: {
