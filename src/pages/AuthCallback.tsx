@@ -11,6 +11,37 @@ const AuthCallback = () => {
     if (hasRun.current) return;
     hasRun.current = true;
 
+    const claimPendingVehicle = async () => {
+      const token = localStorage.getItem('token');
+      const pendingVehicleId = localStorage.getItem('vehicleId');
+
+      if (!token || !pendingVehicleId) return;
+
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/vehicles/claim`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ vehicleId: pendingVehicleId }),
+          }
+        );
+
+        const data = await res.json();
+
+        console.log('🚗 Claim vehicle response:', data);
+
+        if (!res.ok) {
+          throw new Error(data?.message || 'Failed to claim vehicle');
+        }
+      } catch (err) {
+        console.error('❌ Claim vehicle error:', err);
+      }
+    };
+
     const run = async () => {
       try {
         const url = new URL(window.location.href);
@@ -93,16 +124,24 @@ const AuthCallback = () => {
         }
 
         if (profile) {
+          if (profile.role === 'vehicle_owner') {
+            localStorage.setItem('role', 'vehicle_owner');
+
+            await claimPendingVehicle();
+
+            localStorage.removeItem('verifiedPhone');
+            localStorage.removeItem('vehicleId');
+            localStorage.removeItem('ownerAccess');
+            localStorage.removeItem('ownerPhone');
+
+            navigate('/app/vehicles', { replace: true });
+            return;
+          }
+
           localStorage.removeItem('verifiedPhone');
           localStorage.removeItem('vehicleId');
           localStorage.removeItem('ownerAccess');
           localStorage.removeItem('ownerPhone');
-
-          if (profile.role === 'vehicle_owner') {
-            localStorage.setItem('role', 'vehicle_owner');
-            navigate('/app/vehicles', { replace: true });
-            return;
-          }
 
           localStorage.setItem('role', 'reporter');
           navigate('/app/home', { replace: true });
