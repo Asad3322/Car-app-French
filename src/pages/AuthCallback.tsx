@@ -11,37 +11,6 @@ const AuthCallback = () => {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    const claimPendingVehicle = async () => {
-      const token = localStorage.getItem('token');
-      const pendingVehicleId = localStorage.getItem('vehicleId');
-
-      if (!token || !pendingVehicleId) return;
-
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/vehicles/claim`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ vehicleId: pendingVehicleId }),
-          }
-        );
-
-        const data = await res.json();
-
-        console.log('🚗 Claim vehicle response:', data);
-
-        if (!res.ok) {
-          throw new Error(data?.message || 'Failed to claim vehicle');
-        }
-      } catch (err) {
-        console.error('❌ Claim vehicle error:', err);
-      }
-    };
-
     const run = async () => {
       try {
         const url = new URL(window.location.href);
@@ -65,7 +34,7 @@ const AuthCallback = () => {
           localStorage.setItem('vehicleId', data?.data?.vehicleId || '');
           localStorage.setItem('role', 'vehicle_owner');
 
-          navigate('/auth', { replace: true });
+          navigate('/auth?role=owner', { replace: true });
           return;
         }
 
@@ -108,12 +77,7 @@ const AuthCallback = () => {
           localStorage.removeItem('afterMagicLinkRedirect');
           localStorage.removeItem('afterMagicLinkFilter');
 
-          if (profile?.role === 'vehicle_owner') {
-            localStorage.setItem('role', 'vehicle_owner');
-          } else {
-            localStorage.setItem('role', 'reporter');
-          }
-
+          localStorage.setItem('role', profile?.role === 'vehicle_owner' ? 'vehicle_owner' : 'reporter');
           localStorage.setItem('openIncidentsTab', 'sent');
 
           navigate('/app/history', {
@@ -123,34 +87,22 @@ const AuthCallback = () => {
           return;
         }
 
+        // IMPORTANT: owner onboarding must win before old reporter profile redirect
+        if (isPendingOwnerFlow) {
+          localStorage.setItem('role', 'vehicle_owner');
+          navigate('/complete-profile', { replace: true });
+          return;
+        }
+
         if (profile) {
           if (profile.role === 'vehicle_owner') {
             localStorage.setItem('role', 'vehicle_owner');
-
-            await claimPendingVehicle();
-
-            localStorage.removeItem('verifiedPhone');
-            localStorage.removeItem('vehicleId');
-            localStorage.removeItem('ownerAccess');
-            localStorage.removeItem('ownerPhone');
-
             navigate('/app/vehicles', { replace: true });
             return;
           }
 
-          localStorage.removeItem('verifiedPhone');
-          localStorage.removeItem('vehicleId');
-          localStorage.removeItem('ownerAccess');
-          localStorage.removeItem('ownerPhone');
-
           localStorage.setItem('role', 'reporter');
-          navigate('/app/home', { replace: true });
-          return;
-        }
-
-        if (isPendingOwnerFlow) {
-          localStorage.setItem('role', 'vehicle_owner');
-          navigate('/complete-profile', { replace: true });
+          navigate('/app/history', { replace: true });
           return;
         }
 
@@ -161,7 +113,7 @@ const AuthCallback = () => {
         }
 
         localStorage.setItem('role', 'reporter');
-        navigate('/app/home', { replace: true });
+        navigate('/app/history', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
         navigate('/auth', { replace: true });

@@ -302,7 +302,7 @@ const CompleteProfile = () => {
       }
 
       localStorage.setItem("role", "reporter");
-      navigate("/app/home", { replace: true });
+      navigate("/app/history", { replace: true });
     } catch (err: any) {
       console.error("Save profile error:", err);
 
