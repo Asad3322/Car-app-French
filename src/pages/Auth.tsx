@@ -1,18 +1,26 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Mail, Phone } from 'lucide-react';
-import { sendVerification } from '../services/authService'
+import { sendVerification } from '../services/authService';
+
+type AuthRole = 'reporter' | 'owner';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
-  const role = searchParams.get('role') || 'reporter';
   const navigate = useNavigate();
+
+  // URL role always wins.
+  // /auth?role=reporter => email
+  // /auth?role=owner => phone
+  const urlRole = searchParams.get('role');
+  const role: AuthRole = urlRole === 'owner' ? 'owner' : 'reporter';
+
+  const isOwner = role === 'owner';
+  const isEmail = !isOwner;
 
   const [contact, setContact] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
-
-  const isEmail = role === 'reporter';
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,16 +37,21 @@ const Auth = () => {
 
     try {
       if (isEmail) {
-        await sendVerification(trimmedContact);
+        localStorage.setItem('role', 'reporter');
         localStorage.setItem('pendingEmail', trimmedContact);
-      } else {
-        localStorage.setItem('pendingPhone', trimmedContact);
+
+        await sendVerification(trimmedContact);
+        navigate('/verify?role=reporter');
+        return;
       }
 
-      navigate('/verify');
+      localStorage.setItem('role', 'vehicle_owner');
+      localStorage.setItem('pendingPhone', trimmedContact);
+
+      navigate('/verify?role=owner');
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || 'Failed to send verification link');
+      setError(err?.message || 'Failed to continue');
     } finally {
       setIsSending(false);
     }
@@ -72,13 +85,13 @@ const Auth = () => {
           </label>
 
           <div className="relative mb-3">
-            <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#9AA8BC] transition-colors duration-300">
+            <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#9AA8BC]">
               {isEmail ? <Mail size={20} /> : <Phone size={20} />}
             </span>
 
             <input
               type={isEmail ? 'email' : 'tel'}
-              placeholder={isEmail ? 'name@example.com' : '+92 300 1234567'}
+              placeholder={isEmail ? 'name@example.com' : '+33 6 12 34 56 78'}
               value={contact}
               onChange={(e) => {
                 setContact(e.target.value);
@@ -89,13 +102,11 @@ const Auth = () => {
             />
           </div>
 
-          {error && (
+          {error ? (
             <p className="mb-6 ml-1 text-sm font-semibold text-red-500">
               {error}
             </p>
-          )}
-
-          {!error && (
+          ) : (
             <p className="mb-6 ml-1 text-sm text-[#6B7A90]">
               {isEmail
                 ? 'We will send you a secure sign-in link to your email.'
