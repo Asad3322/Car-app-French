@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleMagicLinkLogin } from '../services/authService';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const AuthCallback = () => {
   const navigate = useNavigate();
   const hasRun = useRef(false);
@@ -10,6 +12,49 @@ const AuthCallback = () => {
   useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
+
+    const claimOwnerVehicleAndProfile = async ({
+      token,
+      verifiedPhone,
+      vehicleId,
+    }: {
+      token: string;
+      verifiedPhone: string;
+      vehicleId: string;
+    }) => {
+      const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          role: 'vehicle_owner',
+          verifiedPhone,
+          phone: verifiedPhone,
+          vehicleId,
+          primaryContact: 'phone',
+        }),
+      });
+
+      const result = await response.json();
+
+      console.log('OWNER PROFILE + VEHICLE CLAIM RESPONSE:', result);
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Failed to claim owner vehicle');
+      }
+
+      return result;
+    };
+
+    const clearOwnerPendingStorage = () => {
+      localStorage.removeItem('verifiedPhone');
+      localStorage.removeItem('vehicleId');
+      localStorage.removeItem('ownerAccess');
+      localStorage.removeItem('ownerPhone');
+      localStorage.removeItem('pendingPhone');
+    };
 
     const run = async () => {
       try {
@@ -19,9 +64,10 @@ const AuthCallback = () => {
         const phoneToken = url.searchParams.get('phone_token');
         const fromParam = url.searchParams.get('from');
 
+        // STEP 1: phone verification link for owner
         if (phoneToken) {
           const res = await fetch(
-            `${import.meta.env.VITE_API_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
+            `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
           );
 
           const data = await res.json();
@@ -30,14 +76,20 @@ const AuthCallback = () => {
             throw new Error(data?.message || 'Phone verification failed');
           }
 
-          localStorage.setItem('verifiedPhone', data?.data?.phone || '');
-          localStorage.setItem('vehicleId', data?.data?.vehicleId || '');
+          const phone = data?.data?.phone || '';
+          const vehicleId = data?.data?.vehicleId || '';
+
+          localStorage.setItem('verifiedPhone', phone);
+          localStorage.setItem('vehicleId', vehicleId);
           localStorage.setItem('role', 'vehicle_owner');
 
+          // For now SMS is not fully integrated, so after phone verify,
+          // owner logs in with email.
           navigate('/auth?role=owner', { replace: true });
           return;
         }
 
+        // STEP 2: email magic link callback
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
@@ -51,17 +103,18 @@ const AuthCallback = () => {
         if (sessionError) throw sessionError;
 
         if (!session?.access_token) {
-          navigate('/auth', { replace: true });
+          navigate('/auth?role=reporter', { replace: true });
           return;
         }
 
-        localStorage.setItem('token', session.access_token);
+        const token = session.access_token;
+        localStorage.setItem('token', token);
 
         const result = await handleMagicLinkLogin();
-        const profile = result?.profile;
+        const profile = result?.profile || null;
 
-        const pendingVerifiedPhone = localStorage.getItem('verifiedPhone');
-        const pendingVehicleId = localStorage.getItem('vehicleId');
+        const pendingVerifiedPhone = localStorage.getItem('verifiedPhone') || '';
+        const pendingVehicleId = localStorage.getItem('vehicleId') || '';
         const isPendingOwnerFlow = Boolean(pendingVerifiedPhone && pendingVehicleId);
 
         const fromReportFlow =
@@ -69,6 +122,7 @@ const AuthCallback = () => {
           localStorage.getItem('openIncidentsTab') === 'sent' ||
           fromParam === 'report';
 
+        // REPORT FLOW ALWAYS GOES REPORTS SCREEN
         if (fromReportFlow) {
           localStorage.removeItem('fromReportFlow');
           localStorage.removeItem('authFlow');
@@ -77,7 +131,7 @@ const AuthCallback = () => {
           localStorage.removeItem('afterMagicLinkRedirect');
           localStorage.removeItem('afterMagicLinkFilter');
 
-          localStorage.setItem('role', profile?.role === 'vehicle_owner' ? 'vehicle_owner' : 'reporter');
+          localStorage.setItem('role', 'reporter');
           localStorage.setItem('openIncidentsTab', 'sent');
 
           navigate('/app/history', {
@@ -87,13 +141,32 @@ const AuthCallback = () => {
           return;
         }
 
-        // IMPORTANT: owner onboarding must win before old reporter profile redirect
+        // OWNER FLOW MUST WIN FOR EVERY PERSON
+        // Register vehicle -> verify phone -> email login
         if (isPendingOwnerFlow) {
           localStorage.setItem('role', 'vehicle_owner');
+
+          // If profile already exists, claim vehicle immediately,
+          // convert role to owner, then go Vehicles screen.
+          if (profile) {
+            await claimOwnerVehicleAndProfile({
+              token,
+              verifiedPhone: pendingVerifiedPhone,
+              vehicleId: pendingVehicleId,
+            });
+
+            clearOwnerPendingStorage();
+
+            navigate('/app/vehicles', { replace: true });
+            return;
+          }
+
+          // If no profile, complete profile first.
           navigate('/complete-profile', { replace: true });
           return;
         }
 
+        // NORMAL EXISTING USER LOGIN
         if (profile) {
           if (profile.role === 'vehicle_owner') {
             localStorage.setItem('role', 'vehicle_owner');
@@ -106,6 +179,7 @@ const AuthCallback = () => {
           return;
         }
 
+        // NEW REPORTER USER
         if (result?.needsProfileCompletion) {
           localStorage.setItem('role', 'reporter');
           navigate('/complete-profile', { replace: true });
@@ -116,7 +190,7 @@ const AuthCallback = () => {
         navigate('/app/history', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
-        navigate('/auth', { replace: true });
+        navigate('/auth?role=reporter', { replace: true });
       }
     };
 
