@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  ShieldCheck,
-  Mail,
-  Phone,
-  ChevronLeft,
-} from 'lucide-react';
+import { ShieldCheck, Mail, Phone, ChevronLeft } from 'lucide-react';
+import { sendVerification } from '../services/authService';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -48,9 +44,18 @@ const Verify = () => {
   const location = useLocation();
 
   const state = location.state as VerifyLocationState | null;
-  const mode: VerifyMode = state?.mode || 'reporter';
+  const searchParams = new URLSearchParams(location.search);
+
+  const urlRole = searchParams.get('role');
+  const mode: VerifyMode =
+    state?.mode || (urlRole === 'owner' ? 'owner' : 'reporter');
+
   const isOwner = mode === 'owner';
-  const vehicleId = state?.vehicleId ?? null;
+  const vehicleId =
+    state?.vehicleId ||
+    searchParams.get('vehicleId') ||
+    localStorage.getItem('vehicleId') ||
+    null;
 
   const storageKey = isOwner ? 'pendingPhone' : 'pendingEmail';
   const storedContact = localStorage.getItem(storageKey) || '';
@@ -63,7 +68,7 @@ const Verify = () => {
     if (isOwner && !vehicleId) {
       console.error('❌ Missing vehicleId in owner verify flow');
       alert('Vehicle registration failed. Please add vehicle again.');
-      navigate('/vehicle/add-onboarding', { replace: true });
+      navigate('/vehicle/add', { replace: true });
     }
   }, [isOwner, vehicleId, navigate]);
 
@@ -72,7 +77,7 @@ const Verify = () => {
 
     if (isOwner && !vehicleId) {
       alert('Vehicle ID is missing. Please add vehicle again.');
-      navigate('/vehicle/add-onboarding', { replace: true });
+      navigate('/vehicle/add', { replace: true });
       return;
     }
 
@@ -84,13 +89,26 @@ const Verify = () => {
     try {
       setLoading(true);
 
+      localStorage.setItem(storageKey, contact.trim());
+
+      if (!isOwner) {
+        localStorage.setItem('role', 'reporter');
+        await sendVerification(contact.trim());
+        setLinkSent(true);
+        alert('Login link sent successfully. Please check your email.');
+        return;
+      }
+
+      localStorage.setItem('role', 'vehicle_owner');
+      localStorage.setItem('vehicleId', vehicleId || '');
+
       const payload = {
         contact: contact.trim(),
-        role: isOwner ? 'vehicle_owner' : 'reporter',
-        vehicleId: isOwner ? vehicleId : null,
+        role: 'vehicle_owner',
+        vehicleId,
       };
 
-      console.log('🚀 VERIFY PAYLOAD:', payload);
+      console.log('🚀 OWNER VERIFY PAYLOAD:', payload);
 
       const response = await fetch(`${API_BASE_URL}/api/auth/send-verification`, {
         method: 'POST',
@@ -102,16 +120,15 @@ const Verify = () => {
 
       const result = await response.json();
 
-      console.log('Verification API response:', result);
+      console.log('Owner verification API response:', result);
 
       if (!response.ok) {
         throw new Error(result?.message || 'Failed to send verification');
       }
 
-      localStorage.setItem(storageKey, contact.trim());
       setLinkSent(true);
 
-      if (isOwner && result?.data?.verificationLink) {
+      if (result?.data?.verificationLink) {
         window.location.href = result.data.verificationLink;
         return;
       }
@@ -131,9 +148,9 @@ const Verify = () => {
     setLinkSent(false);
 
     if (isOwner) {
-      navigate('/vehicle/add-onboarding');
+      navigate('/vehicle/add');
     } else {
-      navigate('/auth');
+      navigate('/auth?role=reporter');
     }
   };
 
@@ -180,8 +197,8 @@ const Verify = () => {
                     ? 'Enter your phone number to receive a secure verification link.'
                     : 'Enter your email to receive a secure login link.'
                   : isOwner
-                    ? 'Phone verified. Next, login with email to create your secure account.'
-                    : 'We sent a secure login link to your email. Open it to continue.'}
+                  ? 'Phone verified. Next, login with email to create your secure account.'
+                  : 'We sent a secure login link to your email. Open it to continue.'}
               </p>
             </div>
 
