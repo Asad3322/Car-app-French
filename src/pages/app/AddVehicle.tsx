@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
   Camera,
@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Shield,
 } from 'lucide-react';
+import { supabase } from '../../supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -15,9 +16,6 @@ const MAX_VEHICLE_IMAGES = 4;
 
 const AddVehicle = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const isOnboardingFlow = location.pathname === '/vehicle/add';
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -46,10 +44,7 @@ const AddVehicle = () => {
     };
 
     document.addEventListener('mousedown', handleOutsideClick);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [showAddMenu]);
 
   useEffect(() => {
@@ -80,12 +75,9 @@ const AddVehicle = () => {
 
     setImages((prev) => [...prev, ...filesToAdd]);
     setImagePreviews((prev) => [...prev, ...previewsToAdd]);
-
     setShowAddMenu(false);
 
-    if (imageInputRef.current) {
-      imageInputRef.current.value = '';
-    }
+    if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
   const handleInsuranceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,9 +91,7 @@ const AddVehicle = () => {
     setInsuranceFile(file);
     setShowAddMenu(false);
 
-    if (insuranceInputRef.current) {
-      insuranceInputRef.current.value = '';
-    }
+    if (insuranceInputRef.current) insuranceInputRef.current.value = '';
   };
 
   const removeImage = (indexToRemove: number) => {
@@ -123,17 +113,36 @@ const AddVehicle = () => {
     imageInputRef.current?.click();
   };
 
+  const normalizePlate = (value: string) =>
+    value.replace(/\s+/g, '').trim().toUpperCase();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!isFormValid || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
 
+      if (!API_BASE_URL) {
+        throw new Error('API URL is missing');
+      }
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        throw new Error('User not authenticated. Please login again.');
+      }
+
+      localStorage.setItem('token', session.access_token);
+
       const formData = new FormData();
 
       formData.append('vehicleName', name.trim());
-      formData.append('licencePlate', plate.trim().toUpperCase());
+      formData.append('licencePlate', normalizePlate(plate));
 
       images.forEach((file) => {
         formData.append('vehicleMedia', file);
@@ -143,16 +152,12 @@ const AddVehicle = () => {
         formData.append('insuranceDocument', insuranceFile);
       }
 
-      const token = localStorage.getItem('token');
-
-      const endpoint = isOnboardingFlow
-        ? `${API_BASE_URL}/api/vehicles/onboarding`
-        : `${API_BASE_URL}/api/vehicles`;
+      const endpoint = `${API_BASE_URL}/api/vehicles`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          ...(!isOnboardingFlow && token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: formData,
       });
@@ -163,12 +168,10 @@ const AddVehicle = () => {
       console.log('Vehicle API response:', result);
 
       if (!response.ok) {
-        console.error('Backend validation errors:', result.errors);
-
         const validationMessage =
-          Array.isArray(result.errors) && result.errors.length > 0
+          Array.isArray(result?.errors) && result.errors.length > 0
             ? result.errors.join(', ')
-            : result.message || 'Failed to register vehicle';
+            : result?.message || 'Failed to register vehicle';
 
         throw new Error(validationMessage);
       }
@@ -182,16 +185,6 @@ const AddVehicle = () => {
       localStorage.setItem('vehicleId', savedVehicleId);
       localStorage.setItem('role', 'vehicle_owner');
 
-      if (isOnboardingFlow) {
-        navigate('/verify', {
-          state: {
-            mode: 'owner',
-            vehicleId: savedVehicleId,
-          },
-        });
-        return;
-      }
-
       navigate('/app/vehicles', { replace: true });
     } catch (error: any) {
       console.error('Add vehicle error:', error);
@@ -199,7 +192,7 @@ const AddVehicle = () => {
       if (error?.message?.includes('Failed to fetch')) {
         alert('Backend not reachable. Check API URL or backend deployment.');
       } else {
-        alert(error.message || 'Failed to register vehicle');
+        alert(error?.message || 'Failed to register vehicle');
       }
     } finally {
       setIsSubmitting(false);
@@ -215,6 +208,7 @@ const AddVehicle = () => {
 
       <header className="relative z-10 mb-8 flex items-center justify-between">
         <button
+          type="button"
           onClick={() => navigate(-1)}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#DCE6F2] bg-white text-[#0F172A] shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition-all active:scale-95"
           aria-label="Go back"
@@ -256,6 +250,7 @@ const AddVehicle = () => {
                   <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
                     Licence Plate
                   </label>
+
                   <div className="relative">
                     <input
                       type="text"
@@ -265,6 +260,7 @@ const AddVehicle = () => {
                       onChange={(e) => setPlate(e.target.value.toUpperCase())}
                       required
                     />
+
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#94A3B8]">
                       <FileText size={18} />
                     </div>
@@ -288,9 +284,7 @@ const AddVehicle = () => {
 
               <div
                 onClick={() => {
-                  if (images.length === 0) {
-                    handleOpenImagePicker();
-                  }
+                  if (images.length === 0) handleOpenImagePicker();
                 }}
                 className={`group relative overflow-hidden rounded-[24px] border border-[#DCE6F2] bg-[#F8FBFF] p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition-all ${
                   images.length === 0 ? 'cursor-pointer' : ''
@@ -312,8 +306,8 @@ const AddVehicle = () => {
 
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                      onClick={(event) => {
+                        event.stopPropagation();
                         removeImage(0);
                       }}
                       className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm transition active:scale-95"
@@ -327,8 +321,8 @@ const AddVehicle = () => {
                         <button
                           key={preview}
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={(event) => {
+                            event.stopPropagation();
 
                             if (index === 0) return;
 
@@ -369,15 +363,19 @@ const AddVehicle = () => {
                       alt="Default car"
                       className="h-full w-full object-cover opacity-40 grayscale transition-all duration-700 group-hover:opacity-55"
                     />
+
                     <div className="absolute inset-0 bg-white/10" />
+
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                       <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-[#DCE6F2] bg-white/90 shadow-[0_10px_24px_rgba(15,23,42,0.10)]">
                         <Camera size={28} className="text-[#2563EB]" />
                       </div>
+
                       <div className="px-4 text-center">
                         <p className="text-[15px] font-black tracking-tight text-[#0F172A]">
                           Add a photo
                         </p>
+
                         <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
                           Required for identification
                         </p>
@@ -399,6 +397,7 @@ const AddVehicle = () => {
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#2563EB]">
                         <ImageIcon size={18} />
                       </div>
+
                       <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
                         Add Image
                       </span>
@@ -412,6 +411,7 @@ const AddVehicle = () => {
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E0F2FE] text-[#0284C7]">
                         <Shield size={18} />
                       </div>
+
                       <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
                         Add Insurance
                       </span>
@@ -428,7 +428,9 @@ const AddVehicle = () => {
                   <Plus
                     size={24}
                     strokeWidth={3}
-                    className={`transition-transform duration-200 ${showAddMenu ? 'rotate-45' : 'rotate-0'}`}
+                    className={`transition-transform duration-200 ${
+                      showAddMenu ? 'rotate-45' : 'rotate-0'
+                    }`}
                   />
                 </button>
               </div>
