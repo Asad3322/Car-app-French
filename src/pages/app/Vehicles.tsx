@@ -9,16 +9,23 @@ const API_URL = import.meta.env.VITE_API_URL;
 const FALLBACK_VEHICLE_IMAGE =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400';
 
-const cleanUrl = (url: any): string => {
-  if (typeof url !== 'string') return '';
-
-  return url
-    .trim()
-    .replace(/^"+|"+$/g, '')
-    .replace(/\\\//g, '/');
+type VehicleCardItem = Vehicle & {
+  id: string;
+  name: string;
+  plate: string;
+  reportsCount: number;
+  image: string;
+  vehicle_media?: string[];
+  vehicleMediaUrls?: string[];
 };
 
-const parseVehicleMedia = (media: any): string[] => {
+const cleanUrl = (url: unknown): string => {
+  if (typeof url !== 'string') return '';
+
+  return url.trim().replace(/^"+|"+$/g, '').replace(/\\\//g, '/');
+};
+
+const parseVehicleMedia = (media: unknown): string[] => {
   if (!media) return [];
 
   if (Array.isArray(media)) {
@@ -27,6 +34,7 @@ const parseVehicleMedia = (media: any): string[] => {
 
   if (typeof media === 'string') {
     const cleaned = cleanUrl(media);
+    if (!cleaned) return [];
 
     try {
       const parsed = JSON.parse(cleaned);
@@ -49,24 +57,26 @@ const parseVehicleMedia = (media: any): string[] => {
 
 const getVehicleImage = (vehicle: any): string => {
   const media = parseVehicleMedia(vehicle?.vehicle_media);
-
   if (media.length > 0) return media[0];
 
   const legacyMedia = parseVehicleMedia(vehicle?.vehicleMediaUrls);
-
   if (legacyMedia.length > 0) return legacyMedia[0];
 
   const image = cleanUrl(vehicle?.image);
-
   if (image.startsWith('http')) return image;
 
   return FALLBACK_VEHICLE_IMAGE;
 };
 
 const extractVehiclesArray = (result: any): any[] => {
-  if (Array.isArray(result)) return result;
+  console.log('🔥 RAW VEHICLE API RESULT:', result);
 
+  if (!result) return [];
+
+  // Backend sendResponse format: { success, message, data: [...] }
   if (Array.isArray(result?.data)) return result.data;
+
+  if (Array.isArray(result)) return result;
 
   if (Array.isArray(result?.vehicles)) return result.vehicles;
 
@@ -77,9 +87,10 @@ const extractVehiclesArray = (result: any): any[] => {
   return [];
 };
 
-const normalizeVehicle = (vehicle: any) => {
+const normalizeVehicle = (vehicle: any): VehicleCardItem => {
   const media = parseVehicleMedia(vehicle?.vehicle_media);
   const legacyMedia = parseVehicleMedia(vehicle?.vehicleMediaUrls);
+
   const image =
     media[0] ||
     legacyMedia[0] ||
@@ -87,10 +98,19 @@ const normalizeVehicle = (vehicle: any) => {
     FALLBACK_VEHICLE_IMAGE;
 
   return {
-    id: vehicle?.id,
-    name: vehicle?.vehicle_name || vehicle?.vehicleName || vehicle?.name || 'Unnamed Vehicle',
-    plate: vehicle?.licence_plate || vehicle?.license_plate || vehicle?.plate || '',
-    reportsCount: vehicle?.reports_count ?? vehicle?.reportsCount ?? 0,
+    ...(vehicle as Vehicle),
+    id: String(vehicle?.id || ''),
+    name:
+      vehicle?.vehicle_name ||
+      vehicle?.vehicleName ||
+      vehicle?.name ||
+      'Unnamed Vehicle',
+    plate:
+      vehicle?.licence_plate ||
+      vehicle?.license_plate ||
+      vehicle?.plate ||
+      '',
+    reportsCount: Number(vehicle?.reports_count ?? vehicle?.reportsCount ?? 0),
     image,
     vehicle_media: media.length > 0 ? media : image ? [image] : [],
     vehicleMediaUrls: legacyMedia,
@@ -100,20 +120,17 @@ const normalizeVehicle = (vehicle: any) => {
 const Vehicles = () => {
   const navigate = useNavigate();
 
-  const [vehicles, setVehicles] = useState<
-    (Vehicle & {
-      image?: string;
-      vehicle_media?: string[];
-      vehicleMediaUrls?: string[];
-    })[]
-  >([]);
-
+  const [vehicles, setVehicles] = useState<VehicleCardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
         setIsLoading(true);
+
+        if (!API_URL) {
+          throw new Error('VITE_API_URL is missing');
+        }
 
         const {
           data: { session },
@@ -125,10 +142,6 @@ const Vehicles = () => {
         }
 
         localStorage.setItem('token', session.access_token);
-
-        console.log('🚗 Vehicle fetch token:', {
-          hasToken: Boolean(session.access_token),
-        });
 
         const response = await fetch(`${API_URL}/api/vehicles`, {
           method: 'GET',
@@ -147,16 +160,13 @@ const Vehicles = () => {
         }
 
         const vehiclesArray = extractVehiclesArray(result);
-
         console.log('🚗 Extracted vehicles array:', vehiclesArray);
 
-        const normalizedVehicles = vehiclesArray.map(normalizeVehicle);
+        const normalizedVehicles = vehiclesArray
+          .map(normalizeVehicle)
+          .filter((vehicle) => vehicle.id);
 
         console.log('🚗 Normalized vehicles:', normalizedVehicles);
-        console.log(
-          '🚗 Vehicle images:',
-          normalizedVehicles.map((v) => getVehicleImage(v))
-        );
 
         setVehicles(normalizedVehicles);
       } catch (error) {
@@ -198,6 +208,7 @@ const Vehicles = () => {
               onClick={() => navigate('/vehicle/add')}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8E3F0] bg-white text-[#7E8CA3] shadow-[0_12px_26px_rgba(15,23,42,0.12)] transition-all hover:scale-[1.03] hover:text-[#3B82F6] active:scale-95"
               aria-label="Add vehicle"
+              type="button"
             >
               <Plus size={19} strokeWidth={3} />
             </button>
@@ -234,9 +245,7 @@ const Vehicles = () => {
               <CarFront size={34} />
             </div>
 
-            <h2 className="text-lg font-black text-[#0F172A]">
-              No vehicles yet
-            </h2>
+            <h2 className="text-lg font-black text-[#0F172A]">No vehicles yet</h2>
 
             <p className="mt-2 text-sm font-medium leading-relaxed text-[#64748B]">
               Add your vehicle to start receiving
@@ -247,6 +256,7 @@ const Vehicles = () => {
             <button
               onClick={() => navigate('/vehicle/add')}
               className="mt-6 inline-flex items-center justify-center rounded-[18px] bg-[#111827] px-5 py-3 text-[12px] font-black uppercase tracking-[0.16em] text-white shadow-[0_16px_34px_rgba(15,23,42,0.18)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              type="button"
             >
               Add Vehicle
             </button>
@@ -271,11 +281,7 @@ const VehicleCard = ({
   vehicle,
   onClick,
 }: {
-  vehicle: Vehicle & {
-    image?: string;
-    vehicle_media?: string[];
-    vehicleMediaUrls?: string[];
-  };
+  vehicle: VehicleCardItem;
   onClick: () => void;
 }) => {
   const imageUrl = getVehicleImage(vehicle);
@@ -293,7 +299,6 @@ const VehicleCard = ({
             alt={vehicle.name || 'Vehicle'}
             referrerPolicy="no-referrer"
             onError={(e) => {
-              console.log('❌ Vehicle image failed:', imageUrl);
               e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
             }}
           />
