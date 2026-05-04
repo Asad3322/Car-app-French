@@ -64,7 +64,6 @@ const AuthCallback = () => {
         const phoneToken = url.searchParams.get('phone_token');
         const fromParam = url.searchParams.get('from');
 
-        // STEP 1: phone verification link for owner
         if (phoneToken) {
           const res = await fetch(
             `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
@@ -83,13 +82,10 @@ const AuthCallback = () => {
           localStorage.setItem('vehicleId', vehicleId);
           localStorage.setItem('role', 'vehicle_owner');
 
-          // For now SMS is not fully integrated, so after phone verify,
-          // owner logs in with email.
           navigate('/auth?role=owner', { replace: true });
           return;
         }
 
-        // STEP 2: email magic link callback
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
@@ -115,14 +111,15 @@ const AuthCallback = () => {
 
         const pendingVerifiedPhone = localStorage.getItem('verifiedPhone') || '';
         const pendingVehicleId = localStorage.getItem('vehicleId') || '';
-        const isPendingOwnerFlow = Boolean(pendingVerifiedPhone && pendingVehicleId);
+        const isPendingOwnerFlow = Boolean(
+          pendingVerifiedPhone && pendingVehicleId
+        );
 
         const fromReportFlow =
           localStorage.getItem('fromReportFlow') === 'true' ||
           localStorage.getItem('openIncidentsTab') === 'sent' ||
           fromParam === 'report';
 
-        // REPORT FLOW ALWAYS GOES REPORTS SCREEN
         if (fromReportFlow) {
           localStorage.removeItem('fromReportFlow');
           localStorage.removeItem('authFlow');
@@ -130,6 +127,12 @@ const AuthCallback = () => {
           localStorage.removeItem('pendingAuthRole');
           localStorage.removeItem('afterMagicLinkRedirect');
           localStorage.removeItem('afterMagicLinkFilter');
+
+          if (!profile) {
+            localStorage.setItem('role', 'reporter');
+            navigate('/complete-profile', { replace: true });
+            return;
+          }
 
           localStorage.setItem('role', 'reporter');
           localStorage.setItem('openIncidentsTab', 'sent');
@@ -141,13 +144,9 @@ const AuthCallback = () => {
           return;
         }
 
-        // OWNER FLOW MUST WIN FOR EVERY PERSON
-        // Register vehicle -> verify phone -> email login
         if (isPendingOwnerFlow) {
           localStorage.setItem('role', 'vehicle_owner');
 
-          // If profile already exists, claim vehicle immediately,
-          // convert role to owner, then go Vehicles screen.
           if (profile) {
             await claimOwnerVehicleAndProfile({
               token,
@@ -156,33 +155,24 @@ const AuthCallback = () => {
             });
 
             clearOwnerPendingStorage();
-
             navigate('/app/vehicles', { replace: true });
             return;
           }
 
-          // If no profile, complete profile first.
           navigate('/complete-profile', { replace: true });
           return;
         }
 
-        // NORMAL EXISTING USER LOGIN
-        if (profile) {
-          if (profile.role === 'vehicle_owner') {
-            localStorage.setItem('role', 'vehicle_owner');
-            navigate('/app/vehicles', { replace: true });
-            return;
-          }
-
+        // IMPORTANT: New user must complete profile first
+        if (!profile) {
           localStorage.setItem('role', 'reporter');
-          navigate('/app/history', { replace: true });
+          navigate('/complete-profile', { replace: true });
           return;
         }
 
-        // NEW REPORTER USER
-        if (result?.needsProfileCompletion) {
-          localStorage.setItem('role', 'reporter');
-          navigate('/complete-profile', { replace: true });
+        if (profile.role === 'vehicle_owner') {
+          localStorage.setItem('role', 'vehicle_owner');
+          navigate('/app/vehicles', { replace: true });
           return;
         }
 
