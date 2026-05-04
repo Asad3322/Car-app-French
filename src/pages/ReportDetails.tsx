@@ -164,17 +164,14 @@ const ReportDetails = () => {
 
       const token = localStorage.getItem("token");
 
-      if (!token) {
-        alert("Session expired. Please login again.");
-        navigate("/auth?role=reporter");
-        return;
+      const headers: HeadersInit = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await fetch(`${API_URL}/api/reports`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: formData,
       });
 
@@ -198,6 +195,11 @@ const ReportDetails = () => {
         "lastGamificationReward",
         JSON.stringify(gamificationData),
       );
+
+      if (result?.data?.id) {
+        localStorage.setItem("pendingReportId", result.data.id);
+        localStorage.setItem("fromReportFlow", "true");
+      }
 
       navigate("/success", {
         state: {

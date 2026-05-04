@@ -48,6 +48,33 @@ const AuthCallback = () => {
       return result;
     };
 
+    const linkPendingReportToReporter = async (token: string) => {
+      const pendingReportId = localStorage.getItem('pendingReportId') || '';
+      if (!pendingReportId) return null;
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          role: 'reporter',
+          pendingReportId,
+        }),
+      });
+
+      const result = await response.json();
+      console.log('LINK PENDING REPORT RESPONSE:', result);
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Failed to link pending report');
+      }
+
+      localStorage.removeItem('pendingReportId');
+      return result;
+    };
+
     const clearOwnerPendingStorage = () => {
       localStorage.removeItem('verifiedPhone');
       localStorage.removeItem('vehicleId');
@@ -136,6 +163,8 @@ const AuthCallback = () => {
 
           localStorage.setItem('role', 'reporter');
           localStorage.setItem('openIncidentsTab', 'sent');
+
+          await linkPendingReportToReporter(token);
 
           navigate('/app/history', {
             replace: true,

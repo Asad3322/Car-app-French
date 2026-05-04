@@ -281,6 +281,7 @@ const CompleteProfile = () => {
         is_vehicle_owner: isOwner,
         verifiedPhone: isOwner ? phone : "",
         vehicleId: isOwner ? vehicleId : "",
+        pendingReportId: !isOwner ? localStorage.getItem("pendingReportId") || "" : "",
       };
 
       console.log("PROFILE PAYLOAD:", profilePayload);
@@ -302,7 +303,10 @@ const CompleteProfile = () => {
       }
 
       localStorage.setItem("role", "reporter");
-      navigate("/app/history", { replace: true });
+      localStorage.setItem("openIncidentsTab", "sent");
+      localStorage.removeItem("pendingReportId");
+      localStorage.removeItem("fromReportFlow");
+      navigate("/app/history", { replace: true, state: { filter: "sent" } });
     } catch (err: any) {
       console.error("Save profile error:", err);
 
