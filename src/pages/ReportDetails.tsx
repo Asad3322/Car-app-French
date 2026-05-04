@@ -164,10 +164,16 @@ const ReportDetails = () => {
 
       const token = localStorage.getItem("token");
 
+      if (!token) {
+        alert("Session expired. Please login again.");
+        navigate("/auth?role=reporter");
+        return;
+      }
+
       const response = await fetch(`${API_URL}/api/reports`, {
         method: "POST",
         headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
@@ -181,13 +187,12 @@ const ReportDetails = () => {
         throw new Error(result.message || "Failed to submit report");
       }
 
-      const gamificationData =
-        result?.data?.gamification || {
-          reward: "+10 Coins",
-          points: 10,
-          streak: 1,
-          badge: "Rookie Reporter",
-        };
+      const gamificationData = result?.data?.gamification || {
+        reward: "+10 Coins",
+        points: 10,
+        streak: 1,
+        badge: "Rookie Reporter",
+      };
 
       localStorage.setItem(
         "lastGamificationReward",
