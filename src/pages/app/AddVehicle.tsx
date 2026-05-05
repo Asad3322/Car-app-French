@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
   Camera,
@@ -16,6 +16,9 @@ const MAX_VEHICLE_IMAGES = 4;
 
 const AddVehicle = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isOnboardingFlow = location.pathname === '/vehicle/add';
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -128,17 +131,6 @@ const AddVehicle = () => {
         throw new Error('API URL is missing');
       }
 
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.access_token) {
-        throw new Error('User not authenticated. Please login again.');
-      }
-
-      localStorage.setItem('token', session.access_token);
-
       const formData = new FormData();
 
       formData.append('vehicleName', name.trim());
@@ -152,12 +144,24 @@ const AddVehicle = () => {
         formData.append('insuranceDocument', insuranceFile);
       }
 
-      const endpoint = `${API_BASE_URL}/api/vehicles`;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const token = session?.access_token;
+
+      const endpoint = isOnboardingFlow
+        ? `${API_BASE_URL}/api/vehicles/onboarding`
+        : `${API_BASE_URL}/api/vehicles`;
+
+      if (!isOnboardingFlow && !token) {
+        throw new Error('User not authenticated. Please login again.');
+      }
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          ...(!isOnboardingFlow && token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -184,6 +188,16 @@ const AddVehicle = () => {
 
       localStorage.setItem('vehicleId', savedVehicleId);
       localStorage.setItem('role', 'vehicle_owner');
+
+      if (isOnboardingFlow) {
+        navigate('/verify', {
+          state: {
+            mode: 'owner',
+            vehicleId: savedVehicleId,
+          },
+        });
+        return;
+      }
 
       navigate('/app/vehicles', { replace: true });
     } catch (error: any) {

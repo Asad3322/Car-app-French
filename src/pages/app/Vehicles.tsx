@@ -205,7 +205,7 @@ const Vehicles = () => {
 
           <div className="flex shrink-0 items-center gap-2 pt-1">
             <button
-              onClick={() => navigate('/vehicle/add')}
+              onClick={() => navigate('/app/vehicles/add')}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8E3F0] bg-white text-[#7E8CA3] shadow-[0_12px_26px_rgba(15,23,42,0.12)] transition-all hover:scale-[1.03] hover:text-[#3B82F6] active:scale-95"
               aria-label="Add vehicle"
               type="button"
@@ -254,7 +254,7 @@ const Vehicles = () => {
             </p>
 
             <button
-              onClick={() => navigate('/vehicle/add')}
+              onClick={() => navigate('/app/vehicles/add')}
               className="mt-6 inline-flex items-center justify-center rounded-[18px] bg-[#111827] px-5 py-3 text-[12px] font-black uppercase tracking-[0.16em] text-white shadow-[0_16px_34px_rgba(15,23,42,0.18)] transition-all hover:scale-[1.02] active:scale-[0.98]"
               type="button"
             >
