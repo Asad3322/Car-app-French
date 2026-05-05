@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { supabase } from '../supabase';
+import { useEffect, useState, type ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { supabase } from "../supabase";
 
 type ProtectedRouteProps = {
   children: ReactNode;
@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       if (!isMounted) return;
 
       if (token) {
-        localStorage.setItem('token', token);
+        localStorage.setItem("token", token);
       }
 
       setValid(true);
@@ -28,9 +28,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     const deny = () => {
       if (!isMounted) return;
 
-      localStorage.removeItem('token');
-      localStorage.removeItem('ownerAccess');
-      localStorage.removeItem('ownerPhone');
+      localStorage.removeItem("token");
+      localStorage.removeItem("ownerAccess");
+      localStorage.removeItem("ownerPhone");
 
       setValid(false);
       setLoading(false);
@@ -38,7 +38,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     const checkAuth = async () => {
       try {
-        const localToken = localStorage.getItem('token');
+        const localToken = localStorage.getItem("token");
 
         if (localToken) {
           allow(localToken);
@@ -57,7 +57,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
         allow(session.access_token);
       } catch (error) {
-        console.error('ProtectedRoute error:', error);
+        console.error("ProtectedRoute error:", error);
         deny();
       }
     };
@@ -93,7 +93,19 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!valid) {
-    return <Navigate to="/auth" replace state={{ from: location }} />;
+    const authRole =
+      location.pathname.includes("/vehicles") ||
+      localStorage.getItem("role") === "vehicle_owner"
+        ? "owner"
+        : "reporter";
+
+    return (
+      <Navigate
+        to={`/auth?role=${authRole}`}
+        replace
+        state={{ from: location }}
+      />
+    );
   }
 
   return <>{children}</>;

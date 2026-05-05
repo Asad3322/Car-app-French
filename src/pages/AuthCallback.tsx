@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabase';
-import { handleMagicLinkLogin } from '../services/authService';
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase";
+import { handleMagicLinkLogin } from "../services/authService";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -23,93 +23,93 @@ const AuthCallback = () => {
       vehicleId: string;
     }) => {
       const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          role: 'vehicle_owner',
+          role: "vehicle_owner",
           verifiedPhone,
           phone: verifiedPhone,
           vehicleId,
-          primaryContact: 'phone',
+          primaryContact: "phone",
         }),
       });
 
       const result = await response.json();
 
-      console.log('OWNER PROFILE + VEHICLE CLAIM RESPONSE:', result);
+      console.log("OWNER PROFILE + VEHICLE CLAIM RESPONSE:", result);
 
       if (!response.ok) {
-        throw new Error(result?.message || 'Failed to claim owner vehicle');
+        throw new Error(result?.message || "Failed to claim owner vehicle");
       }
 
       return result;
     };
 
     const linkPendingReportToReporter = async (token: string) => {
-      const pendingReportId = localStorage.getItem('pendingReportId') || '';
+      const pendingReportId = localStorage.getItem("pendingReportId") || "";
       if (!pendingReportId) return null;
 
       const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          role: 'reporter',
+          role: "reporter",
           pendingReportId,
         }),
       });
 
       const result = await response.json();
-      console.log('LINK PENDING REPORT RESPONSE:', result);
+      console.log("LINK PENDING REPORT RESPONSE:", result);
 
       if (!response.ok) {
-        throw new Error(result?.message || 'Failed to link pending report');
+        throw new Error(result?.message || "Failed to link pending report");
       }
 
-      localStorage.removeItem('pendingReportId');
+      localStorage.removeItem("pendingReportId");
       return result;
     };
 
     const clearOwnerPendingStorage = () => {
-      localStorage.removeItem('verifiedPhone');
-      localStorage.removeItem('vehicleId');
-      localStorage.removeItem('ownerAccess');
-      localStorage.removeItem('ownerPhone');
-      localStorage.removeItem('pendingPhone');
+      localStorage.removeItem("verifiedPhone");
+      localStorage.removeItem("vehicleId");
+      localStorage.removeItem("ownerAccess");
+      localStorage.removeItem("ownerPhone");
+      localStorage.removeItem("pendingPhone");
     };
 
     const run = async () => {
       try {
         const url = new URL(window.location.href);
 
-        const code = url.searchParams.get('code');
-        const phoneToken = url.searchParams.get('phone_token');
-        const fromParam = url.searchParams.get('from');
+        const code = url.searchParams.get("code");
+        const phoneToken = url.searchParams.get("phone_token");
+        const fromParam = url.searchParams.get("from");
 
         if (phoneToken) {
           const res = await fetch(
-            `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
+            `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`,
           );
 
           const data = await res.json();
 
           if (!res.ok) {
-            throw new Error(data?.message || 'Phone verification failed');
+            throw new Error(data?.message || "Phone verification failed");
           }
 
-          const phone = data?.data?.phone || '';
-          const vehicleId = data?.data?.vehicleId || '';
+          const phone = data?.data?.phone || "";
+          const vehicleId = data?.data?.vehicleId || "";
 
-          localStorage.setItem('verifiedPhone', phone);
-          localStorage.setItem('vehicleId', vehicleId);
-          localStorage.setItem('role', 'vehicle_owner');
+          localStorage.setItem("verifiedPhone", phone);
+          localStorage.setItem("vehicleId", vehicleId);
+          localStorage.setItem("role", "vehicle_owner");
 
-          navigate('/auth?role=owner', { replace: true });
+          navigate("/auth?role=owner", { replace: true });
           return;
         }
 
@@ -126,55 +126,63 @@ const AuthCallback = () => {
         if (sessionError) throw sessionError;
 
         if (!session?.access_token) {
-          navigate('/auth?role=reporter', { replace: true });
+          const fallbackRole =
+            localStorage.getItem("role") === "vehicle_owner" ||
+            localStorage.getItem("verifiedPhone") ||
+            localStorage.getItem("vehicleId")
+              ? "owner"
+              : "reporter";
+
+          navigate(`/auth?role=${fallbackRole}`, { replace: true });
           return;
         }
 
         const token = session.access_token;
-        localStorage.setItem('token', token);
+        localStorage.setItem("token", token);
 
         const result = await handleMagicLinkLogin();
         const profile = result?.profile || null;
 
-        const pendingVerifiedPhone = localStorage.getItem('verifiedPhone') || '';
-        const pendingVehicleId = localStorage.getItem('vehicleId') || '';
+        const pendingVerifiedPhone =
+          localStorage.getItem("verifiedPhone") || "";
+        const pendingVehicleId = localStorage.getItem("vehicleId") || "";
         const isPendingOwnerFlow = Boolean(
-          pendingVerifiedPhone && pendingVehicleId
+          pendingVerifiedPhone && pendingVehicleId,
         );
 
         const fromReportFlow =
-          localStorage.getItem('fromReportFlow') === 'true' ||
-          localStorage.getItem('openIncidentsTab') === 'sent' ||
-          fromParam === 'report';
+          localStorage.getItem("fromReportFlow") === "true" ||
+          localStorage.getItem("openIncidentsTab") === "sent" ||
+          fromParam === "report";
 
         if (fromReportFlow) {
-          localStorage.removeItem('fromReportFlow');
-          localStorage.removeItem('authFlow');
-          localStorage.removeItem('redirectAfterAuth');
-          localStorage.removeItem('pendingAuthRole');
-          localStorage.removeItem('afterMagicLinkRedirect');
-          localStorage.removeItem('afterMagicLinkFilter');
+          localStorage.removeItem("fromReportFlow");
+          localStorage.removeItem("authFlow");
+          localStorage.removeItem("redirectAfterAuth");
+          localStorage.removeItem("pendingAuthRole");
+          localStorage.removeItem("afterMagicLinkRedirect");
+          localStorage.removeItem("afterMagicLinkFilter");
 
           if (!profile) {
-            localStorage.setItem('role', 'reporter');
-            navigate('/complete-profile', { replace: true });
+            localStorage.setItem("role", "reporter");
+            navigate("/complete-profile", { replace: true });
             return;
           }
 
-          localStorage.setItem('role', 'reporter');
-          localStorage.setItem('openIncidentsTab', 'sent');
+          localStorage.setItem("role", "reporter");
+          localStorage.setItem("openIncidentsTab", "sent");
 
           await linkPendingReportToReporter(token);
 
-          navigate('/app/history', {
+          navigate("/app/history", {
             replace: true,
-            state: { filter: 'sent' },
+            state: { filter: "sent" },
           });
           return;
         }
 
         if (isPendingOwnerFlow) {
-          localStorage.setItem('role', 'vehicle_owner');
+          localStorage.setItem("role", "vehicle_owner");
 
           if (profile) {
             await claimOwnerVehicleAndProfile({
@@ -184,32 +192,32 @@ const AuthCallback = () => {
             });
 
             clearOwnerPendingStorage();
-            navigate('/app/vehicles', { replace: true });
+            navigate("/app/vehicles", { replace: true });
             return;
           }
 
-          navigate('/complete-profile', { replace: true });
+          navigate("/complete-profile", { replace: true });
           return;
         }
 
         // IMPORTANT: New user must complete profile first
         if (!profile) {
-          localStorage.setItem('role', 'reporter');
-          navigate('/complete-profile', { replace: true });
+          localStorage.setItem("role", "reporter");
+          navigate("/complete-profile", { replace: true });
           return;
         }
 
-        if (profile.role === 'vehicle_owner') {
-          localStorage.setItem('role', 'vehicle_owner');
-          navigate('/app/vehicles', { replace: true });
+        if (profile.role === "vehicle_owner") {
+          localStorage.setItem("role", "vehicle_owner");
+          navigate("/app/vehicles", { replace: true });
           return;
         }
 
-        localStorage.setItem('role', 'reporter');
-        navigate('/app/history', { replace: true });
+        localStorage.setItem("role", "reporter");
+        navigate("/app/history", { replace: true });
       } catch (err) {
-        console.error('Auth callback error:', err);
-        navigate('/auth?role=reporter', { replace: true });
+        console.error("Auth callback error:", err);
+        navigate("/auth?role=reporter", { replace: true });
       }
     };
 
@@ -219,9 +227,7 @@ const AuthCallback = () => {
   return (
     <div className="min-h-screen w-full bg-white flex items-center justify-center px-6">
       <div className="w-full max-w-md rounded-[28px] bg-[#EEF3F8] p-8 text-center shadow-lg">
-        <h2 className="text-2xl font-bold text-[#0B1A2B]">
-          Signing you in...
-        </h2>
+        <h2 className="text-2xl font-bold text-[#0B1A2B]">Signing you in...</h2>
         <p className="mt-3 text-sm text-[#5B6B7A]">
           Please wait while we verify your secure link.
         </p>
