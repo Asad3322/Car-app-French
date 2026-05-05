@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft,
-  Camera,
   FileText,
   UploadCloud,
   Trash2,
   AlertCircle,
   ShieldCheck,
 } from 'lucide-react';
+import { supabase } from '../../supabase';
 import { useStore } from '../../utils/store';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -16,28 +16,35 @@ const API_URL = import.meta.env.VITE_API_URL;
 const FALLBACK_VEHICLE_IMAGE =
   'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=600';
 
-const parseVehicleMedia = (media: any): string[] => {
+const cleanUrl = (url: unknown): string => {
+  if (typeof url !== 'string') return '';
+  return url.trim().replace(/^"+|"+$/g, '').replace(/\\\//g, '/');
+};
+
+const parseVehicleMedia = (media: unknown): string[] => {
   if (!media) return [];
 
   if (Array.isArray(media)) {
-    return media.filter((item) => typeof item === 'string' && item.trim());
+    return media.map(cleanUrl).filter((item) => item.startsWith('http'));
   }
 
   if (typeof media === 'string') {
+    const cleaned = cleanUrl(media);
+    if (!cleaned) return [];
+
     try {
-      const parsed = JSON.parse(media);
+      const parsed = JSON.parse(cleaned);
 
       if (Array.isArray(parsed)) {
-        return parsed.filter((item) => typeof item === 'string' && item.trim());
+        return parsed.map(cleanUrl).filter((item) => item.startsWith('http'));
       }
 
-      if (typeof parsed === 'string' && parsed.trim()) {
-        return [parsed];
+      if (typeof parsed === 'string') {
+        const parsedUrl = cleanUrl(parsed);
+        return parsedUrl.startsWith('http') ? [parsedUrl] : [];
       }
-
-      return [];
     } catch {
-      return media.trim() ? [media.trim()] : [];
+      return cleaned.startsWith('http') ? [cleaned] : [];
     }
   }
 
@@ -45,24 +52,19 @@ const parseVehicleMedia = (media: any): string[] => {
 };
 
 const normalizeVehicle = (vehicle: any) => {
-  const media = parseVehicleMedia(vehicle.vehicle_media);
-  const legacyMedia = parseVehicleMedia(vehicle.vehicleMediaUrls);
-
-  const allImages =
-    media.length > 0
-      ? media
-      : legacyMedia.length > 0
-        ? legacyMedia
-        : vehicle.image
-          ? [vehicle.image]
-          : [];
+  const media = parseVehicleMedia(vehicle?.vehicle_media);
+  const legacyMedia = parseVehicleMedia(vehicle?.vehicleMediaUrls);
+  const image = media[0] || legacyMedia[0] || cleanUrl(vehicle?.image) || '';
 
   return {
-    id: vehicle.id,
-    name: vehicle.vehicle_name || vehicle.vehicleName || vehicle.name || '',
-    plate: vehicle.licence_plate || vehicle.plate || '',
-    image: allImages[0] || '',
-    vehicle_media: allImages,
+    ...vehicle,
+    id: vehicle?.id,
+    name: vehicle?.vehicle_name || vehicle?.vehicleName || vehicle?.name || '',
+    vehicle_name: vehicle?.vehicle_name || vehicle?.vehicleName || vehicle?.name || '',
+    plate: vehicle?.licence_plate || vehicle?.license_plate || vehicle?.plate || '',
+    licence_plate: vehicle?.licence_plate || vehicle?.license_plate || vehicle?.plate || '',
+    image: image || FALLBACK_VEHICLE_IMAGE,
+    vehicle_media: media.length > 0 ? media : image ? [image] : [],
     vehicleMediaUrls: legacyMedia,
   };
 };
@@ -85,6 +87,8 @@ const EditVehicle = () => {
   const [images, setImages] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const applyVehicleData = (rawVehicle: any) => {
     const normalized = normalizeVehicle(rawVehicle);
@@ -103,35 +107,33 @@ const EditVehicle = () => {
       try {
         setIsLoading(true);
 
+        if (!API_URL) {
+          throw new Error('VITE_API_URL is missing');
+        }
+
         if (storeVehicle) {
           applyVehicleData(storeVehicle);
           setIsLoading(false);
           return;
         }
 
-        const token = localStorage.getItem('token') || '';
-        const ownerAccess = localStorage.getItem('ownerAccess');
-        const ownerPhone = localStorage.getItem('ownerPhone');
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-        let response: Response;
-
-        if (ownerAccess === 'true' && ownerPhone) {
-          response = await fetch(
-            `${API_URL}/api/vehicles/owner-phone?phone=${encodeURIComponent(
-              ownerPhone
-            )}`,
-            { method: 'GET' }
-          );
-        } else if (token) {
-          response = await fetch(`${API_URL}/api/vehicles`, {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        } else {
-          throw new Error('No vehicle access found');
+        if (sessionError || !session?.access_token) {
+          throw new Error('No valid session found');
         }
+
+        localStorage.setItem('token', session.access_token);
+
+        const response = await fetch(`${API_URL}/api/vehicles/${id}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
 
         const result = await response.json();
 
@@ -141,22 +143,14 @@ const EditVehicle = () => {
           throw new Error(result?.message || 'Failed to fetch vehicle');
         }
 
-        const vehiclesArray = Array.isArray(result?.data)
-          ? result.data
-          : Array.isArray(result?.data?.vehicles)
-            ? result.data.vehicles
-            : Array.isArray(result?.vehicles)
-              ? result.vehicles
-              : [];
+        const rawVehicle = result?.data || result;
 
-        const foundVehicle = vehiclesArray.find((item: any) => item.id === id);
-
-        if (!foundVehicle) {
+        if (!rawVehicle?.id) {
           setVehicle(null);
           return;
         }
 
-        const normalized = applyVehicleData(foundVehicle);
+        const normalized = applyVehicleData(rawVehicle);
 
         setVehicles((prev: any[]) => {
           const exists = prev.some((item: any) => item.id === normalized.id);
@@ -180,6 +174,147 @@ const EditVehicle = () => {
     loadVehicle();
   }, [id, storeVehicle, setVehicles]);
 
+  const displayImage =
+    image || images[0] || vehicle?.image || FALLBACK_VEHICLE_IMAGE;
+
+  const hasChanges =
+    vehicle &&
+    name.trim() !== '' &&
+    name.trim() !== (vehicle.name || vehicle.vehicle_name || '');
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      const newImage = reader.result as string;
+      setImage(newImage);
+      setImages((prev) => [newImage, ...prev.filter((item) => item !== newImage)]);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!hasChanges || isSaving) return;
+
+    try {
+      setIsSaving(true);
+
+      if (!API_URL) {
+        throw new Error('VITE_API_URL is missing');
+      }
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await fetch(`${API_URL}/api/vehicles/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          vehicleName: name.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      console.log('Update vehicle response:', result);
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Update failed');
+      }
+
+      const updatedVehicle = normalizeVehicle(result?.data || {
+        ...vehicle,
+        vehicle_name: name.trim(),
+        name: name.trim(),
+      });
+
+      setVehicle(updatedVehicle);
+
+      setVehicles((prev: any[]) =>
+        prev.map((v: any) =>
+          v.id === id
+            ? {
+                ...v,
+                ...updatedVehicle,
+                name: updatedVehicle.name,
+                vehicle_name: updatedVehicle.vehicle_name,
+              }
+            : v
+        )
+      );
+
+      navigate('/app/vehicles', { replace: true });
+    } catch (error: any) {
+      console.error('Update error:', error);
+      alert(error?.message || 'Failed to update vehicle');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isDeleting) return;
+
+    try {
+      setIsDeleting(true);
+
+      if (!API_URL) {
+        throw new Error('VITE_API_URL is missing');
+      }
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.access_token) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await fetch(`${API_URL}/api/vehicles/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      console.log('Delete vehicle response:', result);
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Delete failed');
+      }
+
+      setShowModal(false);
+
+      setVehicles((prev: any[]) => prev.filter((v: any) => v.id !== id));
+
+      navigate('/app/vehicles', { replace: true });
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      alert(error?.message || 'Failed to delete vehicle');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="relative flex h-full flex-col items-center justify-center bg-transparent px-6 py-10 text-center">
@@ -191,10 +326,6 @@ const EditVehicle = () => {
   if (!vehicle) {
     return (
       <div className="relative flex h-full flex-col items-center justify-center bg-transparent px-6 py-10 text-center">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-1/2 top-10 h-[240px] w-[240px] -translate-x-1/2 rounded-full bg-red-100 blur-3xl" />
-        </div>
-
         <div className="relative z-10 mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] border border-red-200 bg-red-50 text-red-500 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
           <AlertCircle size={38} />
         </div>
@@ -208,6 +339,7 @@ const EditVehicle = () => {
         </p>
 
         <button
+          type="button"
           onClick={() => navigate('/app/vehicles')}
           className="relative z-10 rounded-[18px] bg-[#111827] px-5 py-3 text-[12px] font-black uppercase tracking-[0.16em] text-white shadow-[0_14px_28px_rgba(15,23,42,0.16)] transition-all active:scale-95"
         >
@@ -216,90 +348,6 @@ const EditVehicle = () => {
       </div>
     );
   }
-
-  const displayImage =
-    image || images[0] || vehicle.image || FALLBACK_VEHICLE_IMAGE;
-
-  const hasChanges =
-    (name.trim() !== '' && name !== vehicle.name) || image !== vehicle.image;
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (file) {
-      const reader = new FileReader();
-
-      reader.onloadend = () => {
-        const newImage = reader.result as string;
-
-        setImage(newImage);
-        setImages((prev) => {
-          if (prev.includes(newImage)) return prev;
-          return [newImage, ...prev];
-        });
-      };
-
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!hasChanges) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const ownerAccess = localStorage.getItem('ownerAccess');
-
-      setVehicles((prev: any[]) =>
-        prev.map((v: any) =>
-          v.id === id
-            ? {
-                ...v,
-                name,
-                image,
-                vehicle_media: images.length > 0 ? images : v.vehicle_media,
-              }
-            : v
-        )
-      );
-
-      if (token && ownerAccess !== 'true') {
-        try {
-          const response = await fetch(`${API_URL}/api/vehicles/${id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              vehicleName: name,
-            }),
-          });
-
-          if (response.ok) {
-            console.log('Vehicle updated on backend');
-          } else {
-            console.warn('Backend update route not available yet');
-          }
-        } catch (backendError) {
-          console.warn('Backend update skipped:', backendError);
-        }
-      }
-
-      navigate('/app/vehicles');
-    } catch (error) {
-      console.error('Update error:', error);
-      alert('Failed to update vehicle');
-    }
-  };
-
-  const handleDelete = () => {
-    setShowModal(false);
-    setVehicles((prev: any[]) => prev.filter((v: any) => v.id !== id));
-    navigate('/app/vehicles');
-  };
 
   return (
     <div className="relative flex h-full flex-col bg-transparent px-5 pt-10 pb-10">
@@ -310,6 +358,7 @@ const EditVehicle = () => {
 
       <header className="relative z-10 mb-8 flex items-center justify-between">
         <button
+          type="button"
           onClick={() => navigate('/app/vehicles')}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#DCE6F2] bg-white text-[#0F172A] shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition-all active:scale-95"
         >
@@ -326,6 +375,7 @@ const EditVehicle = () => {
         </div>
 
         <button
+          type="button"
           onClick={() => setShowModal(true)}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-500 shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition-all active:scale-95"
         >
@@ -356,11 +406,13 @@ const EditVehicle = () => {
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
                   Registered Vehicle
                 </p>
+
                 <h2 className="mt-1 truncate text-[22px] font-black tracking-tight text-[#0F172A]">
                   {name || vehicle.name}
                 </h2>
+
                 <div className="mt-2 inline-flex items-center rounded-xl border border-[#D9E4F1] bg-[#F8FBFF] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#64748B]">
-                  {vehicle.plate}
+                  {vehicle.plate || vehicle.licence_plate}
                 </div>
               </div>
             </div>
@@ -381,21 +433,15 @@ const EditVehicle = () => {
                     e.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
                   }}
                 />
+
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.14)_100%)]" />
+
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 opacity-0 transition-opacity group-hover:opacity-100">
                   <UploadCloud className="mb-2 text-white" size={32} />
                   <span className="text-xs font-black uppercase tracking-widest text-white">
                     Change Photo
                   </span>
                 </div>
-
-                {!displayImage && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-[#DCE6F2] bg-white/85 shadow-[0_10px_24px_rgba(15,23,42,0.10)]">
-                      <Camera size={28} className="text-[#2563EB]" />
-                    </div>
-                  </div>
-                )}
               </div>
 
               <input
@@ -441,7 +487,7 @@ const EditVehicle = () => {
 
               <div className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-[#F8FBFF] px-6 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                 <span className="block text-center text-[28px] font-black uppercase tracking-[0.24em] text-[#0F172A]">
-                  {vehicle.plate}
+                  {vehicle.plate || vehicle.licence_plate}
                 </span>
               </div>
             </div>
@@ -506,10 +552,10 @@ const EditVehicle = () => {
           <button
             type="submit"
             form="app-edit-vehicle"
-            disabled={!hasChanges}
+            disabled={!hasChanges || isSaving}
             className="h-[60px] flex-[2] rounded-[18px] bg-[#2563EB] text-[11px] font-black uppercase tracking-[0.14em] text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            Update Vehicle
+            {isSaving ? 'Updating...' : 'Update Vehicle'}
           </button>
         </div>
       </div>
@@ -532,15 +578,19 @@ const EditVehicle = () => {
 
             <div className="flex flex-col gap-3">
               <button
+                type="button"
                 onClick={handleDelete}
-                className="h-[56px] w-full rounded-[18px] bg-red-500 text-[14px] font-black text-white transition-all active:scale-95"
+                disabled={isDeleting}
+                className="h-[56px] w-full rounded-[18px] bg-red-500 text-[14px] font-black text-white transition-all active:scale-95 disabled:opacity-50"
               >
-                Archive Vehicle
+                {isDeleting ? 'Archiving...' : 'Archive Vehicle'}
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
-                className="h-[56px] w-full rounded-[18px] border border-[#DCE6F2] bg-white text-[14px] font-black text-[#64748B] transition-all active:scale-95"
+                disabled={isDeleting}
+                className="h-[56px] w-full rounded-[18px] border border-[#DCE6F2] bg-white text-[14px] font-black text-[#64748B] transition-all active:scale-95 disabled:opacity-50"
               >
                 Keep it
               </button>
