@@ -217,7 +217,15 @@ const AuthCallback = () => {
         navigate("/app/history", { replace: true });
       } catch (err) {
         console.error("Auth callback error:", err);
-        navigate("/auth?role=reporter", { replace: true });
+
+        const fallbackRole =
+          localStorage.getItem("role") === "vehicle_owner" ||
+          localStorage.getItem("verifiedPhone") ||
+          localStorage.getItem("vehicleId")
+            ? "owner"
+            : "reporter";
+
+        navigate(`/auth?role=${fallbackRole}`, { replace: true });
       }
     };
 
