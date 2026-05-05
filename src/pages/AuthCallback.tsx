@@ -128,6 +128,7 @@ const AuthCallback = () => {
         if (!session?.access_token) {
           const fallbackRole =
             localStorage.getItem("role") === "vehicle_owner" ||
+            localStorage.getItem("pendingAuthRole") === "vehicle_owner" ||
             localStorage.getItem("verifiedPhone") ||
             localStorage.getItem("vehicleId")
               ? "owner"
@@ -164,11 +165,16 @@ const AuthCallback = () => {
           localStorage.removeItem("afterMagicLinkFilter");
 
           if (!profile) {
-            localStorage.setItem("role", "reporter");
+            const pendingRole =
+              localStorage.getItem("role") ||
+              localStorage.getItem("pendingAuthRole") ||
+              "reporter";
+
+            localStorage.setItem("role", pendingRole);
+
             navigate("/complete-profile", { replace: true });
             return;
           }
-
           localStorage.setItem("role", "reporter");
           localStorage.setItem("openIncidentsTab", "sent");
 
