@@ -103,7 +103,7 @@ const Profile = () => {
           Authorization: `Bearer ${session.access_token}`,
         };
 
-        const meRes = await fetch(`${API_URL}/api/auth/me`, {
+        const meRes = await fetch(`${API_URL}/auth/me`, {
           method: 'GET',
           headers,
         });

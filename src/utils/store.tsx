@@ -56,7 +56,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
         const token = sessionData.session.access_token;
         localStorage.setItem('token', token);
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
