@@ -9,7 +9,6 @@ import {
   X,
   CheckCircle2,
   Sparkles,
-  Phone,
 } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -59,9 +58,9 @@ const CompleteProfile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(
-    null
-  );
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<
+    boolean | null
+  >(null);
   const [usernameError, setUsernameError] = useState("");
 
   const isOwner = role === "vehicle_owner";
@@ -85,9 +84,12 @@ const CompleteProfile = () => {
         if (sessionError) throw sessionError;
 
         if (!sessionData?.session?.access_token) {
-          navigate(`/auth?role=${storedRole === "vehicle_owner" ? "owner" : "reporter"}`, {
-            replace: true,
-          });
+          navigate(
+            `/auth?role=${storedRole === "vehicle_owner" ? "owner" : "reporter"}`,
+            {
+              replace: true,
+            },
+          );
           return;
         }
 
@@ -112,7 +114,7 @@ const CompleteProfile = () => {
         setPhone(
           storedRole === "vehicle_owner"
             ? storedVerifiedPhone
-            : user.phone || ""
+            : user.phone || "",
         );
 
         const { data: profile } = await supabase
@@ -126,14 +128,17 @@ const CompleteProfile = () => {
           setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
           setEmail(profile.email || user.email || "");
           setSelectedAvatar(
-            profile.profileImage || profile.avatar_url || avatars[0]
+            profile.profileImage || profile.avatar_url || avatars[0],
           );
         }
       } catch (err) {
         console.error("Load auth user error:", err);
-        navigate(`/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`, {
-          replace: true,
-        });
+        navigate(
+          `/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`,
+          {
+            replace: true,
+          },
+        );
       } finally {
         setIsLoadingUser(false);
       }
@@ -471,19 +476,19 @@ const CompleteProfile = () => {
                       usernameError
                         ? "text-red-500"
                         : isCheckingUsername
-                        ? "text-[#6F8194]"
-                        : isUsernameAvailable
-                        ? "text-emerald-600"
-                        : "text-[#6F8194]"
+                          ? "text-[#6F8194]"
+                          : isUsernameAvailable
+                            ? "text-emerald-600"
+                            : "text-[#6F8194]"
                     }`}
                   >
                     {usernameError
                       ? usernameError
                       : isCheckingUsername
-                      ? "Checking username..."
-                      : isUsernameAvailable
-                      ? "Username is available"
-                      : ""}
+                        ? "Checking username..."
+                        : isUsernameAvailable
+                          ? "Username is available"
+                          : ""}
                   </p>
                 )}
               </div>
@@ -505,32 +510,6 @@ const CompleteProfile = () => {
                   />
                 </div>
               </div>
-
-              {isOwner && (
-                <div>
-                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
-                    Phone Number
-                  </label>
-
-                  <div className="relative mt-2">
-                    <Phone
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
-                      size={17}
-                    />
-
-                    <input
-                      value={phone}
-                      readOnly
-                      placeholder="+33 6 12 34 56 78"
-                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
-                    />
-                  </div>
-
-                  <p className="mt-2 text-[11px] font-semibold text-[#6F8194]">
-                    Verified phone number is required for owner flow.
-                  </p>
-                </div>
-              )}
 
               <button
                 type="submit"
