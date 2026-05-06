@@ -109,7 +109,7 @@ const AuthCallback = () => {
           localStorage.setItem("vehicleId", vehicleId);
           localStorage.setItem("role", "vehicle_owner");
 
-          navigate("/auth?role=owner", { replace: true });
+          navigate("/auth?role=owner-email", { replace: true });
           return;
         }
 

@@ -14,9 +14,11 @@ const Auth = () => {
   const storedVehicleId = localStorage.getItem('vehicleId');
 
   const isReporterUrl = roleParam === 'reporter';
+  const isOwnerEmailStep = roleParam === 'owner-email';
 
   const isOwner =
     !isReporterUrl &&
+    !isOwnerEmailStep &&
     (
       roleParam === 'owner' ||
       roleParam === 'vehicle_owner' ||
@@ -45,7 +47,7 @@ const Auth = () => {
     setIsSending(true);
 
     try {
-      // ================= OWNER FLOW =================
+      // ================= OWNER PHONE FLOW =================
       if (isOwner) {
         if (!vehicleId) {
           throw new Error('Vehicle ID missing. Please register vehicle again.');
@@ -64,6 +66,20 @@ const Auth = () => {
         });
 
         navigate('/verify?role=owner');
+        return;
+      }
+
+      // ================= OWNER EMAIL FLOW =================
+      if (isOwnerEmailStep) {
+        localStorage.setItem('role', 'vehicle_owner');
+        localStorage.setItem('pendingEmail', trimmedContact);
+
+        await sendVerification({
+          contact: trimmedContact,
+          role: 'reporter',
+        });
+
+        navigate('/verify?role=reporter');
         return;
       }
 
@@ -99,12 +115,18 @@ const Auth = () => {
           </div>
 
           <h1 className="text-3xl font-black text-[#1F2A37]">
-            {isOwner ? 'Verify Your Phone' : 'Welcome Back'}
+            {isOwner
+              ? 'Verify Your Phone'
+              : isOwnerEmailStep
+              ? 'Verify Your Email'
+              : 'Welcome Back'}
           </h1>
 
           <p className="mt-2 text-sm text-[#6B7A90]">
             {isOwner
               ? 'Enter your phone number to claim your vehicle'
+              : isOwnerEmailStep
+              ? 'Enter your email to create your owner account'
               : 'Enter your email to continue'}
           </p>
         </div>
