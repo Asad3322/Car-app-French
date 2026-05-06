@@ -11,18 +11,20 @@ const Auth = () => {
 
   const roleParam = params.get('role');
   const storedRole = localStorage.getItem('role');
+  const storedVehicleId = localStorage.getItem('vehicleId');
+
+  const isReporterUrl = roleParam === 'reporter';
 
   const isOwner =
-  roleParam === 'owner' ||
-  roleParam === 'vehicle_owner' ||
-  (!roleParam && storedRole === 'vehicle_owner');
+    !isReporterUrl &&
+    (
+      roleParam === 'owner' ||
+      roleParam === 'vehicle_owner' ||
+      (!!storedVehicleId && storedRole === 'vehicle_owner')
+    );
 
   const vehicleId = useMemo(() => {
-    return (
-      params.get('vehicleId') ||
-      localStorage.getItem('vehicleId') ||
-      ''
-    );
+    return params.get('vehicleId') || localStorage.getItem('vehicleId') || '';
   }, [location.search]);
 
   const [contact, setContact] = useState('');
@@ -39,16 +41,18 @@ const Auth = () => {
       return;
     }
 
-    if (isOwner && !vehicleId) {
-      setError('Vehicle ID missing. Please register vehicle again.');
-      return;
-    }
-
     setError('');
     setIsSending(true);
 
     try {
+      // ================= OWNER FLOW =================
       if (isOwner) {
+        if (!vehicleId) {
+          throw new Error('Vehicle ID missing. Please register vehicle again.');
+        }
+
+        localStorage.removeItem('pendingEmail');
+
         localStorage.setItem('role', 'vehicle_owner');
         localStorage.setItem('pendingPhone', trimmedContact);
         localStorage.setItem('vehicleId', vehicleId);
@@ -63,6 +67,12 @@ const Auth = () => {
         return;
       }
 
+      // ================= REPORTER FLOW =================
+      localStorage.removeItem('vehicleId');
+      localStorage.removeItem('pendingPhone');
+      localStorage.removeItem('verifiedPhone');
+      localStorage.removeItem('ownerAccess');
+
       localStorage.setItem('role', 'reporter');
       localStorage.setItem('pendingEmail', trimmedContact);
 
@@ -73,7 +83,7 @@ const Auth = () => {
 
       navigate('/verify?role=reporter');
     } catch (err: any) {
-      console.error(err);
+      console.error('Auth verification error:', err);
       setError(err?.message || 'Failed to send verification link');
     } finally {
       setIsSending(false);
@@ -117,7 +127,7 @@ const Auth = () => {
                 setContact(e.target.value);
                 if (error) setError('');
               }}
-              className="h-[62px] w-full rounded-[22px] border border-[#D9E5F1] bg-white pl-12 pr-4"
+              className="h-[62px] w-full rounded-[22px] border border-[#D9E5F1] bg-white pl-12 pr-4 outline-none focus:border-[#4A90E2]"
             />
           </div>
 
@@ -126,7 +136,7 @@ const Auth = () => {
           <button
             type="submit"
             disabled={!contact.trim() || isSending}
-            className="mt-auto h-[58px] w-full rounded-full bg-[#F4B400] text-white disabled:opacity-50"
+            className="mt-auto h-[58px] w-full rounded-full bg-[#F4B400] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSending ? 'Sending...' : 'Continue'}
           </button>
