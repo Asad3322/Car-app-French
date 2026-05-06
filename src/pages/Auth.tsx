@@ -13,9 +13,9 @@ const Auth = () => {
   const storedRole = localStorage.getItem('role');
 
   const isOwner =
-    roleParam === 'owner' ||
-    roleParam === 'vehicle_owner' ||
-    storedRole === 'vehicle_owner';
+  roleParam === 'owner' ||
+  roleParam === 'vehicle_owner' ||
+  (!roleParam && storedRole === 'vehicle_owner');
 
   const vehicleId = useMemo(() => {
     return (
