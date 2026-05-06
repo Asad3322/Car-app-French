@@ -59,9 +59,9 @@ const CompleteProfile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isUsernameAvailable, setIsUsernameAvailable] = useState<
-    boolean | null
-  >(null);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(
+    null
+  );
   const [usernameError, setUsernameError] = useState("");
 
   const isOwner = role === "vehicle_owner";
@@ -85,7 +85,9 @@ const CompleteProfile = () => {
         if (sessionError) throw sessionError;
 
         if (!sessionData?.session?.access_token) {
-          navigate("/auth?role=reporter", { replace: true });
+          navigate(`/auth?role=${storedRole === "vehicle_owner" ? "owner" : "reporter"}`, {
+            replace: true,
+          });
           return;
         }
 
@@ -110,7 +112,7 @@ const CompleteProfile = () => {
         setPhone(
           storedRole === "vehicle_owner"
             ? storedVerifiedPhone
-            : user.phone || "",
+            : user.phone || ""
         );
 
         const { data: profile } = await supabase
@@ -124,24 +126,21 @@ const CompleteProfile = () => {
           setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
           setEmail(profile.email || user.email || "");
           setSelectedAvatar(
-            profile.profileImage || profile.avatar_url || avatars[0],
+            profile.profileImage || profile.avatar_url || avatars[0]
           );
         }
       } catch (err) {
         console.error("Load auth user error:", err);
-        navigate(
-          `/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`,
-          {
-            replace: true,
-          },
-        );
+        navigate(`/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`, {
+          replace: true,
+        });
       } finally {
         setIsLoadingUser(false);
       }
     };
 
     loadUser();
-  }, [navigate]);
+  }, [navigate, role]);
 
   useEffect(() => {
     const normalized = normalizeUsername(username);
@@ -237,7 +236,9 @@ const CompleteProfile = () => {
 
     if (!authUser?.id) {
       alert("User session missing. Please login again.");
-      navigate("/auth", { replace: true });
+      navigate(`/auth?role=${isOwner ? "owner" : "reporter"}`, {
+        replace: true,
+      });
       return;
     }
 
@@ -246,7 +247,7 @@ const CompleteProfile = () => {
       return;
     }
 
-    if (!isOwner && !email.trim()) {
+    if (!email.trim() && !authUser.email) {
       alert("Email is required");
       return;
     }
@@ -276,7 +277,7 @@ const CompleteProfile = () => {
       const profilePayload = {
         name: normalizedUsername,
         username: normalizedUsername,
-        email: email || authUser.email || "",
+        email: authUser.email || email || "",
         phone: isOwner ? phone : authUser.phone || "",
         primaryContact: isOwner ? "phone" : "email",
         profileImage: selectedAvatar,
@@ -299,6 +300,10 @@ const CompleteProfile = () => {
 
       if (isOwner) {
         localStorage.setItem("role", "vehicle_owner");
+
+        if (savedProfile?.profile) {
+          localStorage.setItem("user", JSON.stringify(savedProfile.profile));
+        }
 
         await claimVehicleAfterProfile();
 
@@ -373,7 +378,11 @@ const CompleteProfile = () => {
         </div>
 
         <button
-          onClick={() => navigate("/app/vehicles", { replace: true })}
+          onClick={() =>
+            navigate(isOwner ? "/app/vehicles" : "/app/history", {
+              replace: true,
+            })
+          }
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#B8C9D6] bg-white text-[#6F8194] shadow-sm hover:bg-[#F8FBFD]"
         >
           <X size={18} />
@@ -462,53 +471,53 @@ const CompleteProfile = () => {
                       usernameError
                         ? "text-red-500"
                         : isCheckingUsername
-                          ? "text-[#6F8194]"
-                          : isUsernameAvailable
-                            ? "text-emerald-600"
-                            : "text-[#6F8194]"
+                        ? "text-[#6F8194]"
+                        : isUsernameAvailable
+                        ? "text-emerald-600"
+                        : "text-[#6F8194]"
                     }`}
                   >
                     {usernameError
                       ? usernameError
                       : isCheckingUsername
-                        ? "Checking username..."
-                        : isUsernameAvailable
-                          ? "Username is available"
-                          : ""}
+                      ? "Checking username..."
+                      : isUsernameAvailable
+                      ? "Username is available"
+                      : ""}
                   </p>
                 )}
               </div>
 
-              {!isOwner && (
-                <div>
-                  <label className="text-[11px] font-bold uppercase text-[#6F8194]">
-                    Email
-                  </label>
-                  <div className="relative mt-2">
-                    <Mail
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
-                      size={17}
-                    />
-                    <input
-                      value={email}
-                      readOnly
-                      placeholder="Login email"
-                      className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
-                    />
-                  </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase text-[#6F8194]">
+                  Email
+                </label>
+                <div className="relative mt-2">
+                  <Mail
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
+                    size={17}
+                  />
+                  <input
+                    value={email}
+                    readOnly
+                    placeholder={isOwner ? "Owner email" : "Login email"}
+                    className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
+                  />
                 </div>
-              )}
+              </div>
 
               {isOwner && (
                 <div>
                   <label className="text-[11px] font-bold uppercase text-[#6F8194]">
                     Phone Number
                   </label>
+
                   <div className="relative mt-2">
                     <Phone
                       className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]"
                       size={17}
                     />
+
                     <input
                       value={phone}
                       readOnly
