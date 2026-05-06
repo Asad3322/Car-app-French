@@ -35,7 +35,7 @@ export const sendVerification = async (payload: SendVerificationPayload) => {
       throw new Error('API URL is missing');
     }
 
-    const response = await fetch(`${API_BASE_URL}/auth/send-verification`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/send-verification`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export const handleMagicLinkLogin = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${session.access_token}`,
@@ -132,7 +132,7 @@ export const saveUserProfile = async (payload: any) => {
     throw new Error('No active session found');
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/create-profile`, {
+  const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
