@@ -59,9 +59,9 @@ const CompleteProfile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(
-    null
-  );
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<
+    boolean | null
+  >(null);
   const [usernameError, setUsernameError] = useState("");
 
   const isOwner = role === "vehicle_owner";
@@ -84,8 +84,8 @@ const CompleteProfile = () => {
 
         if (sessionError) throw sessionError;
 
-        if (!sessionData?.session) {
-          navigate("/auth", { replace: true });
+        if (!sessionData?.session?.access_token) {
+          navigate("/auth?role=reporter", { replace: true });
           return;
         }
 
@@ -110,7 +110,7 @@ const CompleteProfile = () => {
         setPhone(
           storedRole === "vehicle_owner"
             ? storedVerifiedPhone
-            : user.phone || ""
+            : user.phone || "",
         );
 
         const { data: profile } = await supabase
@@ -124,7 +124,7 @@ const CompleteProfile = () => {
           setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
           setEmail(profile.email || user.email || "");
           setSelectedAvatar(
-            profile.profileImage || profile.avatar_url || avatars[0]
+            profile.profileImage || profile.avatar_url || avatars[0],
           );
         }
       } catch (err) {
@@ -281,12 +281,16 @@ const CompleteProfile = () => {
         is_vehicle_owner: isOwner,
         verifiedPhone: isOwner ? phone : "",
         vehicleId: isOwner ? vehicleId : "",
-        pendingReportId: !isOwner ? localStorage.getItem("pendingReportId") || "" : "",
+        pendingReportId: !isOwner
+          ? localStorage.getItem("pendingReportId") || ""
+          : "",
       };
 
       console.log("PROFILE PAYLOAD:", profilePayload);
 
-      await saveUserProfile(profilePayload);
+      const savedProfile = await saveUserProfile(profilePayload);
+
+      console.log("SAVED PROFILE:", savedProfile);
 
       if (isOwner) {
         localStorage.setItem("role", "vehicle_owner");
@@ -303,10 +307,20 @@ const CompleteProfile = () => {
       }
 
       localStorage.setItem("role", "reporter");
+
+      if (savedProfile?.profile) {
+        localStorage.setItem("user", JSON.stringify(savedProfile.profile));
+      }
+
       localStorage.setItem("openIncidentsTab", "sent");
+
       localStorage.removeItem("pendingReportId");
       localStorage.removeItem("fromReportFlow");
-      navigate("/app/history", { replace: true, state: { filter: "sent" } });
+
+      navigate("/app/history", {
+        replace: true,
+        state: { filter: "sent" },
+      });
     } catch (err: any) {
       console.error("Save profile error:", err);
 
@@ -443,19 +457,19 @@ const CompleteProfile = () => {
                       usernameError
                         ? "text-red-500"
                         : isCheckingUsername
-                        ? "text-[#6F8194]"
-                        : isUsernameAvailable
-                        ? "text-emerald-600"
-                        : "text-[#6F8194]"
+                          ? "text-[#6F8194]"
+                          : isUsernameAvailable
+                            ? "text-emerald-600"
+                            : "text-[#6F8194]"
                     }`}
                   >
                     {usernameError
                       ? usernameError
                       : isCheckingUsername
-                      ? "Checking username..."
-                      : isUsernameAvailable
-                      ? "Username is available"
-                      : ""}
+                        ? "Checking username..."
+                        : isUsernameAvailable
+                          ? "Username is available"
+                          : ""}
                   </p>
                 )}
               </div>
