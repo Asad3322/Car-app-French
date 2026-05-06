@@ -35,20 +35,17 @@ export const sendVerification = async (payload: SendVerificationPayload) => {
       throw new Error('API URL is missing');
     }
 
-    const response = await fetch(
-      `${API_BASE_URL}/auth/send-verification`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contact: finalPayload.contact.trim(),
-          role: 'vehicle_owner',
-          vehicleId: finalPayload.vehicleId,
-        }),
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/auth/send-verification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contact: finalPayload.contact.trim(),
+        role: 'vehicle_owner',
+        vehicleId: finalPayload.vehicleId,
+      }),
+    });
 
     const result = await response.json();
 
@@ -120,4 +117,37 @@ export const handleMagicLinkLogin = async () => {
       profile: null,
     };
   }
+};
+
+export const saveUserProfile = async (payload: any) => {
+  if (!API_BASE_URL) {
+    throw new Error('API URL is missing');
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('No active session found');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/create-profile`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json();
+
+  console.log('💾 Save user profile response:', result);
+
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.message || 'Failed to save profile');
+  }
+
+  return result?.data || result;
 };
