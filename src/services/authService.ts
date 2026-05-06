@@ -1,14 +1,79 @@
 import { supabase } from '../supabase';
 
-export const sendVerification = async (email: string) => {
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+type AuthRole = 'reporter' | 'vehicle_owner';
+
+type SendVerificationObjectPayload = {
+  contact: string;
+  role?: AuthRole;
+  vehicleId?: string | null;
+};
+
+type SendVerificationPayload = string | SendVerificationObjectPayload;
+
+export const sendVerification = async (payload: SendVerificationPayload) => {
+  const finalPayload: SendVerificationObjectPayload =
+    typeof payload === 'string'
+      ? {
+          contact: payload,
+          role: 'reporter',
+          vehicleId: null,
+        }
+      : {
+          contact: payload.contact,
+          role: payload.role || 'reporter',
+          vehicleId: payload.vehicleId || null,
+        };
+
+  if (!finalPayload.contact?.trim()) {
+    throw new Error('Contact is required');
+  }
+
+  if (finalPayload.role === 'vehicle_owner') {
+    if (!API_BASE_URL) {
+      throw new Error('API URL is missing');
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/auth/send-verification`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contact: finalPayload.contact.trim(),
+          role: 'vehicle_owner',
+          vehicleId: finalPayload.vehicleId,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    console.log('📱 Owner verification response:', result);
+
+    if (!response.ok || !result?.success) {
+      throw new Error(result?.message || 'Failed to send owner verification');
+    }
+
+    return result;
+  }
+
   const { error } = await supabase.auth.signInWithOtp({
-    email,
+    email: finalPayload.contact.trim(),
     options: {
       emailRedirectTo: 'https://car-app-french.vercel.app/auth/callback',
     },
   });
 
   if (error) throw error;
+
+  return {
+    success: true,
+    message: 'Reporter verification sent successfully',
+  };
 };
 
 export const handleMagicLinkLogin = async () => {
@@ -17,61 +82,42 @@ export const handleMagicLinkLogin = async () => {
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    return {
-      needsProfileCompletion: true,
-      profile: null,
-    };
+    throw new Error('No active session found');
   }
 
-  localStorage.setItem('token', session.access_token);
-
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result?.message || 'Failed to fetch profile');
+  if (!API_BASE_URL) {
+    throw new Error('API URL is missing');
   }
 
-  return {
-    needsProfileCompletion: !result?.data?.profile,
-    profile: result?.data?.profile || null,
-  };
-};
-
-export const saveUserProfile = async (profileData: any) => {
   try {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-      throw new Error('User not authenticated');
-    }
-
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/auth/create-profile`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(profileData),
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
 
     const result = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result?.message || 'Failed to save profile');
+    console.log('👤 Auth me response:', result);
+
+    if (!response.ok || !result?.success) {
+      return {
+        session,
+        profile: null,
+      };
     }
 
-    return result;
+    return {
+      session,
+      profile: result?.data?.profile || result?.data || null,
+    };
   } catch (error) {
-    console.error('saveUserProfile error:', error);
-    throw error;
+    console.error('handleMagicLinkLogin error:', error);
+
+    return {
+      session,
+      profile: null,
+    };
   }
 };

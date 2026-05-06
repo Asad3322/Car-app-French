@@ -1,22 +1,46 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ShieldCheck, Mail, Phone } from 'lucide-react';
 import { sendVerification } from '../services/authService';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [email, setEmail] = useState('');
+  const params = new URLSearchParams(location.search);
+
+  const roleParam = params.get('role');
+  const storedRole = localStorage.getItem('role');
+
+  const isOwner =
+    roleParam === 'owner' ||
+    roleParam === 'vehicle_owner' ||
+    storedRole === 'vehicle_owner';
+
+  const vehicleId = useMemo(() => {
+    return (
+      params.get('vehicleId') ||
+      localStorage.getItem('vehicleId') ||
+      ''
+    );
+  }, [location.search]);
+
+  const [contact, setContact] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const trimmedEmail = email.trim();
+    const trimmedContact = contact.trim();
 
-    if (!trimmedEmail) {
-      setError('Email is required');
+    if (!trimmedContact) {
+      setError(isOwner ? 'Phone number is required' : 'Email is required');
+      return;
+    }
+
+    if (isOwner && !vehicleId) {
+      setError('Vehicle ID missing. Please register vehicle again.');
       return;
     }
 
@@ -24,10 +48,28 @@ const Auth = () => {
     setIsSending(true);
 
     try {
-      localStorage.setItem('role', 'reporter'); // force email flow
-      localStorage.setItem('pendingEmail', trimmedEmail);
+      if (isOwner) {
+        localStorage.setItem('role', 'vehicle_owner');
+        localStorage.setItem('pendingPhone', trimmedContact);
+        localStorage.setItem('vehicleId', vehicleId);
 
-      await sendVerification(trimmedEmail);
+        await sendVerification({
+          contact: trimmedContact,
+          role: 'vehicle_owner',
+          vehicleId,
+        });
+
+        navigate('/verify?role=owner');
+        return;
+      }
+
+      localStorage.setItem('role', 'reporter');
+      localStorage.setItem('pendingEmail', trimmedContact);
+
+      await sendVerification({
+        contact: trimmedContact,
+        role: 'reporter',
+      });
 
       navigate('/verify?role=reporter');
     } catch (err: any) {
@@ -47,44 +89,44 @@ const Auth = () => {
           </div>
 
           <h1 className="text-3xl font-black text-[#1F2A37]">
-            Welcome Back
+            {isOwner ? 'Verify Your Phone' : 'Welcome Back'}
           </h1>
 
           <p className="mt-2 text-sm text-[#6B7A90]">
-            Enter your email to continue
+            {isOwner
+              ? 'Enter your phone number to claim your vehicle'
+              : 'Enter your email to continue'}
           </p>
         </div>
 
         <form onSubmit={handleVerify} className="flex flex-1 flex-col">
           <label className="mb-3 text-xs font-black text-[#6B7A90]">
-            Email Address
+            {isOwner ? 'Phone Number' : 'Email Address'}
           </label>
 
           <div className="relative mb-3">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9AA8BC]">
-              <Mail size={20} />
+              {isOwner ? <Phone size={20} /> : <Mail size={20} />}
             </span>
 
             <input
-              type="email"
-              placeholder="name@example.com"
-              value={email}
+              type={isOwner ? 'tel' : 'email'}
+              placeholder={isOwner ? '+33678333292' : 'name@example.com'}
+              value={contact}
               onChange={(e) => {
-                setEmail(e.target.value);
+                setContact(e.target.value);
                 if (error) setError('');
               }}
               className="h-[62px] w-full rounded-[22px] border border-[#D9E5F1] bg-white pl-12 pr-4"
             />
           </div>
 
-          {error && (
-            <p className="mb-4 text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
           <button
             type="submit"
-            disabled={!email.trim() || isSending}
-            className="mt-auto h-[58px] w-full rounded-full bg-[#F4B400] text-white"
+            disabled={!contact.trim() || isSending}
+            className="mt-auto h-[58px] w-full rounded-full bg-[#F4B400] text-white disabled:opacity-50"
           >
             {isSending ? 'Sending...' : 'Continue'}
           </button>
