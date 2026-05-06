@@ -129,7 +129,12 @@ const CompleteProfile = () => {
         }
       } catch (err) {
         console.error("Load auth user error:", err);
-        navigate("/auth", { replace: true });
+        navigate(
+          `/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`,
+          {
+            replace: true,
+          },
+        );
       } finally {
         setIsLoadingUser(false);
       }
