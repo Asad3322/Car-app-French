@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Edit3,
   Mail,
@@ -12,13 +12,12 @@ import {
   Plus,
   CarFront,
   Sparkles,
-} from 'lucide-react';
-import { supabase } from '../../supabase';
+} from "lucide-react";
+import { supabase } from "../../supabase";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const DEFAULT_AVATAR =
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
+const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix";
 
 type ProfileUser = {
   id: string;
@@ -59,19 +58,19 @@ const Profile = () => {
   const [vehicles, setVehicles] = useState<ProfileVehicle[]>([]);
   const [sentIncidents, setSentIncidents] = useState<ProfileIncident[]>([]);
   const [receivedIncidents, setReceivedIncidents] = useState<ProfileIncident[]>(
-    []
+    [],
   );
   const [isLoading, setIsLoading] = useState(true);
 
   const [, setLanguage] = useState(
-    () => localStorage.getItem('app_language') || 'EN'
+    () => localStorage.getItem("app_language") || "EN",
   );
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang);
-    localStorage.setItem('app_language', lang);
+    localStorage.setItem("app_language", lang);
     setShowLangMenu(false);
   };
 
@@ -97,21 +96,21 @@ const Profile = () => {
           return;
         }
 
-        localStorage.setItem('token', session.access_token);
+        localStorage.setItem("token", session.access_token);
 
         const headers = {
           Authorization: `Bearer ${session.access_token}`,
         };
 
         const meRes = await fetch(`${API_URL}/api/auth/me`, {
-          method: 'GET',
+          method: "GET",
           headers,
         });
 
         const meResult = await meRes.json();
 
         if (!meRes.ok) {
-          console.error('Profile /me fetch failed:', meResult);
+          console.error("Profile /me fetch failed:", meResult);
           if (isMounted) {
             setUser(null);
           }
@@ -122,22 +121,22 @@ const Profile = () => {
         const profile = meResult?.data?.profile;
 
         const fallbackProfile: ProfileUser = {
-          id: authUser?.id || '',
-          auth_user_id: authUser?.id || '',
-          email: authUser?.email || '',
+          id: authUser?.id || "",
+          auth_user_id: authUser?.id || "",
+          email: authUser?.email || "",
           username:
-            profile?.username ||
-            profile?.name ||
-            authUser?.email?.split('@')?.[0] ||
-            'User',
+            profile?.username?.trim() ||
+            profile?.name?.trim() ||
+            authUser?.email?.split("@")?.[0] ||
+            "User",
           name:
-            profile?.name ||
-            profile?.username ||
-            authUser?.email?.split('@')?.[0] ||
-            'User',
-          phone: authUser?.phone || '',
+            profile?.username?.trim() ||
+            profile?.name?.trim() ||
+            authUser?.email?.split("@")?.[0] ||
+            "User",
+          phone: authUser?.phone || "",
           avatar_url: DEFAULT_AVATAR,
-          role: 'reporter',
+          role: "reporter",
           is_vehicle_owner: false,
         };
 
@@ -150,80 +149,85 @@ const Profile = () => {
               profile?.username ||
               profile?.name ||
               fallbackProfile.username ||
-              'User',
+              "User",
             name:
               profile?.name ||
               profile?.username ||
               fallbackProfile.name ||
-              'User',
-            email: profile?.email || authUser?.email || '',
-            phone: profile?.phone || authUser?.phone || '',
+              "User",
+            email: profile?.email || authUser?.email || "",
+            phone: profile?.phone || authUser?.phone || "",
           });
         }
 
         const [vehiclesRes, sentRes, receivedRes] = await Promise.allSettled([
           fetch(`${API_URL}/api/vehicles`, {
-            method: 'GET',
+            method: "GET",
             headers,
           }),
           fetch(`${API_URL}/api/reports/sent`, {
-            method: 'GET',
+            method: "GET",
             headers,
           }),
           fetch(`${API_URL}/api/reports/received`, {
-            method: 'GET',
+            method: "GET",
             headers,
           }),
         ]);
 
         if (!isMounted) return;
 
-        if (vehiclesRes.status === 'fulfilled') {
+        if (vehiclesRes.status === "fulfilled") {
           const response = vehiclesRes.value;
           const result = await response.json();
 
           if (response.ok) {
             setVehicles(Array.isArray(result?.data) ? result.data : []);
           } else {
-            console.error('Vehicles fetch failed:', result);
+            console.error("Vehicles fetch failed:", result);
             setVehicles([]);
           }
         } else {
-          console.error('Vehicles request error:', vehiclesRes.reason);
+          console.error("Vehicles request error:", vehiclesRes.reason);
           setVehicles([]);
         }
 
-        if (sentRes.status === 'fulfilled') {
+        if (sentRes.status === "fulfilled") {
           const response = sentRes.value;
           const result = await response.json();
 
           if (response.ok) {
             setSentIncidents(Array.isArray(result?.data) ? result.data : []);
           } else {
-            console.error('Sent incidents fetch failed:', result);
+            console.error("Sent incidents fetch failed:", result);
             setSentIncidents([]);
           }
         } else {
-          console.error('Sent incidents request error:', sentRes.reason);
+          console.error("Sent incidents request error:", sentRes.reason);
           setSentIncidents([]);
         }
 
-        if (receivedRes.status === 'fulfilled') {
+        if (receivedRes.status === "fulfilled") {
           const response = receivedRes.value;
           const result = await response.json();
 
           if (response.ok) {
-            setReceivedIncidents(Array.isArray(result?.data) ? result.data : []);
+            setReceivedIncidents(
+              Array.isArray(result?.data) ? result.data : [],
+            );
           } else {
-            console.error('Received incidents fetch failed:', result);
+            console.error("Received incidents fetch failed:", result);
             setReceivedIncidents([]);
           }
         } else {
-          console.error('Received incidents request error:', receivedRes.reason);
+          console.error(
+            "Received incidents request error:",
+            receivedRes.reason,
+          );
           setReceivedIncidents([]);
         }
       } catch (error) {
-        console.error('Profile fetch error:', error);
+        console.error("Profile fetch error:", error);
         if (isMounted) {
           setUser(null);
           setVehicles([]);
@@ -242,7 +246,7 @@ const Profile = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === "SIGNED_OUT") {
         setUser(null);
         setVehicles([]);
         setSentIncidents([]);
@@ -265,7 +269,7 @@ const Profile = () => {
       : DEFAULT_AVATAR;
 
   const isOwner =
-    user?.role === 'vehicle_owner' ||
+    user?.role === "vehicle_owner" ||
     user?.isVehicleOwner ||
     user?.is_vehicle_owner;
 
@@ -290,7 +294,7 @@ const Profile = () => {
             Please sign in again to load your account.
           </p>
           <button
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate("/auth")}
             className="mt-5 rounded-[18px] bg-[#2F93F6] px-5 py-3 text-sm font-bold text-white"
           >
             Go to Sign In
@@ -322,13 +326,13 @@ const Profile = () => {
 
           {showLangMenu && (
             <div className="absolute right-0 top-14 z-[70] w-40 rounded-[18px] border border-[#C7D7E4] bg-[#F3F8FC] p-2 shadow-[0_16px_32px_rgba(43,78,112,0.14)]">
-              {['EN', 'FR'].map((lang) => (
+              {["EN", "FR"].map((lang) => (
                 <button
                   key={lang}
                   onClick={() => handleLanguageChange(lang)}
                   className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#35506B] hover:bg-[#E7F0F8]"
                 >
-                  {lang === 'EN' ? 'English' : 'Français'}
+                  {lang === "EN" ? "English" : "Français"}
                 </button>
               ))}
             </div>
@@ -340,7 +344,7 @@ const Profile = () => {
         <div className="flex flex-col gap-4">
           <section className="relative rounded-[28px] border border-[#BDD0DE] bg-[#EEF4F8] p-4 shadow-[0_10px_22px_rgba(70,106,140,0.10)]">
             <button
-              onClick={() => navigate('/app/profile/edit')}
+              onClick={() => navigate("/app/profile/edit")}
               className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[#C5D4E0] bg-white shadow-[0_6px_14px_rgba(47,147,246,0.14)] active:scale-95"
             >
               <Edit3 size={14} className="text-[#2F93F6]" />
@@ -356,7 +360,11 @@ const Profile = () => {
 
               <div className="flex-1 pt-1">
                 <h2 className="text-[20px] font-extrabold text-[#0B1A2B]">
-                  {user?.username || user?.name || 'User'}
+                  {user?.username?.trim()
+                    ? user.username
+                    : user?.name?.trim()
+                      ? user.name
+                      : user?.email?.split("@")[0] || "User"}
                 </h2>
 
                 <p className="text-[10px] uppercase tracking-[0.25em] text-[#2F93F6]">
@@ -379,7 +387,7 @@ const Profile = () => {
                     <PhoneIcon size={14} className="text-[#2F93F6]" />
                   </div>
                   <p className="text-[13px] text-[#0B1A2B]">
-                    {user?.phone || 'No phone'}
+                    {user?.phone || "No phone"}
                   </p>
                 </div>
               ) : (
@@ -388,7 +396,7 @@ const Profile = () => {
                     <Mail size={14} className="text-[#2F93F6]" />
                   </div>
                   <p className="text-[13px] text-[#0B1A2B]">
-                    {user?.email || 'No email'}
+                    {user?.email || "No email"}
                   </p>
                 </div>
               )}
@@ -416,14 +424,14 @@ const Profile = () => {
           <section className="rounded-[26px] border bg-[#EEF4F8] p-4">
             <div className="mb-3 flex justify-between">
               <h3 className="text-[16px] font-bold">Vehicles</h3>
-              <button onClick={() => navigate('/app/vehicles')}>
+              <button onClick={() => navigate("/app/vehicles")}>
                 <ChevronRight size={16} />
               </button>
             </div>
 
             {vehicles.length === 0 ? (
               <button
-                onClick={() => navigate('/app/vehicles/add')}
+                onClick={() => navigate("/app/vehicles/add")}
                 className="flex w-full flex-col items-center py-6"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E4F0FC]">
@@ -436,7 +444,7 @@ const Profile = () => {
                 <div key={v.id} className="flex justify-between py-2">
                   <div className="flex items-center gap-2">
                     <CarFront size={16} />
-                    <p>{v.name || v.vehicle_name || ''}</p>
+                    <p>{v.name || v.vehicle_name || ""}</p>
                   </div>
                   <ChevronRight size={16} />
                 </div>

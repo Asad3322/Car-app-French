@@ -14,12 +14,19 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const avatars = [
-  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=A",
-  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=B",
-  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=C",
-  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=D",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Sarah",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Michael",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Jessica",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=David",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Emma",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Alex",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Olivia",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=James",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Sophia",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Daniel",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Noah",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Mia",
 ];
-
 type AuthUserShape = {
   id: string;
   email?: string | null;
@@ -431,15 +438,15 @@ const CompleteProfile = () => {
                   Choose Avatar
                 </p>
 
-                <div className="flex gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   {avatars.map((avatar, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setSelectedAvatar(avatar)}
-                      className={`h-14 w-14 rounded-[18px] border p-0.5 transition-all ${
+                      className={`relative h-[68px] w-[68px] overflow-hidden rounded-[22px] border-2 p-1 transition-all duration-200 ${
                         selectedAvatar === avatar
-                          ? "border-[#2F93F6] bg-[#EAF4FF]"
+                          ? "scale-105 border-[#2F93F6] bg-[#EAF4FF] shadow-lg"
                           : "border-[#D9E5F1] bg-white"
                       }`}
                     >

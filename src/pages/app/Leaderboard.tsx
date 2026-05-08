@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, Search, Coins, Trophy } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Search, Coins, Trophy, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type LeaderboardEntry = {
@@ -7,20 +7,115 @@ type LeaderboardEntry = {
   profileId: string;
   username: string;
   avatarUrl?: string | null;
+  profileImage?: string | null;
   points: number;
   reportsCount: number;
   coins: number;
   streak: number;
+  currentBadge?: string;
+  isDummy?: boolean;
 };
 
 const DEFAULT_AVATAR =
-  "https://ui-avatars.com/api/?name=User&background=4EA1F3&color=fff&bold=true";
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=carapp-user";
+
+const DUMMY_USERS: LeaderboardEntry[] = [
+  {
+    rank: 0,
+    profileId: "dummy-sarah",
+    username: "Sarah Williams",
+    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Sarah",
+    points: 120,
+    reportsCount: 12,
+    coins: 500,
+    streak: 5,
+    currentBadge: "Expert Contributor",
+    isDummy: true,
+  },
+  {
+    rank: 0,
+    profileId: "dummy-michael",
+    username: "Michael Chen",
+    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Michael",
+    points: 95,
+    reportsCount: 9,
+    coins: 420,
+    streak: 4,
+    currentBadge: "Rising Star",
+    isDummy: true,
+  },
+  {
+    rank: 0,
+    profileId: "dummy-jessica",
+    username: "Jessica Moore",
+    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Jessica",
+    points: 80,
+    reportsCount: 8,
+    coins: 360,
+    streak: 3,
+    currentBadge: "Active Reporter",
+    isDummy: true,
+  },
+  {
+    rank: 0,
+    profileId: "dummy-david",
+    username: "David Smith",
+    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=David",
+    points: 60,
+    reportsCount: 6,
+    coins: 280,
+    streak: 2,
+    currentBadge: "Contributor",
+    isDummy: true,
+  },
+  {
+    rank: 0,
+    profileId: "dummy-emma",
+    username: "Emma Wilson",
+    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Emma",
+    points: 45,
+    reportsCount: 4,
+    coins: 210,
+    streak: 1,
+    currentBadge: "New Helper",
+    isDummy: true,
+  },
+];
+
+const getBadgeTitle = (player: LeaderboardEntry) => {
+  if (player.currentBadge) return player.currentBadge;
+  if (player.reportsCount >= 10) return "Expert Contributor";
+  if (player.reportsCount >= 5) return "Rising Star";
+  if (player.reportsCount >= 1) return "Active Reporter";
+  return "Contributor";
+};
 
 const Leaderboard = () => {
   const navigate = useNavigate();
 
-  const [data, setData] = useState<LeaderboardEntry[]>([]);
+  const [apiData, setApiData] = useState<LeaderboardEntry[]>([]);
+  const [selectedUser, setSelectedUser] = useState<LeaderboardEntry | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
+
+  const localProfileId = useMemo(() => {
+    const storedProfileId = localStorage.getItem("profileId");
+    const storedUser = localStorage.getItem("user");
+
+    if (storedProfileId) return storedProfileId;
+
+    try {
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        return parsedUser?.id || parsedUser?.profileId || "";
+      }
+    } catch {
+      return "";
+    }
+
+    return "";
+  }, []);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -30,18 +125,14 @@ const Leaderboard = () => {
         const res = await fetch(
           `${import.meta.env.VITE_API_URL}/api/gamification/leaderboard`,
           {
-            headers: token
-              ? {
-                  Authorization: `Bearer ${token}`,
-                }
-              : {},
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
           }
         );
 
         const result = await res.json();
 
         if (result.success) {
-          setData(result.data || []);
+          setApiData(result.data || []);
         } else {
           console.error("Leaderboard API error:", result.message);
         }
@@ -55,90 +146,196 @@ const Leaderboard = () => {
     fetchLeaderboard();
   }, []);
 
+  const data = useMemo(() => {
+    const merged = [...apiData, ...DUMMY_USERS];
+
+    const sorted = merged
+      .sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.reportsCount !== a.reportsCount) {
+          return b.reportsCount - a.reportsCount;
+        }
+        return b.coins - a.coins;
+      })
+      .map((item, index) => ({
+        ...item,
+        rank: index + 1,
+      }));
+
+    return sorted;
+  }, [apiData]);
+
+  const displayUser = selectedUser
+    ? data.find((item) => item.profileId === selectedUser.profileId) ||
+      selectedUser
+    : data[0];
+
   return (
-    <div className="min-h-screen bg-[#DDEBF7] px-4 pb-8 pt-4 text-[#0F2340]">
+    <div className="min-h-screen bg-[#F1F5F9] px-4 pb-24 pt-4 text-[#101B35]">
       <div className="mx-auto w-full max-w-[430px]">
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between rounded-b-[28px] bg-white px-2 py-3">
           <button onClick={() => navigate(-1)} className="p-2">
-            <ArrowLeft size={22} />
+            <ArrowLeft size={23} />
           </button>
 
-          <h1 className="text-2xl font-bold">Leaderboard</h1>
+          <h1 className="text-[24px] font-black tracking-tight">
+            Leaderboard
+          </h1>
 
           <button className="p-2">
-            <Search size={22} />
+            <Search size={23} />
           </button>
         </div>
 
         {loading ? (
-          <p className="text-center text-gray-500">Loading...</p>
-        ) : data.length === 0 ? (
-          <p className="text-center text-gray-500">No leaderboard data found.</p>
+          <div className="rounded-[26px] bg-white p-8 text-center text-sm font-semibold text-gray-500 shadow-sm">
+            Loading leaderboard...
+          </div>
         ) : (
-          <div className="space-y-4">
-            {data.map((player) => {
-              const storedProfileId = localStorage.getItem("profileId");
-              const storedUser = localStorage.getItem("user");
+          <>
+            {displayUser && (
+              <div className="mb-8 rounded-[30px] bg-white px-6 py-7 text-center shadow-[0_12px_35px_rgba(15,35,64,0.08)]">
+                <div className="relative mx-auto mb-4 h-[96px] w-[96px]">
+                  <div className="absolute inset-0 rounded-full bg-[#FFE8A3]" />
 
-              let localProfileId = storedProfileId || "";
+                  <img
+                    src={
+                      displayUser.avatarUrl ||
+                      displayUser.profileImage ||
+                      DEFAULT_AVATAR
+                    }
+                    alt={displayUser.username}
+                    className="relative h-full w-full rounded-full border-[6px] border-[#EEF2FF] bg-white object-cover"
+                  />
 
-              try {
-                if (!localProfileId && storedUser) {
-                  const parsedUser = JSON.parse(storedUser);
-                  localProfileId = parsedUser?.id || parsedUser?.profileId || "";
-                }
-              } catch {
-                localProfileId = "";
-              }
+                  <div className="absolute -right-1 -top-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#FFCA42] text-white shadow-md">
+                    <Crown size={17} />
+                  </div>
+                </div>
 
-              const isYou = player.profileId === localProfileId;
+                <h2 className="text-[28px] font-black leading-tight text-[#111A3A]">
+                  {displayUser.username}
+                </h2>
 
-              return (
-                <div
-                  key={player.profileId}
-                  className={`flex items-center justify-between rounded-[24px] px-4 py-4 shadow ${
-                    isYou
-                      ? "border border-[#2F93F6] bg-[#F0F8FF]"
-                      : "bg-white"
-                  }`}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 font-bold">
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+                  <span className="rounded-full bg-[#EEF0F7] px-3 py-1 text-[12px] font-black uppercase text-[#222B55]">
+                    Rank #{displayUser.rank}
+                  </span>
+
+                  <span className="text-[14px] font-semibold text-[#6B7280]">
+                    {displayUser.reportsCount} Reports submitted
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="rounded-[18px] bg-[#F7FAFC] py-3">
+                    <p className="text-[16px] font-black text-[#111A3A]">
+                      {displayUser.points}
+                    </p>
+                    <p className="text-[11px] font-bold text-[#8B95A5]">
+                      Points
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] bg-[#F7FAFC] py-3">
+                    <p className="text-[16px] font-black text-[#E7764D]">
+                      {displayUser.coins}
+                    </p>
+                    <p className="text-[11px] font-bold text-[#8B95A5]">
+                      Coins
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] bg-[#F7FAFC] py-3">
+                    <p className="text-[16px] font-black text-[#111A3A]">
+                      {displayUser.streak}
+                    </p>
+                    <p className="text-[11px] font-bold text-[#8B95A5]">
+                      Streak
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-[25px] font-black">Week Leaderboard</h3>
+              <span className="text-[13px] font-black uppercase tracking-[0.25em] text-[#8B95A5]">
+                Global
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {data.map((player) => {
+                const isYou = player.profileId === localProfileId;
+                const isSelected =
+                  displayUser?.profileId === player.profileId;
+
+                const avatar =
+                  player.avatarUrl || player.profileImage || DEFAULT_AVATAR;
+
+                return (
+                  <button
+                    key={player.profileId}
+                    onClick={() => setSelectedUser(player)}
+                    className={`flex w-full items-center rounded-[26px] px-4 py-4 text-left transition active:scale-[0.98] ${
+                      isSelected
+                        ? "border border-[#2F93F6] bg-[#EEF8FF]"
+                        : isYou
+                          ? "border border-[#2F93F6] bg-[#F7FBFF]"
+                          : "bg-white"
+                    } shadow-[0_10px_28px_rgba(15,35,64,0.07)]`}
+                  >
+                    <div
+                      className={`mr-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[18px] font-black ${
+                        player.rank === 1
+                          ? "bg-[#FFF1BC] text-[#D69A00]"
+                          : player.rank === 2
+                            ? "bg-[#EEF2F7] text-[#7B8794]"
+                            : player.rank === 3
+                              ? "bg-[#FFE8DD] text-[#E06D3A]"
+                              : "bg-[#F4F6F9] text-[#8B95A5]"
+                      }`}
+                    >
                       {player.rank}
                     </div>
 
                     <img
-                      src={player.avatarUrl || DEFAULT_AVATAR}
+                      src={avatar}
                       alt={player.username}
-                      className="h-12 w-12 shrink-0 rounded-full bg-white object-cover"
+                      className="mr-4 h-[58px] w-[58px] shrink-0 rounded-full bg-[#EEF2F7] object-cover"
                     />
 
-                    <div className="min-w-0">
-                      <p className="truncate font-bold">
-                        {player.username} {isYou && "(You)"}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[18px] font-black text-[#101B35]">
+                        {player.username} {isYou ? "(You)" : ""}
                       </p>
 
-                      <p className="text-sm text-gray-500">
+                      <p className="truncate text-[14px] font-medium text-[#7A8494]">
+                        {getBadgeTitle(player)}
+                      </p>
+
+                      <p className="mt-1 text-[13px] font-semibold text-[#8B95A5]">
                         {player.reportsCount} Reports
                       </p>
                     </div>
-                  </div>
 
-                  <div className="shrink-0 text-right">
-                    <div className="flex items-center justify-end gap-1 font-bold text-blue-600">
-                      <Trophy size={14} />
-                      {player.points} pts
-                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="flex items-center justify-end gap-1 text-[17px] font-black text-[#111A3A]">
+                        <Trophy size={16} className="text-[#59718D]" />
+                        {player.points} pts
+                      </div>
 
-                    <div className="mt-1 flex items-center justify-end gap-1 text-xs font-semibold text-yellow-600">
-                      <Coins size={13} />
-                      {player.coins} coins
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[14px] font-black text-[#E7764D]">
+                        <Coins size={14} />
+                        {player.coins} coins
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
