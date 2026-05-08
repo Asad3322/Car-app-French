@@ -105,9 +105,17 @@ export const handleMagicLinkLogin = async () => {
       };
     }
 
+    const profile = result?.data?.profile || null;
+
+    const isProfileComplete =
+      !!profile &&
+      !!profile.id &&
+      !!profile.username &&
+      profile.username.trim() !== '';
+
     return {
       session,
-      profile: result?.data?.profile || result?.data || null,
+      profile: isProfileComplete ? profile : null,
     };
   } catch (error) {
     console.error('handleMagicLinkLogin error:', error);
