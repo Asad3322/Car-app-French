@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Mail, Phone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { sendVerification } from '../services/authService';
 
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const params = new URLSearchParams(location.search);
 
@@ -39,7 +41,11 @@ const Auth = () => {
     const trimmedContact = contact.trim();
 
     if (!trimmedContact) {
-      setError(isOwner ? 'Phone number is required' : 'Email is required');
+      setError(
+        isOwner
+          ? t('auth.phoneRequired')
+          : t('auth.emailRequired')
+      );
       return;
     }
 
@@ -50,7 +56,7 @@ const Auth = () => {
       // ================= OWNER PHONE FLOW =================
       if (isOwner) {
         if (!vehicleId) {
-          throw new Error('Vehicle ID missing. Please register vehicle again.');
+          throw new Error(t('auth.vehicleMissing'));
         }
 
         localStorage.removeItem('pendingEmail');
@@ -100,7 +106,10 @@ const Auth = () => {
       navigate('/verify?role=reporter');
     } catch (err: any) {
       console.error('Auth verification error:', err);
-      setError(err?.message || 'Failed to send verification link');
+
+      setError(
+        err?.message || t('auth.failedVerification')
+      );
     } finally {
       setIsSending(false);
     }
@@ -116,24 +125,26 @@ const Auth = () => {
 
           <h1 className="text-3xl font-black text-[#1F2A37]">
             {isOwner
-              ? 'Verify Your Phone'
+              ? t('auth.verifyPhone')
               : isOwnerEmailStep
-              ? 'Verify Your Email'
-              : 'Welcome Back'}
+              ? t('auth.verifyEmail')
+              : t('auth.welcomeBack')}
           </h1>
 
           <p className="mt-2 text-sm text-[#6B7A90]">
             {isOwner
-              ? 'Enter your phone number to claim your vehicle'
+              ? t('auth.claimVehicleText')
               : isOwnerEmailStep
-              ? 'Enter your email to create your owner account'
-              : 'Enter your email to continue'}
+              ? t('auth.ownerEmailText')
+              : t('auth.continueEmailText')}
           </p>
         </div>
 
         <form onSubmit={handleVerify} className="flex flex-1 flex-col">
           <label className="mb-3 text-xs font-black text-[#6B7A90]">
-            {isOwner ? 'Phone Number' : 'Email Address'}
+            {isOwner
+              ? t('auth.phoneNumber')
+              : t('auth.emailAddress')}
           </label>
 
           <div className="relative mb-3">
@@ -143,24 +154,33 @@ const Auth = () => {
 
             <input
               type={isOwner ? 'tel' : 'email'}
-              placeholder={isOwner ? '+33678333292' : 'name@example.com'}
+              placeholder={
+                isOwner ? '+33678333292' : 'name@example.com'
+              }
               value={contact}
               onChange={(e) => {
                 setContact(e.target.value);
+
                 if (error) setError('');
               }}
               className="h-[62px] w-full rounded-[22px] border border-[#D9E5F1] bg-white pl-12 pr-4 outline-none focus:border-[#4A90E2]"
             />
           </div>
 
-          {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+          {error && (
+            <p className="mb-4 text-sm text-red-500">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
             disabled={!contact.trim() || isSending}
             className="mt-auto h-[58px] w-full rounded-full bg-[#F4B400] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSending ? 'Sending...' : 'Continue'}
+            {isSending
+              ? t('auth.sending')
+              : t('auth.continue')}
           </button>
         </form>
       </div>

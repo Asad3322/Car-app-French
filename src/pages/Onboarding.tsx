@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 
 const Onboarding = () => {
+  const { t } = useTranslation();
+
   const startOwnerOnboarding = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -31,12 +34,11 @@ const Onboarding = () => {
 
           <div className="text-center">
             <h1 className="text-[42px] font-black tracking-tight text-[#12304D]">
-              CARAPP
+              {t("common.appName")}
             </h1>
 
             <p className="mt-4 text-[15px] leading-7 text-[#6B7A90] max-w-[280px] mx-auto">
-              Report incidents and keep your vehicle safe with a simple and
-              smart experience.
+              {t("onboarding.description")}
             </p>
           </div>
 
@@ -47,7 +49,7 @@ const Onboarding = () => {
               to="/app/reports"
               className="flex h-[60px] items-center justify-center rounded-[22px] bg-[#F4B400] text-[16px] font-black text-white shadow-[0_12px_25px_rgba(244,180,0,0.25)] border-b-[5px] border-[#D99800] transition-all duration-300 hover:-translate-y-0.5"
             >
-              Report Incident
+              {t("onboarding.reportIncident")}
             </Link>
 
             <Link
@@ -55,12 +57,12 @@ const Onboarding = () => {
               onClick={startOwnerOnboarding}
               className="flex h-[60px] items-center justify-center rounded-[22px] bg-gradient-to-r from-[#5BA3F0] to-[#4A90E2] text-[16px] font-black text-white shadow-[0_12px_25px_rgba(74,144,226,0.25)] transition-all duration-300 hover:-translate-y-0.5"
             >
-              Register Vehicle
+              {t("onboarding.registerVehicle")}
             </Link>
           </div>
 
           <div className="mt-6 text-center text-[12px] font-semibold text-[#9AA8BC]">
-            Need help? Contact Support
+            {t("onboarding.needHelp")} {t("onboarding.contactSupport")}
           </div>
         </div>
       </div>
