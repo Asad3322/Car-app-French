@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ChevronLeft,
   Camera,
@@ -17,10 +18,11 @@ const MAX_VEHICLE_IMAGES = 4;
 const AddVehicle = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const isOnboardingFlow =
-  location.pathname.includes('add-vehicle') ||
-  location.pathname.includes('vehicle/add');
+    location.pathname.includes('add-vehicle') ||
+    location.pathname.includes('vehicle/add');
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -233,7 +235,7 @@ const AddVehicle = () => {
         </button>
 
         <h1 className="text-[14px] font-black uppercase tracking-[0.14em] text-[#0F172A]">
-          Add Vehicle
+          {t('vehicles.addVehicle')}
         </h1>
 
         <div className="w-11" />
@@ -250,11 +252,11 @@ const AddVehicle = () => {
               <div className="flex flex-col gap-5">
                 <div>
                   <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                    Vehicle Nickname
+                    {t('vehicles.vehicleNickname')}
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. My Black Tesla"
+                    placeholder={t('vehicles.vehiclePlaceholder')}
                     className="h-[58px] w-full rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 text-[15px] font-semibold text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -264,7 +266,7 @@ const AddVehicle = () => {
 
                 <div>
                   <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                    Licence Plate
+                    {t('vehicles.licencePlate')}
                   </label>
 
                   <div className="relative">
@@ -288,7 +290,7 @@ const AddVehicle = () => {
             <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <label className="ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                  Vehicle Photo
+                  {t('vehicles.vehiclePhoto')}
                 </label>
 
                 {images.length > 0 && (
@@ -317,7 +319,7 @@ const AddVehicle = () => {
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.20)_100%)]" />
 
                     <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#2563EB] shadow-sm">
-                      Main Photo
+                      {t('vehicles.mainPhoto')}
                     </div>
 
                     <button
@@ -389,11 +391,11 @@ const AddVehicle = () => {
 
                       <div className="px-4 text-center">
                         <p className="text-[15px] font-black tracking-tight text-[#0F172A]">
-                          Add a photo
+                          {t('vehicles.addPhoto')}
                         </p>
 
                         <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
-                          Required for identification
+                          {t('vehicles.identificationRequired')}
                         </p>
                       </div>
                     </div>
@@ -415,7 +417,7 @@ const AddVehicle = () => {
                       </div>
 
                       <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
-                        Add Image
+                        {t('vehicles.addImage')}
                       </span>
                     </button>
 
@@ -429,7 +431,7 @@ const AddVehicle = () => {
                       </div>
 
                       <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
-                        Add Insurance
+                        {t('vehicles.addInsurance')}
                       </span>
                     </button>
                   </div>
@@ -480,7 +482,9 @@ const AddVehicle = () => {
             disabled={!isFormValid || isSubmitting}
             className="h-[60px] w-full rounded-[18px] bg-[#2563EB] text-[13px] font-black uppercase tracking-[0.14em] text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {isSubmitting ? 'Registering...' : 'Register Vehicle'}
+            {isSubmitting
+              ? t('vehicles.registering')
+              : t('vehicles.registerVehicle')}
           </button>
         </div>
       </div>
