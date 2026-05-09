@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
@@ -37,6 +37,48 @@ const ReportDetails = () => {
     if (value === "Not Urgent") return "not_urgent";
     return "medium";
   };
+
+  const getAnonymousUserId = () => {
+    let anonymousId = localStorage.getItem("anonymous_user_id");
+
+    if (!anonymousId) {
+      anonymousId =
+        "anon_" + Math.random().toString(36).substring(2) + Date.now();
+
+      localStorage.setItem("anonymous_user_id", anonymousId);
+    }
+
+    return anonymousId;
+  };
+
+  useEffect(() => {
+    if (!plate.trim() && !description.trim() && !urgency) {
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        await fetch(`${API_URL}/api/reports/autosave`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            anonymousUserId: getAnonymousUserId(),
+            licencePlate: plate.trim().toUpperCase(),
+            urgency: mapUrgencyToApi(urgency),
+            description: description.trim(),
+          }),
+        });
+
+        console.log("✅ Draft auto-saved");
+      } catch (error) {
+        console.error("❌ Auto-save failed:", error);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [plate, urgency, description]);
 
   const handleAiOptimize = async () => {
     if (!description.trim() || aiUses >= 3 || isOptimizing) return;
