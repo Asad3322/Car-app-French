@@ -19,8 +19,8 @@ const AddVehicle = () => {
   const location = useLocation();
 
   const isOnboardingFlow =
-  location.pathname === '/vehicle/add' ||
-  location.pathname === '/add-vehicle';
+  location.pathname.includes('add-vehicle') ||
+  location.pathname.includes('vehicle/add');
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
