@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Edit3,
   Mail,
@@ -53,6 +54,7 @@ type ProfileIncident = {
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [vehicles, setVehicles] = useState<ProfileVehicle[]>([]);
@@ -62,14 +64,11 @@ const Profile = () => {
   );
   const [isLoading, setIsLoading] = useState(true);
 
-  const [, setLanguage] = useState(
-    () => localStorage.getItem("app_language") || "EN",
-  );
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
+  const handleLanguageChange = (lang: "en" | "fr") => {
+    i18n.changeLanguage(lang);
     localStorage.setItem("app_language", lang);
     setShowLangMenu(false);
   };
@@ -119,6 +118,11 @@ const Profile = () => {
 
         const authUser = meResult?.data?.auth;
         const profile = meResult?.data?.profile;
+
+        if (profile?.language === "en" || profile?.language === "fr") {
+          i18n.changeLanguage(profile.language);
+          localStorage.setItem("app_language", profile.language);
+        }
 
         const fallbackProfile: ProfileUser = {
           id: authUser?.id || "",
@@ -258,7 +262,7 @@ const Profile = () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [i18n]);
 
   const sentCount = sentIncidents.length;
   const receivedCount = receivedIncidents.length;
@@ -273,12 +277,14 @@ const Profile = () => {
     user?.isVehicleOwner ||
     user?.is_vehicle_owner;
 
+  const currentLanguage = i18n.language === "en" ? "en" : "fr";
+
   if (isLoading) {
     return (
       <div className="relative flex h-full flex-col overflow-hidden bg-[#D6E2EC] text-[#0B1A2B]">
         <div className="relative z-20 flex flex-1 items-center justify-center px-5">
           <p className="text-sm font-semibold text-[#6F8194]">
-            Loading profile...
+            {t("profile.loadingProfile", "Loading profile...")}
           </p>
         </div>
       </div>
@@ -289,15 +295,20 @@ const Profile = () => {
     return (
       <div className="relative flex h-full flex-col overflow-hidden bg-[#D6E2EC] text-[#0B1A2B]">
         <div className="relative z-20 flex flex-1 flex-col items-center justify-center px-5 text-center">
-          <h2 className="text-xl font-black">Profile not found</h2>
+          <h2 className="text-xl font-black">
+            {t("profile.notFound", "Profile not found")}
+          </h2>
           <p className="mt-2 text-sm text-[#6F8194]">
-            Please sign in again to load your account.
+            {t(
+              "profile.signInAgain",
+              "Please sign in again to load your account.",
+            )}
           </p>
           <button
             onClick={() => navigate("/auth")}
             className="mt-5 rounded-[18px] bg-[#2F93F6] px-5 py-3 text-sm font-bold text-white"
           >
-            Go to Sign In
+            {t("auth.goToSignIn", "Go to Sign In")}
           </button>
         </div>
       </div>
@@ -309,32 +320,39 @@ const Profile = () => {
       <div className="relative z-30 flex items-center justify-between px-6 pt-8 pb-5">
         <div>
           <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.25em] text-[#6F8194]">
-            Account
+            {t("profile.account", "Account")}
           </p>
           <h1 className="text-[24px] font-black uppercase italic tracking-tight text-[#0B1A2B]">
-            Profile
+            {t("profile.profile", "Profile")}
           </h1>
         </div>
 
         <div className="relative">
           <button
             onClick={() => setShowLangMenu((prev) => !prev)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#AFC0CF] bg-[#F3F8FC] shadow-[0_6px_14px_rgba(47,147,246,0.10)] active:scale-95"
+            className="flex h-10 min-w-10 items-center justify-center gap-1 rounded-full border border-[#AFC0CF] bg-[#F3F8FC] px-3 shadow-[0_6px_14px_rgba(47,147,246,0.10)] active:scale-95"
           >
             <Globe size={16} className="text-[#2F93F6]" />
+            <span className="text-[10px] font-black uppercase text-[#2F93F6]">
+              {currentLanguage === "fr" ? "FR" : "EN"}
+            </span>
           </button>
 
           {showLangMenu && (
-            <div className="absolute right-0 top-14 z-[70] w-40 rounded-[18px] border border-[#C7D7E4] bg-[#F3F8FC] p-2 shadow-[0_16px_32px_rgba(43,78,112,0.14)]">
-              {["EN", "FR"].map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => handleLanguageChange(lang)}
-                  className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#35506B] hover:bg-[#E7F0F8]"
-                >
-                  {lang === "EN" ? "English" : "Français"}
-                </button>
-              ))}
+            <div className="absolute right-0 top-14 z-[70] w-44 rounded-[18px] border border-[#C7D7E4] bg-[#F3F8FC] p-2 shadow-[0_16px_32px_rgba(43,78,112,0.14)]">
+              <button
+                onClick={() => handleLanguageChange("fr")}
+                className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#35506B] hover:bg-[#E7F0F8]"
+              >
+                🇫🇷 {t("profile.french", "Français")}
+              </button>
+
+              <button
+                onClick={() => handleLanguageChange("en")}
+                className="w-full rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#35506B] hover:bg-[#E7F0F8]"
+              >
+                🇺🇸 {t("profile.english", "English")}
+              </button>
             </div>
           )}
         </div>
@@ -368,13 +386,13 @@ const Profile = () => {
                 </h2>
 
                 <p className="text-[10px] uppercase tracking-[0.25em] text-[#2F93F6]">
-                  Community Driver
+                  {t("profile.communityDriver", "Community Driver")}
                 </p>
 
                 {isOwner && (
                   <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[9px] font-bold uppercase text-emerald-600">
                     <ShieldCheck size={12} />
-                    Verified Owner
+                    {t("profile.verifiedOwner", "Verified Owner")}
                   </div>
                 )}
               </div>
@@ -387,7 +405,7 @@ const Profile = () => {
                     <PhoneIcon size={14} className="text-[#2F93F6]" />
                   </div>
                   <p className="text-[13px] text-[#0B1A2B]">
-                    {user?.phone || "No phone"}
+                    {user?.phone || t("profile.noPhone", "No phone")}
                   </p>
                 </div>
               ) : (
@@ -396,7 +414,7 @@ const Profile = () => {
                     <Mail size={14} className="text-[#2F93F6]" />
                   </div>
                   <p className="text-[13px] text-[#0B1A2B]">
-                    {user?.email || "No email"}
+                    {user?.email || t("profile.noEmail", "No email")}
                   </p>
                 </div>
               )}
@@ -409,7 +427,9 @@ const Profile = () => {
                 <Navigation size={18} className="text-white" />
               </div>
               <p className="text-[20px] font-black">{sentCount}</p>
-              <p className="text-[10px] text-[#6F8194]">Sent</p>
+              <p className="text-[10px] text-[#6F8194]">
+                {t("profile.sent", "Sent")}
+              </p>
             </div>
 
             <div className="rounded-[24px] border bg-[#EEF4F8] p-4 text-center">
@@ -417,13 +437,17 @@ const Profile = () => {
                 <FileText size={18} className="text-white" />
               </div>
               <p className="text-[20px] font-black">{receivedCount}</p>
-              <p className="text-[10px] text-[#6F8194]">Received</p>
+              <p className="text-[10px] text-[#6F8194]">
+                {t("profile.received", "Received")}
+              </p>
             </div>
           </section>
 
           <section className="rounded-[26px] border bg-[#EEF4F8] p-4">
             <div className="mb-3 flex justify-between">
-              <h3 className="text-[16px] font-bold">Vehicles</h3>
+              <h3 className="text-[16px] font-bold">
+                {t("vehicles.myVehicles", "Vehicles")}
+              </h3>
               <button onClick={() => navigate("/app/vehicles")}>
                 <ChevronRight size={16} />
               </button>
@@ -437,7 +461,9 @@ const Profile = () => {
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E4F0FC]">
                   <Plus size={20} className="text-[#2F93F6]" />
                 </div>
-                <p className="mt-2 text-sm font-bold">Add Vehicle</p>
+                <p className="mt-2 text-sm font-bold">
+                  {t("vehicles.addVehicle", "Add Vehicle")}
+                </p>
               </button>
             ) : (
               vehicles.map((v) => (
@@ -455,7 +481,9 @@ const Profile = () => {
           <button className="flex items-center justify-between rounded-[22px] border bg-[#EEF4F8] px-4 py-3">
             <div className="flex items-center gap-2">
               <Sparkles size={16} />
-              <span className="text-sm font-bold">Support</span>
+              <span className="text-sm font-bold">
+                {t("profile.support", "Support")}
+              </span>
             </div>
             <ChevronRight size={16} />
           </button>
