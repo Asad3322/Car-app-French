@@ -27,6 +27,7 @@ const avatars = [
   "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Noah",
   "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Mia",
 ];
+
 type AuthUserShape = {
   id: string;
   email?: string | null;
@@ -93,9 +94,7 @@ const CompleteProfile = () => {
         if (!sessionData?.session?.access_token) {
           navigate(
             `/auth?role=${storedRole === "vehicle_owner" ? "owner" : "reporter"}`,
-            {
-              replace: true,
-            },
+            { replace: true }
           );
           return;
         }
@@ -121,7 +120,7 @@ const CompleteProfile = () => {
         setPhone(
           storedRole === "vehicle_owner"
             ? storedVerifiedPhone
-            : user.phone || "",
+            : user.phone || ""
         );
 
         const { data: profile } = await supabase
@@ -135,16 +134,14 @@ const CompleteProfile = () => {
           setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
           setEmail(profile.email || user.email || "");
           setSelectedAvatar(
-            profile.profileImage || profile.avatar_url || avatars[0],
+            profile.profileImage || profile.avatar_url || avatars[0]
           );
         }
       } catch (err) {
         console.error("Load auth user error:", err);
         navigate(
           `/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`,
-          {
-            replace: true,
-          },
+          { replace: true }
         );
       } finally {
         setIsLoadingUser(false);
@@ -201,9 +198,13 @@ const CompleteProfile = () => {
     return () => clearTimeout(timer);
   }, [username, authUser]);
 
-  const claimVehicleAfterProfile = async () => {
+  const claimVehicleAfterProfile = async (savedVehicleId?: string) => {
     const token = localStorage.getItem("token");
-    const pendingVehicleId = localStorage.getItem("vehicleId") || vehicleId;
+
+    const pendingVehicleId =
+      savedVehicleId || vehicleId || localStorage.getItem("vehicleId");
+
+    console.log("CLAIM VEHICLE ID:", pendingVehicleId);
 
     if (!pendingVehicleId) {
       console.warn("No pending vehicleId found to claim");
@@ -221,7 +222,9 @@ const CompleteProfile = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ vehicleId: pendingVehicleId }),
+      body: JSON.stringify({
+        vehicleId: pendingVehicleId,
+      }),
     });
 
     const result = await response.json();
@@ -317,7 +320,7 @@ const CompleteProfile = () => {
           localStorage.setItem("user", JSON.stringify(savedProfile.profile));
         }
 
-        await claimVehicleAfterProfile();
+        await claimVehicleAfterProfile(vehicleId);
 
         localStorage.removeItem("verifiedPhone");
         localStorage.removeItem("vehicleId");
