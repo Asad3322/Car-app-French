@@ -24,8 +24,7 @@ const fr = {
     welcomeBack: "Bon retour",
     claimVehicleText:
       "Entrez votre numéro de téléphone pour réclamer votre véhicule",
-    ownerEmailText:
-      "Entrez votre email pour créer votre compte propriétaire",
+    ownerEmailText: "Entrez votre email pour créer votre compte propriétaire",
     continueEmailText: "Entrez votre email pour continuer",
     phoneNumber: "Numéro de téléphone",
     emailAddress: "Adresse email",
@@ -36,6 +35,34 @@ const fr = {
     vehicleMissing:
       "ID du véhicule manquant. Veuillez enregistrer le véhicule à nouveau.",
     failedVerification: "Échec de l'envoi du lien de vérification",
+  },
+
+  verify: {
+    verifyAccount: "Vérifier le compte",
+    secureVerification: "Vérification sécurisée",
+    ownerDescription:
+      "Entrez votre numéro de téléphone pour recevoir un lien sécurisé.",
+    reporterDescription:
+      "Entrez votre email pour recevoir un lien de connexion sécurisé.",
+    ownerVerified:
+      "Téléphone vérifié. Connectez-vous maintenant avec votre email pour créer votre compte sécurisé.",
+    reporterVerified:
+      "Nous avons envoyé un lien sécurisé à votre email. Ouvrez-le pour continuer.",
+    ownerSecureText:
+      "Nous allons générer un lien sécurisé pour votre numéro de téléphone.",
+    reporterSecureText:
+      "Nous allons envoyer un lien de connexion sécurisé à votre email.",
+    sendLoginLink: "Envoyer le lien",
+    verificationFor: "Vérification pour",
+    linkSentTo: "Lien envoyé à",
+    nextStep: "Étape suivante",
+    ownerNextStep:
+      "Après vérification du téléphone, connectez-vous avec votre email pour compléter votre profil propriétaire.",
+    reporterNextStep:
+      "Ouvrez le lien sécurisé depuis votre boîte mail et continuez la configuration de votre profil.",
+    changePhone: "Changer le numéro",
+    changeEmail: "Changer l'email",
+    protectedAccess: "Accès protégé",
   },
 
   vehicles: {

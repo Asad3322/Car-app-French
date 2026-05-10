@@ -35,6 +35,32 @@ const en = {
     failedVerification: "Failed to send verification link",
   },
 
+  verify: {
+    verifyAccount: "Verify Account",
+    secureVerification: "Secure Verification",
+    ownerDescription:
+      "Enter your phone number to receive a secure verification link.",
+    reporterDescription: "Enter your email to receive a secure login link.",
+    ownerVerified:
+      "Phone verified. Next, login with email to create your secure account.",
+    reporterVerified:
+      "We sent a secure login link to your email. Open it to continue.",
+    ownerSecureText:
+      "We will generate a secure verification link for your phone number.",
+    reporterSecureText: "We will send a secure sign-in link to your email.",
+    sendLoginLink: "Send Login Link",
+    verificationFor: "Verification for",
+    linkSentTo: "Link sent to",
+    nextStep: "Next step",
+    ownerNextStep:
+      "After phone verification, login with email to complete your owner profile.",
+    reporterNextStep:
+      "Open the secure link from your inbox and continue to your profile setup.",
+    changePhone: "Change phone number",
+    changeEmail: "Change email",
+    protectedAccess: "Protected access",
+  },
+
   vehicles: {
     addVehicle: "Add Vehicle",
     myVehicles: "My Vehicles",
