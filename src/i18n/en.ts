@@ -129,6 +129,29 @@ const en = {
     received: "Received",
     support: "Support",
   },
+
+  home: {
+    communitySafety: "Community Safety",
+    greeting: "Hi",
+    subtitle: "Ready to help the community today?",
+    currentStreak: "Current Streak",
+    days: "Days",
+    streakDescription:
+      "You're doing amazing. Keep reporting and protecting.",
+    reportsMade: "Reports Made",
+    verifiedReports: "Total verified reports",
+    currentBadge: "Current Badge",
+    noBadge: "No Badge Yet",
+    weeklyLeaderboard: "Weekly Leaderboard",
+    viewAll: "View All",
+    reports: "Reports",
+    reportNow: "New Report",
+    you: "You",
+    guest: "Guest",
+    communityHero: "Community Hero",
+    topContributor: "Top Contributor",
+    climbingFast: "Climbing fast!",
+  },
 };
 
 export default en;

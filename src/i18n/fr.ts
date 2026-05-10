@@ -133,6 +133,29 @@ const fr = {
     received: "Reçus",
     support: "Support",
   },
+
+  home: {
+    communitySafety: "Communauté Sécurisée",
+    greeting: "Bonjour",
+    subtitle: "Prêt à aider la communauté aujourd’hui ?",
+    currentStreak: "Série actuelle",
+    days: "Jours",
+    streakDescription:
+      "Vous faites un excellent travail. Continuez à signaler et protéger.",
+    reportsMade: "Signalements",
+    verifiedReports: "Signalements vérifiés",
+    currentBadge: "Badge actuel",
+    noBadge: "Aucun badge",
+    weeklyLeaderboard: "Classement Hebdomadaire",
+    viewAll: "Voir tout",
+    reports: "Signalements",
+    reportNow: "Signaler maintenant",
+    you: "Vous",
+    guest: "Invité",
+    communityHero: "Héros de la communauté",
+    topContributor: "Meilleur contributeur",
+    climbingFast: "Progression rapide",
+  },
 };
 
 export default fr;
