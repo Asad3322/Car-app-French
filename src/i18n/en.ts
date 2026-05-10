@@ -61,6 +61,20 @@ const en = {
     protectedAccess: "Protected access",
   },
 
+  success: {
+    thankYou: "Thank You!",
+    youEarned: "You just earned",
+    reportDifference:
+      "Your report is making a difference.",
+    yourReward: "Your Reward",
+    points: "Points",
+    day: "Day",
+    badge: "Badge",
+    loading: "Loading...",
+    claimReward: "Claim Reward",
+    skip: "Skip",
+  },
+
   vehicles: {
     addVehicle: "Add Vehicle",
     myVehicles: "My Vehicles",
@@ -73,7 +87,8 @@ const en = {
     vehiclePhoto: "Vehicle Photo",
     mainPhoto: "Main Photo",
     addPhoto: "Add a photo",
-    identificationRequired: "Required for identification",
+    identificationRequired:
+      "Required for identification",
     addImage: "Add Image",
     addInsurance: "Add Insurance",
   },
@@ -86,7 +101,8 @@ const en = {
     french: "French",
     loadingProfile: "Loading profile...",
     notFound: "Profile not found",
-    signInAgain: "Please sign in again to load your account.",
+    signInAgain:
+      "Please sign in again to load your account.",
     communityDriver: "Community Driver",
     verifiedOwner: "Verified Owner",
     noPhone: "No phone",
