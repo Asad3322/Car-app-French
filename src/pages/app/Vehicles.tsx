@@ -8,6 +8,33 @@ const API_URL = import.meta.env.VITE_API_URL;
 const FALLBACK_VEHICLE_IMAGE =
   "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400";
 
+const vehicleText = {
+  en: {
+    garage: "Garage",
+    myVehicles: "My Vehicles",
+    subtitle: "Manage your cars and receive alerts.",
+    addVehicle: "Add Vehicle",
+    total: "Total",
+    noVehicles: "No vehicles yet",
+    emptyDescription1: "Add your vehicle to start receiving",
+    emptyDescription2: "real-time community alerts.",
+    activeAlerts: "active alerts",
+    vehicleAlt: "Vehicle",
+  },
+  fr: {
+    garage: "Garage",
+    myVehicles: "Mes véhicules",
+    subtitle: "Gérez vos voitures et recevez des alertes.",
+    addVehicle: "Ajouter un véhicule",
+    total: "Total",
+    noVehicles: "Aucun véhicule pour le moment",
+    emptyDescription1: "Ajoutez votre véhicule pour recevoir",
+    emptyDescription2: "des alertes communautaires en temps réel.",
+    activeAlerts: "alertes actives",
+    vehicleAlt: "Véhicule",
+  },
+};
+
 type RawVehicle = {
   id?: string;
   vehicle_name?: string;
@@ -37,6 +64,13 @@ type ApiResponse = {
   message?: string;
   data?: unknown;
   vehicles?: unknown;
+};
+
+const getLanguage = (): keyof typeof vehicleText => {
+  const savedLanguage = localStorage.getItem("language");
+  return savedLanguage === "en" || savedLanguage === "fr"
+    ? savedLanguage
+    : "fr";
 };
 
 const cleanUrl = (url: unknown): string => {
@@ -85,7 +119,9 @@ const getVehicleImage = (vehicle: RawVehicle): string => {
   return FALLBACK_VEHICLE_IMAGE;
 };
 
-const extractVehiclesArray = (result: ApiResponse | RawVehicle[] | unknown): RawVehicle[] => {
+const extractVehiclesArray = (
+  result: ApiResponse | RawVehicle[] | unknown
+): RawVehicle[] => {
   if (!result) return [];
 
   if (Array.isArray(result)) return result as RawVehicle[];
@@ -97,8 +133,13 @@ const extractVehiclesArray = (result: ApiResponse | RawVehicle[] | unknown): Raw
 
   const nestedData = response.data as ApiResponse | undefined;
 
-  if (Array.isArray(nestedData?.vehicles)) return nestedData.vehicles as RawVehicle[];
-  if (Array.isArray(nestedData?.data)) return nestedData.data as RawVehicle[];
+  if (Array.isArray(nestedData?.vehicles)) {
+    return nestedData.vehicles as RawVehicle[];
+  }
+
+  if (Array.isArray(nestedData?.data)) {
+    return nestedData.data as RawVehicle[];
+  }
 
   return [];
 };
@@ -128,6 +169,9 @@ const normalizeVehicle = (vehicle: RawVehicle): VehicleCardItem => {
 
 const Vehicles = () => {
   const navigate = useNavigate();
+
+  const language = getLanguage();
+  const t = vehicleText[language];
 
   const [vehicles, setVehicles] = useState<VehicleCardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -193,15 +237,15 @@ const Vehicles = () => {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#94A3B8]">
-              Garage
+              {t.garage}
             </p>
 
             <h1 className="mt-2 text-[28px] font-black tracking-tight text-[#0F172A]">
-              My Vehicles
+              {t.myVehicles}
             </h1>
 
             <p className="mt-1 text-[13px] font-medium text-[#64748B]">
-              Manage your cars and receive alerts.
+              {t.subtitle}
             </p>
           </div>
 
@@ -209,14 +253,14 @@ const Vehicles = () => {
             <button
               onClick={() => navigate("/app/vehicles/add")}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8E3F0] bg-white text-[#7E8CA3] shadow-[0_12px_26px_rgba(15,23,42,0.12)] transition-all hover:scale-[1.03] hover:text-[#3B82F6] active:scale-95"
-              aria-label="Add vehicle"
+              aria-label={t.addVehicle}
               type="button"
             >
               <Plus size={19} strokeWidth={3} />
             </button>
 
             <div className="rounded-full border border-[#D8E3F0] bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#8A98AE] shadow-[0_10px_20px_rgba(15,23,42,0.08)]">
-              {vehicles.length} Total
+              {vehicles.length} {t.total}
             </div>
           </div>
         </div>
@@ -248,13 +292,13 @@ const Vehicles = () => {
             </div>
 
             <h2 className="text-lg font-black text-[#0F172A]">
-              No vehicles yet
+              {t.noVehicles}
             </h2>
 
             <p className="mt-2 text-sm font-medium leading-relaxed text-[#64748B]">
-              Add your vehicle to start receiving
+              {t.emptyDescription1}
               <br />
-              real-time community alerts.
+              {t.emptyDescription2}
             </p>
 
             <button
@@ -262,7 +306,7 @@ const Vehicles = () => {
               className="mt-6 inline-flex items-center justify-center rounded-[18px] bg-[#111827] px-5 py-3 text-[12px] font-black uppercase tracking-[0.16em] text-white shadow-[0_16px_34px_rgba(15,23,42,0.18)] transition-all hover:scale-[1.02] active:scale-[0.98]"
               type="button"
             >
-              Add Vehicle
+              {t.addVehicle}
             </button>
           </div>
         ) : (
@@ -271,6 +315,8 @@ const Vehicles = () => {
               <VehicleCard
                 key={vehicle.id}
                 vehicle={vehicle}
+                activeAlertsText={t.activeAlerts}
+                vehicleAltText={t.vehicleAlt}
                 onClick={() => navigate(`/app/vehicles/${vehicle.id}/edit`)}
               />
             ))}
@@ -283,9 +329,13 @@ const Vehicles = () => {
 
 const VehicleCard = ({
   vehicle,
+  activeAlertsText,
+  vehicleAltText,
   onClick,
 }: {
   vehicle: VehicleCardItem;
+  activeAlertsText: string;
+  vehicleAltText: string;
   onClick: () => void;
 }) => {
   return (
@@ -299,7 +349,7 @@ const VehicleCard = ({
           <img
             src={vehicle.image}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            alt={vehicle.name || "Vehicle"}
+            alt={vehicle.name || vehicleAltText}
             referrerPolicy="no-referrer"
             onError={(event) => {
               event.currentTarget.src = FALLBACK_VEHICLE_IMAGE;
@@ -337,7 +387,7 @@ const VehicleCard = ({
           </div>
 
           <p className="text-[11px] font-semibold text-[#64748B]">
-            {vehicle.reportsCount} active alerts
+            {vehicle.reportsCount} {activeAlertsText}
           </p>
         </div>
       )}

@@ -114,6 +114,14 @@ const fr = {
     identificationRequired: "Requis pour l'identification",
     addImage: "Ajouter une image",
     addInsurance: "Ajouter une assurance",
+    garage: "Garage",
+    subtitle: "Gérez vos voitures et recevez des alertes.",
+    total: "Total",
+    noVehicles: "Aucun véhicule pour le moment",
+    emptyDescription1: "Ajoutez votre véhicule pour recevoir",
+    emptyDescription2: "des alertes communautaires en temps réel.",
+    activeAlerts: "alertes actives",
+    vehicleAlt: "Véhicule",
   },
 
   profile: {

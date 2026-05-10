@@ -110,6 +110,14 @@ const en = {
     identificationRequired: "Required for identification",
     addImage: "Add Image",
     addInsurance: "Add Insurance",
+    garage: "Garage",
+    subtitle: "Manage your cars and receive alerts.",
+    total: "Total",
+    noVehicles: "No vehicles yet",
+    emptyDescription1: "Add your vehicle to start receiving",
+    emptyDescription2: "real-time community alerts.",
+    activeAlerts: "active alerts",
+    vehicleAlt: "Vehicle",
   },
 
   profile: {
