@@ -171,6 +171,28 @@ const fr = {
     leaderboard: "Classement",
     profile: "Profil",
   },
+  incidents: {
+    activity: "Activité",
+    incidentReports: "Rapports d’incident",
+    subtitle:
+      "Consultez vos rapports envoyés et les alertes reçues pour vos véhicules.",
+    sent: "Envoyés",
+    received: "Reçus",
+    all: "Tous",
+    reported: "Signalé",
+    seen: "Vu",
+    resolved: "Résolu",
+    loadingReports: "Chargement des rapports...",
+    loadingSubtitle:
+      "Veuillez patienter pendant que nous récupérons votre activité.",
+    noSentReports: "Aucun rapport envoyé",
+    noReceivedReports: "Aucun rapport reçu",
+    emptySubtitle:
+      "Les rapports apparaîtront ici lorsqu’une activité sera disponible.",
+    vehiclePlate: "Plaque du véhicule",
+    thankYou: "Merci",
+    badReport: "Mauvais rapport",
+  },
 };
 
 export default fr;

@@ -166,6 +166,25 @@ const en = {
     leaderboard: "Leaderboard",
     profile: "Profile",
   },
+  incidents: {
+    activity: "Activity",
+    incidentReports: "Incident Reports",
+    subtitle: "Review sent reports and alerts received for your vehicles.",
+    sent: "Sent",
+    received: "Received",
+    all: "All",
+    reported: "Reported",
+    seen: "Seen",
+    resolved: "Resolved",
+    loadingReports: "Loading reports...",
+    loadingSubtitle: "Please wait while we fetch your activity.",
+    noSentReports: "No sent reports",
+    noReceivedReports: "No received reports",
+    emptySubtitle: "Reports will appear here when activity is available.",
+    vehiclePlate: "Vehicle Plate",
+    thankYou: "Thank you",
+    badReport: "Bad report",
+  },
 };
 
 export default en;

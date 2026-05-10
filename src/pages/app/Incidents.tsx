@@ -3,8 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../utils/store';
 import { Navigation, FileText, ChevronRight } from 'lucide-react';
 import type { Status } from '../../utils/types';
+import en from '../../i18n/en';
+import fr from '../../i18n/fr';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+const translations = {
+  en,
+  fr,
+};
 
 type BackendIncident = {
   id: string;
@@ -25,6 +32,16 @@ type UiIncident = {
   date: string;
   reporterId: string;
   receiverId: string;
+};
+
+const getLanguage = (): keyof typeof translations => {
+  const savedLanguage = localStorage.getItem('language');
+
+  if (savedLanguage === 'en' || savedLanguage === 'fr') {
+    return savedLanguage;
+  }
+
+  return 'fr';
 };
 
 const normalizeStatus = (status?: string): Status => {
@@ -75,17 +92,23 @@ const Incidents = () => {
   const location = useLocation();
   const { user } = useStore();
 
+  const language = getLanguage();
+  const t = translations[language].incidents;
+
   const [incidents, setIncidents] = useState<UiIncident[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [activeGroup, setActiveGroup] = useState<'sent' | 'received'>(
-    (location.state as { filter?: 'sent' | 'received' } | null)?.filter || getInitialGroup()
+    (location.state as { filter?: 'sent' | 'received' } | null)?.filter ||
+      getInitialGroup()
   );
 
   const [activeFilter, setActiveFilter] = useState<Status | 'all'>('all');
 
   useEffect(() => {
-    const stateFilter = (location.state as { filter?: 'sent' | 'received' } | null)?.filter;
+    const stateFilter = (
+      location.state as { filter?: 'sent' | 'received' } | null
+    )?.filter;
 
     if (stateFilter === 'sent' || stateFilter === 'received') {
       setActiveGroup(stateFilter);
@@ -157,6 +180,18 @@ const Incidents = () => {
     }
   };
 
+  const getGroupLabel = (group: 'sent' | 'received') => {
+    return group === 'sent' ? t.sent : t.received;
+  };
+
+  const getFilterLabel = (filter: Status | 'all') => {
+    if (filter === 'all') return t.all;
+    if (filter === 'reported') return t.reported;
+    if (filter === 'seen') return t.seen;
+    if (filter === 'resolved') return t.resolved;
+    return filter;
+  };
+
   return (
     <div className="relative flex h-full flex-col bg-transparent px-5 pt-10 pb-10">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -166,13 +201,15 @@ const Incidents = () => {
 
       <header className="relative z-10 mb-8">
         <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#94A3B8]">
-          Activity
+          {t.activity}
         </p>
+
         <h1 className="mt-2 text-[28px] font-black tracking-tight text-[#0F172A]">
-          Incident Reports
+          {t.incidentReports}
         </h1>
+
         <p className="mt-1 text-[13px] font-medium text-[#64748B]">
-          Review sent reports and alerts received for your vehicles.
+          {t.subtitle}
         </p>
       </header>
 
@@ -190,8 +227,13 @@ const Incidents = () => {
                 : 'text-[#64748B]'
             }`}
           >
-            {group === 'sent' ? <Navigation size={14} /> : <FileText size={14} />}
-            {group}
+            {group === 'sent' ? (
+              <Navigation size={14} />
+            ) : (
+              <FileText size={14} />
+            )}
+
+            {getGroupLabel(group)}
           </button>
         ))}
       </div>
@@ -208,7 +250,7 @@ const Incidents = () => {
                   : 'border-[#DCE6F2] bg-white text-[#64748B]'
               }`}
             >
-              {filter}
+              {getFilterLabel(filter)}
             </button>
           ))}
         </div>
@@ -218,19 +260,21 @@ const Incidents = () => {
         {loading ? (
           <div className="mt-10 rounded-[28px] border border-[#DCE6F2] bg-white/85 p-10 text-center shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
             <h3 className="text-[18px] font-black text-[#0F172A]">
-              Loading reports...
+              {t.loadingReports}
             </h3>
+
             <p className="mt-2 text-[14px] font-medium text-[#64748B]">
-              Please wait while we fetch your activity.
+              {t.loadingSubtitle}
             </p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="mt-10 rounded-[28px] border border-[#DCE6F2] bg-white/85 p-10 text-center shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
             <h3 className="text-[18px] font-black text-[#0F172A]">
-              No {activeGroup} reports
+              {activeGroup === 'sent' ? t.noSentReports : t.noReceivedReports}
             </h3>
+
             <p className="mt-2 text-[14px] font-medium text-[#64748B]">
-              Reports will appear here when activity is available.
+              {t.emptySubtitle}
             </p>
           </div>
         ) : (
@@ -244,8 +288,9 @@ const Incidents = () => {
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
-                      Vehicle Plate
+                      {t.vehiclePlate}
                     </p>
+
                     <span className="mt-1 inline-flex rounded-xl border border-[#D9E4F1] bg-[#F8FBFF] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#64748B]">
                       {incident.plate}
                     </span>
@@ -258,7 +303,7 @@ const Incidents = () => {
                           incident.status
                         )}`}
                       >
-                        {incident.status}
+                        {getFilterLabel(incident.status)}
                       </span>
                     )}
 
@@ -284,14 +329,14 @@ const Incidents = () => {
                         onClick={(e) => e.stopPropagation()}
                         className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-black text-emerald-600 transition-all active:scale-95"
                       >
-                        Thank you
+                        {t.thankYou}
                       </button>
 
                       <button
                         onClick={(e) => e.stopPropagation()}
                         className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-black text-red-500 transition-all active:scale-95"
                       >
-                        Bad report
+                        {t.badReport}
                       </button>
                     </div>
                   ) : (
