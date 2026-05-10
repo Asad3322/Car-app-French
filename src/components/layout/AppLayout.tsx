@@ -1,6 +1,8 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import NavItem from './NavItem';
+import en from '../../i18n/en';
+import fr from '../../i18n/fr';
 import {
   HomeNavIcon,
   VehiclesNavIcon,
@@ -9,7 +11,35 @@ import {
   ProfileNavIcon,
 } from '../Icons';
 
+const translations = {
+  en,
+  fr,
+};
+
 const AppLayout: React.FC = () => {
+  const savedLanguage = localStorage.getItem('language');
+
+  const language: keyof typeof translations =
+    savedLanguage === 'en' || savedLanguage === 'fr' ? savedLanguage : 'fr';
+
+  
+  const navLabels =
+    language === 'fr'
+      ? {
+          home: 'Accueil',
+          vehicles: 'Véhicules',
+          reports: 'Rapports',
+          leaderboard: 'Classement',
+          profile: 'Profil',
+        }
+      : {
+          home: 'Home',
+          vehicles: 'Vehicles',
+          reports: 'Reports',
+          leaderboard: 'Leaderboard',
+          profile: 'Profile',
+        };
+
   return (
     <div className="min-h-[100svh] w-full overflow-x-hidden bg-[#D6E2EC]">
       <div className="flex min-h-[100svh] w-full justify-center sm:min-h-screen sm:items-center sm:p-6">
@@ -23,11 +53,9 @@ const AppLayout: React.FC = () => {
             sm:shadow-[0_24px_70px_rgba(73,101,130,0.18)]
           "
         >
-          {/* Background layers */}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(90,157,255,0.10),_transparent_36%)]" />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(90,157,255,0.05),_transparent_42%)]" />
 
-          {/* Scrollable Content */}
           <div
             className="scrollbar-hide relative z-10 flex-1 overflow-y-auto"
             style={{
@@ -39,7 +67,6 @@ const AppLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* Floating Nav */}
       <div
         className="pointer-events-none fixed inset-x-0 z-[999] flex justify-center px-4 sm:px-0"
         style={{
@@ -58,15 +85,27 @@ const AppLayout: React.FC = () => {
             shadow-[0_12px_30px_rgba(70,106,140,0.14)]
           "
         >
-          <NavItem to="/app/home" icon={HomeNavIcon} label="Home" />
-          <NavItem to="/app/vehicles" icon={VehiclesNavIcon} label="Vehicles" />
-          <NavItem to="/app/history" icon={ReportNavIcon} label="Reports" />
+          <NavItem to="/app/home" icon={HomeNavIcon} label={navLabels.home} />
+          <NavItem
+            to="/app/vehicles"
+            icon={VehiclesNavIcon}
+            label={navLabels.vehicles}
+          />
+          <NavItem
+            to="/app/history"
+            icon={ReportNavIcon}
+            label={navLabels.reports}
+          />
           <NavItem
             to="/app/leaderboard"
             icon={LeaderboardNavIcon}
-            label="Leaderboard"
+            label={navLabels.leaderboard}
           />
-          <NavItem to="/app/profile" icon={ProfileNavIcon} label="Profile" />
+          <NavItem
+            to="/app/profile"
+            icon={ProfileNavIcon}
+            label={navLabels.profile}
+          />
         </nav>
       </div>
     </div>

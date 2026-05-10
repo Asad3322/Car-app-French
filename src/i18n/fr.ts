@@ -156,6 +156,13 @@ const fr = {
     topContributor: "Meilleur contributeur",
     climbingFast: "Progression rapide",
   },
+  navigation: {
+    home: "Accueil",
+    vehicles: "Véhicules",
+    reports: "Rapports",
+    leaderboard: "Classement",
+    profile: "Profil",
+  },
 };
 
 export default fr;

@@ -136,8 +136,7 @@ const en = {
     subtitle: "Ready to help the community today?",
     currentStreak: "Current Streak",
     days: "Days",
-    streakDescription:
-      "You're doing amazing. Keep reporting and protecting.",
+    streakDescription: "You're doing amazing. Keep reporting and protecting.",
     reportsMade: "Reports Made",
     verifiedReports: "Total verified reports",
     currentBadge: "Current Badge",
@@ -151,6 +150,13 @@ const en = {
     communityHero: "Community Hero",
     topContributor: "Top Contributor",
     climbingFast: "Climbing fast!",
+  },
+  navigation: {
+    home: "Home",
+    vehicles: "Vehicles",
+    reports: "Reports",
+    leaderboard: "Leaderboard",
+    profile: "Profile",
   },
 };
 
