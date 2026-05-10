@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { saveUserProfile } from "../services/authService";
 import { supabase } from "../supabase";
 import {
@@ -54,6 +55,7 @@ const validateUsername = (value: string): string => {
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [authUser, setAuthUser] = useState<AuthUserShape | null>(null);
   const [role, setRole] = useState<FlowRole>("reporter");
@@ -368,7 +370,7 @@ const CompleteProfile = () => {
     return (
       <div className="relative flex min-h-[100svh] w-full items-center justify-center bg-[#D6E2EC] text-[#0B1A2B]">
         <p className="text-sm font-semibold text-[#6F8194]">
-          Loading profile...
+          {t("completeProfile.loadingProfile")}
         </p>
       </div>
     );
@@ -385,10 +387,10 @@ const CompleteProfile = () => {
       <header className="relative z-10 flex items-center justify-between px-5 pt-7 pb-4">
         <div>
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6F8194]">
-            Welcome
+            {t("completeProfile.welcome")}
           </p>
           <h1 className="text-[26px] font-black tracking-tight text-[#0B1A2B]">
-            Complete Profile
+            {t("completeProfile.completeProfile")}
           </h1>
         </div>
 
@@ -412,12 +414,14 @@ const CompleteProfile = () => {
                 <Sparkles size={30} className="text-[#2F93F6]" />
               </div>
 
-              <h2 className="text-[24px] font-black">Set up your profile</h2>
+              <h2 className="text-[24px] font-black">
+                {t("completeProfile.setupProfile")}
+              </h2>
 
               <p className="mt-2 text-[14px] text-[#6F8194]">
                 {isOwner
-                  ? "Your vehicle was saved. Now complete your owner profile to receive incident notifications."
-                  : "Add your details and choose your emoji avatar before entering the app."}
+                  ? t("completeProfile.ownerDescription")
+                  : t("completeProfile.reporterDescription")}
               </p>
             </section>
 
@@ -438,7 +442,7 @@ const CompleteProfile = () => {
                 </div>
 
                 <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#6F8194]">
-                  Choose Avatar
+                  {t("completeProfile.chooseAvatar")}
                 </p>
 
                 <div className="grid grid-cols-4 gap-3">
@@ -465,7 +469,7 @@ const CompleteProfile = () => {
 
               <div>
                 <label className="text-[11px] font-bold uppercase text-[#6F8194]">
-                  Username
+                  {t("completeProfile.username")}
                 </label>
                 <div className="relative mt-2">
                   <User
@@ -476,7 +480,7 @@ const CompleteProfile = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none placeholder:text-[#9AA8BC] focus:border-[#2F93F6] focus:ring-2 focus:ring-[#2F93F6]/15"
-                    placeholder="asad_112"
+                    placeholder={t("completeProfile.usernamePlaceholder")}
                   />
                 </div>
 
@@ -495,9 +499,9 @@ const CompleteProfile = () => {
                     {usernameError
                       ? usernameError
                       : isCheckingUsername
-                        ? "Checking username..."
+                        ? t("completeProfile.checkingUsername")
                         : isUsernameAvailable
-                          ? "Username is available"
+                          ? t("completeProfile.usernameAvailable")
                           : ""}
                   </p>
                 )}
@@ -505,7 +509,7 @@ const CompleteProfile = () => {
 
               <div>
                 <label className="text-[11px] font-bold uppercase text-[#6F8194]">
-                  Email
+                  {t("completeProfile.email")}
                 </label>
                 <div className="relative mt-2">
                   <Mail
@@ -515,7 +519,11 @@ const CompleteProfile = () => {
                   <input
                     value={email}
                     readOnly
-                    placeholder={isOwner ? "Owner email" : "Login email"}
+                    placeholder={
+                      isOwner
+                        ? t("completeProfile.ownerEmail")
+                        : t("completeProfile.loginEmail")
+                    }
                     className="h-[58px] w-full rounded-[20px] border border-[#D9E5F1] bg-[#F8FBFD] pl-12 pr-4 text-[15px] text-[#0B1A2B] outline-none"
                   />
                 </div>
@@ -532,13 +540,15 @@ const CompleteProfile = () => {
                 }
                 className="mt-2 flex h-[58px] items-center justify-center gap-2 rounded-[20px] bg-[#2F93F6] text-[15px] font-medium text-white shadow-lg disabled:opacity-50"
               >
-                {isSubmitting ? "Saving..." : "Continue"}
+                {isSubmitting
+                  ? t("completeProfile.saving")
+                  : t("auth.continue")}
                 {!isSubmitting && <ArrowRight size={17} />}
               </button>
             </form>
 
             <div className="pt-5 text-center text-[11px] text-[#8EA1B3]">
-              Safe journey starts here
+              {t("completeProfile.safeJourney")}
             </div>
           </div>
         </div>

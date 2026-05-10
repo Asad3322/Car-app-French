@@ -24,27 +24,22 @@ const fr = {
     welcomeBack: "Bon retour",
     claimVehicleText:
       "Entrez votre numéro de téléphone pour réclamer votre véhicule",
-    ownerEmailText:
-      "Entrez votre email pour créer votre compte propriétaire",
-    continueEmailText:
-      "Entrez votre email pour continuer",
+    ownerEmailText: "Entrez votre email pour créer votre compte propriétaire",
+    continueEmailText: "Entrez votre email pour continuer",
     phoneNumber: "Numéro de téléphone",
     emailAddress: "Adresse email",
     continue: "Continuer",
     sending: "Envoi...",
-    phoneRequired:
-      "Le numéro de téléphone est requis",
+    phoneRequired: "Le numéro de téléphone est requis",
     emailRequired: "L'email est requis",
     vehicleMissing:
       "ID du véhicule manquant. Veuillez enregistrer le véhicule à nouveau.",
-    failedVerification:
-      "Échec de l'envoi du lien de vérification",
+    failedVerification: "Échec de l'envoi du lien de vérification",
   },
 
   verify: {
     verifyAccount: "Vérifier le compte",
-    secureVerification:
-      "Vérification sécurisée",
+    secureVerification: "Vérification sécurisée",
     ownerDescription:
       "Entrez votre numéro de téléphone pour recevoir un lien sécurisé.",
     reporterDescription:
@@ -58,64 +53,67 @@ const fr = {
     reporterSecureText:
       "Nous allons envoyer un lien de connexion sécurisé à votre email.",
     sendLoginLink: "Envoyer le lien",
-    verificationFor:
-      "Vérification pour",
+    verificationFor: "Vérification pour",
     linkSentTo: "Lien envoyé à",
     nextStep: "Étape suivante",
     ownerNextStep:
       "Après vérification du téléphone, connectez-vous avec votre email pour compléter votre profil propriétaire.",
     reporterNextStep:
       "Ouvrez le lien sécurisé depuis votre boîte mail et continuez la configuration de votre profil.",
-    changePhone:
-      "Changer le numéro",
-    changeEmail:
-      "Changer l'email",
-    protectedAccess:
-      "Accès protégé",
+    changePhone: "Changer le numéro",
+    changeEmail: "Changer l'email",
+    protectedAccess: "Accès protégé",
   },
 
   success: {
     thankYou: "Merci !",
     youEarned: "Vous avez gagné",
-    reportDifference:
-      "Votre signalement fait la différence.",
-    yourReward:
-      "Votre récompense",
+    reportDifference: "Votre signalement fait la différence.",
+    yourReward: "Votre récompense",
     points: "Points",
     day: "Jour",
     badge: "Badge",
     loading: "Chargement...",
-    claimReward:
-      "Réclamer la récompense",
+    claimReward: "Réclamer la récompense",
     skip: "Passer",
+  },
+
+  completeProfile: {
+    loadingProfile: "Chargement du profil...",
+    welcome: "Bienvenue",
+    completeProfile: "Compléter le profil",
+    setupProfile: "Configurez votre profil",
+    ownerDescription:
+      "Votre véhicule a été enregistré. Complétez maintenant votre profil propriétaire pour recevoir les notifications d'incident.",
+    reporterDescription:
+      "Ajoutez vos informations et choisissez votre avatar avant d'entrer dans l'application.",
+    chooseAvatar: "Choisir un avatar",
+    username: "Nom d'utilisateur",
+    usernamePlaceholder: "asad_112",
+    checkingUsername: "Vérification du nom d'utilisateur...",
+    usernameAvailable: "Nom d'utilisateur disponible",
+    email: "Email",
+    ownerEmail: "Email propriétaire",
+    loginEmail: "Email de connexion",
+    saving: "Enregistrement...",
+    safeJourney: "Le voyage sûr commence ici",
   },
 
   vehicles: {
     addVehicle: "Ajouter un véhicule",
     myVehicles: "Mes véhicules",
     vehicleName: "Nom du véhicule",
-    licencePlate:
-      "Plaque d'immatriculation",
-    registerVehicle:
-      "Enregistrer le véhicule",
-    registering:
-      "Enregistrement...",
-    vehicleNickname:
-      "Nom du véhicule",
-    vehiclePlaceholder:
-      "ex: Ma Tesla noire",
-    vehiclePhoto:
-      "Photo du véhicule",
-    mainPhoto:
-      "Photo principale",
-    addPhoto:
-      "Ajouter une photo",
-    identificationRequired:
-      "Requis pour l'identification",
-    addImage:
-      "Ajouter une image",
-    addInsurance:
-      "Ajouter une assurance",
+    licencePlate: "Plaque d'immatriculation",
+    registerVehicle: "Enregistrer le véhicule",
+    registering: "Enregistrement...",
+    vehicleNickname: "Nom du véhicule",
+    vehiclePlaceholder: "ex: Ma Tesla noire",
+    vehiclePhoto: "Photo du véhicule",
+    mainPhoto: "Photo principale",
+    addPhoto: "Ajouter une photo",
+    identificationRequired: "Requis pour l'identification",
+    addImage: "Ajouter une image",
+    addInsurance: "Ajouter une assurance",
   },
 
   profile: {
@@ -124,20 +122,13 @@ const fr = {
     language: "Langue",
     english: "Anglais",
     french: "Français",
-    loadingProfile:
-      "Chargement du profil...",
-    notFound:
-      "Profil introuvable",
-    signInAgain:
-      "Veuillez vous reconnecter pour charger votre compte.",
-    communityDriver:
-      "Conducteur communautaire",
-    verifiedOwner:
-      "Propriétaire vérifié",
-    noPhone:
-      "Aucun téléphone",
-    noEmail:
-      "Aucun email",
+    loadingProfile: "Chargement du profil...",
+    notFound: "Profil introuvable",
+    signInAgain: "Veuillez vous reconnecter pour charger votre compte.",
+    communityDriver: "Conducteur communautaire",
+    verifiedOwner: "Propriétaire vérifié",
+    noPhone: "Aucun téléphone",
+    noEmail: "Aucun email",
     sent: "Envoyés",
     received: "Reçus",
     support: "Support",

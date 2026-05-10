@@ -64,8 +64,7 @@ const en = {
   success: {
     thankYou: "Thank You!",
     youEarned: "You just earned",
-    reportDifference:
-      "Your report is making a difference.",
+    reportDifference: "Your report is making a difference.",
     yourReward: "Your Reward",
     points: "Points",
     day: "Day",
@@ -73,6 +72,27 @@ const en = {
     loading: "Loading...",
     claimReward: "Claim Reward",
     skip: "Skip",
+  },
+
+  completeProfile: {
+    loadingProfile: "Loading profile...",
+    welcome: "Welcome",
+    completeProfile: "Complete Profile",
+    setupProfile: "Set up your profile",
+    ownerDescription:
+      "Your vehicle was saved. Now complete your owner profile to receive incident notifications.",
+    reporterDescription:
+      "Add your details and choose your emoji avatar before entering the app.",
+    chooseAvatar: "Choose Avatar",
+    username: "Username",
+    usernamePlaceholder: "asad_112",
+    checkingUsername: "Checking username...",
+    usernameAvailable: "Username is available",
+    email: "Email",
+    ownerEmail: "Owner email",
+    loginEmail: "Login email",
+    saving: "Saving...",
+    safeJourney: "Safe journey starts here",
   },
 
   vehicles: {
@@ -87,8 +107,7 @@ const en = {
     vehiclePhoto: "Vehicle Photo",
     mainPhoto: "Main Photo",
     addPhoto: "Add a photo",
-    identificationRequired:
-      "Required for identification",
+    identificationRequired: "Required for identification",
     addImage: "Add Image",
     addInsurance: "Add Insurance",
   },
@@ -101,8 +120,7 @@ const en = {
     french: "French",
     loadingProfile: "Loading profile...",
     notFound: "Profile not found",
-    signInAgain:
-      "Please sign in again to load your account.",
+    signInAgain: "Please sign in again to load your account.",
     communityDriver: "Community Driver",
     verifiedOwner: "Verified Owner",
     noPhone: "No phone",
