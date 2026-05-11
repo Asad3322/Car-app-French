@@ -11,19 +11,41 @@ import {
   Calendar,
   Info,
 } from 'lucide-react';
+import en from '../../i18n/en';
+import fr from '../../i18n/fr';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const DEFAULT_CAR_IMAGE =
   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=900';
 
+const translations = {
+  en,
+  fr,
+};
+
+const getLanguage = (): keyof typeof translations => {
+  const savedLanguage = localStorage.getItem('language');
+
+  if (savedLanguage === 'en' || savedLanguage === 'fr') {
+    return savedLanguage;
+  }
+
+  return 'fr';
+};
+
 const IncidentDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
+  const language = getLanguage();
+  const t = translations[language].incidentDetails;
+
   const [incident, setIncident] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [feedbackType, setFeedbackType] = useState<'thanks' | 'bad' | null>(null);
+  const [feedbackType, setFeedbackType] = useState<'thanks' | 'bad' | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchIncident = async () => {
@@ -103,19 +125,23 @@ const IncidentDetails = () => {
 
   const urgencyLabel =
     incident?.urgency === 'urgent'
-      ? 'Urgent'
+      ? t.urgent
       : incident?.urgency === 'medium'
-      ? 'Medium'
+      ? t.medium
       : incident?.urgency === 'not_urgent'
-      ? 'Not Urgent'
-      : 'Report';
+      ? t.notUrgent
+      : t.report;
+
+  const statusLabel = incident?.status || 'reported';
 
   const isUrgent = incident?.urgency === 'urgent';
 
   if (loading) {
     return (
       <div className="relative flex h-full flex-col items-center justify-center bg-[#F3F7FB] px-6 py-10 text-center">
-        <h2 className="text-[20px] font-black text-[#0F172A]">Loading report...</h2>
+        <h2 className="text-[20px] font-black text-[#0F172A]">
+          {t.loadingReport}
+        </h2>
       </div>
     );
   }
@@ -132,14 +158,14 @@ const IncidentDetails = () => {
         </div>
 
         <h2 className="relative z-10 text-[24px] font-black tracking-tight text-[#0F172A]">
-          Report Not Found
+          {t.reportNotFound}
         </h2>
 
         <button
           onClick={() => navigate(-1)}
           className="relative z-10 mt-5 rounded-[16px] bg-[#111827] px-5 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-white shadow-[0_14px_28px_rgba(15,23,42,0.16)] transition-all active:scale-95"
         >
-          Go Back
+          {t.goBack}
         </button>
       </div>
     );
@@ -150,10 +176,9 @@ const IncidentDetails = () => {
       {feedbackType && (
         <div className="animate-in fade-in slide-in-from-top-4 absolute left-1/2 top-5 z-[100] flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-5 py-3 text-[#1D4ED8] shadow-[0_12px_28px_rgba(37,99,235,0.14)] duration-300">
           <ShieldCheck size={18} />
+
           <span className="text-[10px] font-black uppercase tracking-[0.16em]">
-            {feedbackType === 'thanks'
-              ? 'Thanks sent to the reporter'
-              : 'Report flagged for review'}
+            {feedbackType === 'thanks' ? t.thanksSent : t.reportFlagged}
           </span>
         </div>
       )}
@@ -167,7 +192,7 @@ const IncidentDetails = () => {
         </button>
 
         <h1 className="text-[13px] font-black uppercase tracking-[0.14em] text-[#0F172A]">
-          Report Details
+          {t.reportDetails}
         </h1>
 
         <div className="w-10" />
@@ -177,7 +202,7 @@ const IncidentDetails = () => {
         <div className="relative aspect-video w-full overflow-hidden bg-[#EAF1F8]">
           <img
             src={image}
-            alt="Reported car evidence"
+            alt={t.reportedCarEvidence}
             className="h-full w-full object-cover"
             onError={(e) => {
               e.currentTarget.src = DEFAULT_CAR_IMAGE;
@@ -197,7 +222,7 @@ const IncidentDetails = () => {
             </div>
 
             <div className="rounded-full bg-emerald-500 px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg">
-              {incident.status || 'reported'}
+              {statusLabel}
             </div>
           </div>
         </div>
@@ -214,17 +239,25 @@ const IncidentDetails = () => {
 
                 <div>
                   <div className="mb-1.5 flex items-center gap-1.5">
-                    <Sparkles size={12} className="text-[#2563EB]" strokeWidth={3} />
+                    <Sparkles
+                      size={12}
+                      className="text-[#2563EB]"
+                      strokeWidth={3}
+                    />
+
                     <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#2563EB]">
-                      Incident
+                      {t.incident}
                     </span>
                   </div>
 
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#94A3B8]">
-                    Licence Plate
+                    {t.licencePlate}
                   </p>
+
                   <p className="text-[12px] font-black text-[#0F172A]">
-                    {incident.plate_registered ? 'Registered Vehicle' : 'Unregistered Vehicle'}
+                    {incident.plate_registered
+                      ? t.registeredVehicle
+                      : t.unregisteredVehicle}
                   </p>
                 </div>
               </div>
@@ -237,8 +270,9 @@ const IncidentDetails = () => {
 
                   <div className="min-w-0">
                     <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
-                      Date & Time
+                      {t.dateTime}
                     </p>
+
                     <p className="truncate text-[13px] font-black text-[#0F172A]">
                       {incident.created_at
                         ? new Date(incident.created_at).toLocaleDateString([], {
@@ -247,7 +281,7 @@ const IncidentDetails = () => {
                             hour: '2-digit',
                             minute: '2-digit',
                           })
-                        : 'N/A'}
+                        : t.notAvailable}
                     </p>
                   </div>
                 </div>
@@ -257,7 +291,7 @@ const IncidentDetails = () => {
 
           <section>
             <label className="mb-3 ml-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
-              Incident Description
+              {t.incidentDescription}
             </label>
 
             <div className="rounded-[28px] border border-[#DCE6F2] bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
@@ -275,20 +309,20 @@ const IncidentDetails = () => {
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#DBEAFE] text-[#2563EB]">
                   <Sparkles size={16} />
                 </div>
+
                 <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-[#0F172A]">
-                  Assistant Tip
+                  {t.assistantTip}
                 </h3>
               </div>
 
               <p className="text-[14px] leading-7 text-[#64748B]">
-                This report was verified by our community. Review the details
-                carefully and stay aware of similar incidents nearby.
+                {t.assistantMessage}
               </p>
 
               <div className="mt-6 border-t border-[#E6EDF5] pt-5">
                 <div className="mb-4">
                   <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
-                    Quick Feedback
+                    {t.quickFeedback}
                   </span>
                 </div>
 
@@ -303,7 +337,7 @@ const IncidentDetails = () => {
                     }`}
                   >
                     <ThumbsUp size={16} />
-                    Say Thanks
+                    {t.sayThanks}
                   </button>
 
                   <button
@@ -316,7 +350,7 @@ const IncidentDetails = () => {
                     }`}
                   >
                     <ThumbsDown size={16} />
-                    Bad Report
+                    {t.badReport}
                   </button>
                 </div>
               </div>
@@ -325,7 +359,7 @@ const IncidentDetails = () => {
 
           <div className="mt-1 flex items-center justify-center">
             <div className="rounded-full border border-[#DCE6F2] bg-white px-5 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-[#94A3B8] shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-              Community Verified Report
+              {t.communityVerifiedReport}
             </div>
           </div>
         </div>

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Search, Coins, Trophy, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import en from "../../i18n/en";
+import fr from "../../i18n/fr";
 
 type LeaderboardEntry = {
   rank: number;
@@ -18,6 +20,21 @@ type LeaderboardEntry = {
 
 const DEFAULT_AVATAR =
   "https://api.dicebear.com/9.x/fun-emoji/svg?seed=carapp-user";
+
+const translations = {
+  en,
+  fr,
+};
+
+const getLanguage = (): keyof typeof translations => {
+  const savedLanguage = localStorage.getItem("language");
+
+  if (savedLanguage === "en" || savedLanguage === "fr") {
+    return savedLanguage;
+  }
+
+  return "fr";
+};
 
 const DUMMY_USERS: LeaderboardEntry[] = [
   {
@@ -82,16 +99,22 @@ const DUMMY_USERS: LeaderboardEntry[] = [
   },
 ];
 
-const getBadgeTitle = (player: LeaderboardEntry) => {
+const getBadgeTitle = (
+  player: LeaderboardEntry,
+  t: typeof en.leaderboard
+) => {
   if (player.currentBadge) return player.currentBadge;
-  if (player.reportsCount >= 10) return "Expert Contributor";
-  if (player.reportsCount >= 5) return "Rising Star";
-  if (player.reportsCount >= 1) return "Active Reporter";
-  return "Contributor";
+  if (player.reportsCount >= 10) return t.expertContributor;
+  if (player.reportsCount >= 5) return t.risingStar;
+  if (player.reportsCount >= 1) return t.activeReporter;
+  return t.contributor;
 };
 
 const Leaderboard = () => {
   const navigate = useNavigate();
+
+  const language = getLanguage();
+  const t = translations[language].leaderboard;
 
   const [apiData, setApiData] = useState<LeaderboardEntry[]>([]);
   const [selectedUser, setSelectedUser] = useState<LeaderboardEntry | null>(
@@ -179,7 +202,7 @@ const Leaderboard = () => {
           </button>
 
           <h1 className="text-[24px] font-black tracking-tight">
-            Leaderboard
+            {t.title}
           </h1>
 
           <button className="p-2">
@@ -189,7 +212,7 @@ const Leaderboard = () => {
 
         {loading ? (
           <div className="rounded-[26px] bg-white p-8 text-center text-sm font-semibold text-gray-500 shadow-sm">
-            Loading leaderboard...
+            {t.loading}
           </div>
         ) : (
           <>
@@ -219,11 +242,11 @@ const Leaderboard = () => {
 
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
                   <span className="rounded-full bg-[#EEF0F7] px-3 py-1 text-[12px] font-black uppercase text-[#222B55]">
-                    Rank #{displayUser.rank}
+                    {t.rank} #{displayUser.rank}
                   </span>
 
                   <span className="text-[14px] font-semibold text-[#6B7280]">
-                    {displayUser.reportsCount} Reports submitted
+                    {displayUser.reportsCount} {t.reportsSubmitted}
                   </span>
                 </div>
 
@@ -233,7 +256,7 @@ const Leaderboard = () => {
                       {displayUser.points}
                     </p>
                     <p className="text-[11px] font-bold text-[#8B95A5]">
-                      Points
+                      {t.points}
                     </p>
                   </div>
 
@@ -242,7 +265,7 @@ const Leaderboard = () => {
                       {displayUser.coins}
                     </p>
                     <p className="text-[11px] font-bold text-[#8B95A5]">
-                      Coins
+                      {t.coins}
                     </p>
                   </div>
 
@@ -251,7 +274,7 @@ const Leaderboard = () => {
                       {displayUser.streak}
                     </p>
                     <p className="text-[11px] font-bold text-[#8B95A5]">
-                      Streak
+                      {t.streak}
                     </p>
                   </div>
                 </div>
@@ -259,9 +282,12 @@ const Leaderboard = () => {
             )}
 
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-[25px] font-black">Week Leaderboard</h3>
+              <h3 className="text-[25px] font-black">
+                {t.weekLeaderboard}
+              </h3>
+
               <span className="text-[13px] font-black uppercase tracking-[0.25em] text-[#8B95A5]">
-                Global
+                {t.global}
               </span>
             </div>
 
@@ -308,27 +334,27 @@ const Leaderboard = () => {
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[18px] font-black text-[#101B35]">
-                        {player.username} {isYou ? "(You)" : ""}
+                        {player.username} {isYou ? `(${t.you})` : ""}
                       </p>
 
                       <p className="truncate text-[14px] font-medium text-[#7A8494]">
-                        {getBadgeTitle(player)}
+                        {getBadgeTitle(player, t)}
                       </p>
 
                       <p className="mt-1 text-[13px] font-semibold text-[#8B95A5]">
-                        {player.reportsCount} Reports
+                        {player.reportsCount} {t.reports}
                       </p>
                     </div>
 
                     <div className="shrink-0 text-right">
                       <div className="flex items-center justify-end gap-1 text-[17px] font-black text-[#111A3A]">
                         <Trophy size={16} className="text-[#59718D]" />
-                        {player.points} pts
+                        {player.points} {t.pts}
                       </div>
 
                       <div className="mt-1 flex items-center justify-end gap-1 text-[14px] font-black text-[#E7764D]">
                         <Coins size={14} />
-                        {player.coins} coins
+                        {player.coins} {t.coinsLower}
                       </div>
                     </div>
                   </button>
