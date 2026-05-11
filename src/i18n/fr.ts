@@ -140,6 +140,7 @@ const fr = {
     sent: "Envoyés",
     received: "Reçus",
     support: "Support",
+    logout: "Déconnexion",
   },
 
   home: {

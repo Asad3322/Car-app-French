@@ -13,6 +13,7 @@ import {
   Plus,
   CarFront,
   Sparkles,
+  LogOut,
 } from "lucide-react";
 import { supabase } from "../../supabase";
 
@@ -69,8 +70,28 @@ const Profile = () => {
 
   const handleLanguageChange = (lang: "en" | "fr") => {
     i18n.changeLanguage(lang);
-    localStorage.setItem("app_language", lang);
+    localStorage.setItem("language", lang);
     setShowLangMenu(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("vehicleId");
+      localStorage.removeItem("profileId");
+      localStorage.removeItem("user");
+      localStorage.removeItem("ownerAccess");
+      localStorage.removeItem("verifiedPhone");
+      localStorage.removeItem("pendingEmail");
+      localStorage.removeItem("pendingPhone");
+
+      navigate("/auth", { replace: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   useEffect(() => {
@@ -121,7 +142,7 @@ const Profile = () => {
 
         if (profile?.language === "en" || profile?.language === "fr") {
           i18n.changeLanguage(profile.language);
-          localStorage.setItem("app_language", profile.language);
+          localStorage.setItem("language", profile.language);
         }
 
         const fallbackProfile: ProfileUser = {
@@ -478,15 +499,30 @@ const Profile = () => {
             )}
           </section>
 
-          <button className="flex items-center justify-between rounded-[22px] border bg-[#EEF4F8] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} />
-              <span className="text-sm font-bold">
-                {t("profile.support", "Support")}
-              </span>
-            </div>
-            <ChevronRight size={16} />
-          </button>
+          <div className="flex flex-col gap-3">
+            <button className="flex items-center justify-between rounded-[22px] border bg-[#EEF4F8] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} />
+                <span className="text-sm font-bold">
+                  {t("profile.support", "Support")}
+                </span>
+              </div>
+              <ChevronRight size={16} />
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-between rounded-[22px] border border-red-200 bg-red-50 px-4 py-3 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-2">
+                <LogOut size={16} className="text-red-500" />
+                <span className="text-sm font-bold text-red-500">
+                  {t("profile.logout", "Logout")}
+                </span>
+              </div>
+              <ChevronRight size={16} className="text-red-400" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

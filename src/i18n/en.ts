@@ -136,6 +136,7 @@ const en = {
     sent: "Sent",
     received: "Received",
     support: "Support",
+    logout: "Logout",
   },
 
   home: {
