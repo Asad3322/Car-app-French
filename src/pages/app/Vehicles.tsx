@@ -75,7 +75,10 @@ const getLanguage = (): keyof typeof vehicleText => {
 
 const cleanUrl = (url: unknown): string => {
   if (typeof url !== "string") return "";
-  return url.trim().replace(/^"+|"+$/g, "").replace(/\\\//g, "/");
+  return url
+    .trim()
+    .replace(/^"+|"+$/g, "")
+    .replace(/\\\//g, "/");
 };
 
 const parseVehicleMedia = (media: unknown): string[] => {
@@ -120,7 +123,7 @@ const getVehicleImage = (vehicle: RawVehicle): string => {
 };
 
 const extractVehiclesArray = (
-  result: ApiResponse | RawVehicle[] | unknown
+  result: ApiResponse | RawVehicle[] | unknown,
 ): RawVehicle[] => {
   if (!result) return [];
 
@@ -129,7 +132,8 @@ const extractVehiclesArray = (
   const response = result as ApiResponse;
 
   if (Array.isArray(response.data)) return response.data as RawVehicle[];
-  if (Array.isArray(response.vehicles)) return response.vehicles as RawVehicle[];
+  if (Array.isArray(response.vehicles))
+    return response.vehicles as RawVehicle[];
 
   const nestedData = response.data as ApiResponse | undefined;
 
@@ -157,10 +161,7 @@ const normalizeVehicle = (vehicle: RawVehicle): VehicleCardItem => {
       vehicle.name ||
       "Unnamed Vehicle",
     plate:
-      vehicle.licence_plate ||
-      vehicle.license_plate ||
-      vehicle.plate ||
-      "",
+      vehicle.licence_plate || vehicle.license_plate || vehicle.plate || "",
     reportsCount: Number(vehicle.reports_count ?? vehicle.reportsCount ?? 0),
     image,
     vehicle_media: media.length > 0 ? media : image ? [image] : [],
@@ -187,24 +188,39 @@ const Vehicles = () => {
 
         const {
           data: { session },
-          error: sessionError,
         } = await supabase.auth.getSession();
 
-        if (sessionError || !session?.access_token) {
-          throw new Error("No valid session found");
+        const token = session?.access_token;
+        const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+
+        if (!token && !ownerAccessToken) {
+          throw new Error("No valid authentication found");
         }
 
-        localStorage.setItem("token", session.access_token);
+        if (token) {
+          localStorage.setItem("token", token);
+        }
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        if (ownerAccessToken) {
+          headers["x-owner-access-token"] = ownerAccessToken;
+        }
 
         const response = await fetch(`${API_URL}/api/vehicles`, {
           method: "GET",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
         });
 
         const result: ApiResponse = await response.json();
+
+        console.log("VEHICLES RESPONSE:", result);
 
         if (!response.ok) {
           throw new Error(result.message || "Failed to fetch vehicles");
