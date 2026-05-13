@@ -13,41 +13,7 @@ const AuthCallback = () => {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    const claimOwnerVehicleAndProfile = async ({
-      token,
-      verifiedPhone,
-      vehicleId,
-    }: {
-      token: string;
-      verifiedPhone: string;
-      vehicleId: string;
-    }) => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          role: "vehicle_owner",
-          verifiedPhone,
-          phone: verifiedPhone,
-          vehicleId,
-          primaryContact: "phone",
-        }),
-      });
-
-      const result = await response.json();
-
-      console.log("OWNER PROFILE + VEHICLE CLAIM RESPONSE:", result);
-
-      if (!response.ok) {
-        throw new Error(result?.message || "Failed to claim owner vehicle");
-      }
-
-      return result;
-    };
-
+    
     const linkPendingReportToReporter = async (token: string) => {
       const pendingReportId = localStorage.getItem("pendingReportId") || "";
       if (!pendingReportId) return null;
@@ -91,27 +57,35 @@ const AuthCallback = () => {
         const phoneToken = url.searchParams.get("phone_token");
         const fromParam = url.searchParams.get("from");
 
-        if (phoneToken) {
-          const res = await fetch(
-            `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`,
-          );
+       if (phoneToken) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
+  );
 
-          const data = await res.json();
+  const data = await res.json();
 
-          if (!res.ok) {
-            throw new Error(data?.message || "Phone verification failed");
-          }
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Phone verification failed");
+  }
 
-          const phone = data?.data?.phone || "";
-          const vehicleId = data?.data?.vehicleId || "";
+  const phone = data?.data?.phone || "";
+  const vehicleId = data?.data?.vehicleId || "";
+  const ownerAccessToken = data?.data?.ownerAccessToken || "";
 
-          localStorage.setItem("verifiedPhone", phone);
-          localStorage.setItem("vehicleId", vehicleId);
-          localStorage.setItem("role", "vehicle_owner");
+  localStorage.setItem("role", "vehicle_owner");
+  localStorage.setItem("ownerAccess", "true");
+  localStorage.setItem("ownerPhone", phone);
+  localStorage.setItem("verifiedPhone", phone);
+  localStorage.setItem("vehicleId", vehicleId);
+  localStorage.setItem("ownerAccessToken", ownerAccessToken);
 
-          navigate("/auth?role=owner-email", { replace: true });
-          return;
-        }
+  if (data?.data?.profile) {
+    localStorage.setItem("user", JSON.stringify(data.data.profile));
+  }
+
+  navigate("/app/vehicles", { replace: true });
+  return;
+}
 
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -188,23 +162,16 @@ const AuthCallback = () => {
         }
 
         if (isPendingOwnerFlow) {
-          localStorage.setItem("role", "vehicle_owner");
+  localStorage.setItem("role", "vehicle_owner");
 
-          if (profile) {
-            await claimOwnerVehicleAndProfile({
-              token,
-              verifiedPhone: pendingVerifiedPhone,
-              vehicleId: pendingVehicleId,
-            });
+  clearOwnerPendingStorage();
 
-            clearOwnerPendingStorage();
-            navigate("/app/vehicles", { replace: true });
-            return;
-          }
+  navigate("/app/vehicles", {
+    replace: true,
+  });
 
-          navigate("/complete-profile", { replace: true });
-          return;
-        }
+  return;
+}
 
         // IMPORTANT: New user must complete profile first
         if (!profile) {

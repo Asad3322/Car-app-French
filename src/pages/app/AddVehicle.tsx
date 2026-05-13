@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   Camera,
@@ -8,8 +8,8 @@ import {
   Plus,
   Image as ImageIcon,
   Shield,
-} from 'lucide-react';
-import { supabase } from '../../supabase';
+} from "lucide-react";
+import { supabase } from "../../supabase";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -21,11 +21,11 @@ const AddVehicle = () => {
   const { t } = useTranslation();
 
   const isOnboardingFlow =
-    location.pathname.includes('add-vehicle') ||
-    location.pathname.includes('vehicle/add');
+    location.pathname.includes("add-vehicle") ||
+    location.pathname.includes("vehicle/add");
 
-  const [name, setName] = useState('');
-  const [plate, setPlate] = useState('');
+  const [name, setName] = useState("");
+  const [plate, setPlate] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
@@ -36,7 +36,8 @@ const AddVehicle = () => {
   const insuranceInputRef = useRef<HTMLInputElement | null>(null);
   const addMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const isFormValid = name.trim() !== '' && plate.trim() !== '' && images.length > 0;
+  const isFormValid =
+    name.trim() !== "" && plate.trim() !== "" && images.length > 0;
   const canAddMoreImages = images.length < MAX_VEHICLE_IMAGES;
 
   useEffect(() => {
@@ -50,8 +51,8 @@ const AddVehicle = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [showAddMenu]);
 
   useEffect(() => {
@@ -73,7 +74,7 @@ const AddVehicle = () => {
     if (remainingSlots <= 0) {
       alert(`You can add maximum ${MAX_VEHICLE_IMAGES} vehicle images`);
       setShowAddMenu(false);
-      if (imageInputRef.current) imageInputRef.current.value = '';
+      if (imageInputRef.current) imageInputRef.current.value = "";
       return;
     }
 
@@ -84,7 +85,7 @@ const AddVehicle = () => {
     setImagePreviews((prev) => [...prev, ...previewsToAdd]);
     setShowAddMenu(false);
 
-    if (imageInputRef.current) imageInputRef.current.value = '';
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
   const handleInsuranceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +99,7 @@ const AddVehicle = () => {
     setInsuranceFile(file);
     setShowAddMenu(false);
 
-    if (insuranceInputRef.current) insuranceInputRef.current.value = '';
+    if (insuranceInputRef.current) insuranceInputRef.current.value = "";
   };
 
   const removeImage = (indexToRemove: number) => {
@@ -121,7 +122,7 @@ const AddVehicle = () => {
   };
 
   const normalizePlate = (value: string) =>
-    value.replace(/\s+/g, '').trim().toUpperCase();
+    value.replace(/\s+/g, "").trim().toUpperCase();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,20 +133,20 @@ const AddVehicle = () => {
       setIsSubmitting(true);
 
       if (!API_BASE_URL) {
-        throw new Error('API URL is missing');
+        throw new Error("API URL is missing");
       }
 
       const formData = new FormData();
 
-      formData.append('vehicleName', name.trim());
-      formData.append('licencePlate', normalizePlate(plate));
+      formData.append("vehicleName", name.trim());
+      formData.append("licencePlate", normalizePlate(plate));
 
       images.forEach((file) => {
-        formData.append('vehicleMedia', file);
+        formData.append("vehicleMedia", file);
       });
 
       if (insuranceFile) {
-        formData.append('insuranceDocument', insuranceFile);
+        formData.append("insuranceDocument", insuranceFile);
       }
 
       const {
@@ -153,33 +154,42 @@ const AddVehicle = () => {
       } = await supabase.auth.getSession();
 
       const token = session?.access_token;
+      const ownerAccessToken = localStorage.getItem("ownerAccessToken");
 
       const endpoint = isOnboardingFlow
         ? `${API_BASE_URL}/api/vehicles/onboarding`
         : `${API_BASE_URL}/api/vehicles`;
 
-      if (!isOnboardingFlow && !token) {
-        throw new Error('User not authenticated. Please login again.');
+      if (!isOnboardingFlow && !token && !ownerAccessToken) {
+        throw new Error("User not authenticated. Please login again.");
       }
 
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          ...(!isOnboardingFlow && token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(!isOnboardingFlow && token
+            ? { Authorization: `Bearer ${token}` }
+            : {}),
+
+          ...(!isOnboardingFlow && ownerAccessToken
+            ? {
+                "x-owner-access-token": ownerAccessToken,
+              }
+            : {}),
         },
         body: formData,
       });
 
       const result = await response.json();
 
-      console.log('Vehicle API endpoint:', endpoint);
-      console.log('Vehicle API response:', result);
+      console.log("Vehicle API endpoint:", endpoint);
+      console.log("Vehicle API response:", result);
 
       if (!response.ok) {
         const validationMessage =
           Array.isArray(result?.errors) && result.errors.length > 0
-            ? result.errors.join(', ')
-            : result?.message || 'Failed to register vehicle';
+            ? result.errors.join(", ")
+            : result?.message || "Failed to register vehicle";
 
         throw new Error(validationMessage);
       }
@@ -187,30 +197,32 @@ const AddVehicle = () => {
       const savedVehicleId = result?.data?.id;
 
       if (!savedVehicleId) {
-        throw new Error('Vehicle registered but backend did not return vehicle ID');
+        throw new Error(
+          "Vehicle registered but backend did not return vehicle ID",
+        );
       }
 
-      localStorage.setItem('vehicleId', savedVehicleId);
-      localStorage.setItem('role', 'vehicle_owner');
+      localStorage.setItem("vehicleId", savedVehicleId);
+      localStorage.setItem("role", "vehicle_owner");
 
       if (isOnboardingFlow) {
-        navigate('/verify', {
+        navigate("/verify", {
           state: {
-            mode: 'owner',
+            mode: "owner",
             vehicleId: savedVehicleId,
           },
         });
         return;
       }
 
-      navigate('/app/vehicles', { replace: true });
+      navigate("/app/vehicles", { replace: true });
     } catch (error: any) {
-      console.error('Add vehicle error:', error);
+      console.error("Add vehicle error:", error);
 
-      if (error?.message?.includes('Failed to fetch')) {
-        alert('Backend not reachable. Check API URL or backend deployment.');
+      if (error?.message?.includes("Failed to fetch")) {
+        alert("Backend not reachable. Check API URL or backend deployment.");
       } else {
-        alert(error?.message || 'Failed to register vehicle');
+        alert(error?.message || "Failed to register vehicle");
       }
     } finally {
       setIsSubmitting(false);
@@ -235,7 +247,7 @@ const AddVehicle = () => {
         </button>
 
         <h1 className="text-[14px] font-black uppercase tracking-[0.14em] text-[#0F172A]">
-          {t('vehicles.addVehicle')}
+          {t("vehicles.addVehicle")}
         </h1>
 
         <div className="w-11" />
@@ -252,11 +264,11 @@ const AddVehicle = () => {
               <div className="flex flex-col gap-5">
                 <div>
                   <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                    {t('vehicles.vehicleNickname')}
+                    {t("vehicles.vehicleNickname")}
                   </label>
                   <input
                     type="text"
-                    placeholder={t('vehicles.vehiclePlaceholder')}
+                    placeholder={t("vehicles.vehiclePlaceholder")}
                     className="h-[58px] w-full rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 text-[15px] font-semibold text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -266,7 +278,7 @@ const AddVehicle = () => {
 
                 <div>
                   <label className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                    {t('vehicles.licencePlate')}
+                    {t("vehicles.licencePlate")}
                   </label>
 
                   <div className="relative">
@@ -290,7 +302,7 @@ const AddVehicle = () => {
             <section className="rounded-[30px] border border-[#DCE6F2] bg-white/90 p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <label className="ml-1 block text-[11px] font-black uppercase tracking-[0.15em] text-[#94A3B8]">
-                  {t('vehicles.vehiclePhoto')}
+                  {t("vehicles.vehiclePhoto")}
                 </label>
 
                 {images.length > 0 && (
@@ -305,7 +317,7 @@ const AddVehicle = () => {
                   if (images.length === 0) handleOpenImagePicker();
                 }}
                 className={`group relative overflow-hidden rounded-[24px] border border-[#DCE6F2] bg-[#F8FBFF] p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition-all ${
-                  images.length === 0 ? 'cursor-pointer' : ''
+                  images.length === 0 ? "cursor-pointer" : ""
                 }`}
               >
                 {imagePreviews.length > 0 ? (
@@ -319,7 +331,7 @@ const AddVehicle = () => {
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.20)_100%)]" />
 
                     <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#2563EB] shadow-sm">
-                      {t('vehicles.mainPhoto')}
+                      {t("vehicles.mainPhoto")}
                     </div>
 
                     <button
@@ -361,7 +373,7 @@ const AddVehicle = () => {
                             });
                           }}
                           className={`h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 ${
-                            index === 0 ? 'border-[#2563EB]' : 'border-white'
+                            index === 0 ? "border-[#2563EB]" : "border-white"
                           } bg-white shadow-sm`}
                           aria-label={`Vehicle image ${index + 1}`}
                         >
@@ -391,11 +403,11 @@ const AddVehicle = () => {
 
                       <div className="px-4 text-center">
                         <p className="text-[15px] font-black tracking-tight text-[#0F172A]">
-                          {t('vehicles.addPhoto')}
+                          {t("vehicles.addPhoto")}
                         </p>
 
                         <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
-                          {t('vehicles.identificationRequired')}
+                          {t("vehicles.identificationRequired")}
                         </p>
                       </div>
                     </div>
@@ -417,7 +429,7 @@ const AddVehicle = () => {
                       </div>
 
                       <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
-                        {t('vehicles.addImage')}
+                        {t("vehicles.addImage")}
                       </span>
                     </button>
 
@@ -431,7 +443,7 @@ const AddVehicle = () => {
                       </div>
 
                       <span className="text-[12px] font-black uppercase tracking-[0.08em] text-[#0F172A]">
-                        {t('vehicles.addInsurance')}
+                        {t("vehicles.addInsurance")}
                       </span>
                     </button>
                   </div>
@@ -447,7 +459,7 @@ const AddVehicle = () => {
                     size={24}
                     strokeWidth={3}
                     className={`transition-transform duration-200 ${
-                      showAddMenu ? 'rotate-45' : 'rotate-0'
+                      showAddMenu ? "rotate-45" : "rotate-0"
                     }`}
                   />
                 </button>
@@ -483,8 +495,8 @@ const AddVehicle = () => {
             className="h-[60px] w-full rounded-[18px] bg-[#2563EB] text-[13px] font-black uppercase tracking-[0.14em] text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isSubmitting
-              ? t('vehicles.registering')
-              : t('vehicles.registerVehicle')}
+              ? t("vehicles.registering")
+              : t("vehicles.registerVehicle")}
           </button>
         </div>
       </div>

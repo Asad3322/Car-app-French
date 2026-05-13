@@ -31,6 +31,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       localStorage.removeItem("token");
       localStorage.removeItem("ownerAccess");
       localStorage.removeItem("ownerPhone");
+      localStorage.removeItem("ownerAccessToken");
 
       setValid(false);
       setLoading(false);
@@ -38,6 +39,19 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     const checkAuth = async () => {
       try {
+        const ownerAccess = localStorage.getItem("ownerAccess");
+        const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+        const role = localStorage.getItem("role");
+
+        if (
+          ownerAccess === "true" &&
+          ownerAccessToken &&
+          role === "vehicle_owner"
+        ) {
+          allow();
+          return;
+        }
+
         const localToken = localStorage.getItem("token");
 
         if (localToken) {
