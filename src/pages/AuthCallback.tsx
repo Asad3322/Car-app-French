@@ -152,7 +152,7 @@ const AuthCallback = () => {
             });
           }
 
-          navigate("/app/vehicles", { replace: true });
+          window.location.href = "/app/vehicles";
           return;
         }
 
@@ -242,19 +242,19 @@ const AuthCallback = () => {
 
             clearOwnerPendingStorage();
 
-            navigate("/app/vehicles", { replace: true });
+            window.location.href = "/app/vehicles";
             return;
           } catch (claimError) {
             console.error("Claim vehicle error:", claimError);
             alert("Vehicle verification succeeded but claim failed.");
-            navigate("/app/vehicles", { replace: true });
+            window.location.href = "/app/vehicles";
             return;
           }
         }
 
         if (!profile) {
           localStorage.setItem("role", "reporter");
-          navigate("/complete-profile", { replace: true });
+          window.location.href = "/complete-profile";
           return;
         }
 
@@ -265,7 +265,7 @@ const AuthCallback = () => {
         }
 
         localStorage.setItem("role", "reporter");
-        navigate("/app/history", { replace: true });
+        window.location.href = "/app/history";
       } catch (err) {
         console.error("Auth callback error:", err);
 
