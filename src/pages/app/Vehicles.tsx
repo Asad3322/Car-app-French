@@ -209,7 +209,7 @@ const Vehicles = () => {
           headers.Authorization = `Bearer ${token}`;
         }
 
-        if (ownerAccessToken) {
+        if (!token && ownerAccessToken) {
           headers["x-owner-access-token"] = ownerAccessToken;
         }
 

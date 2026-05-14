@@ -171,7 +171,7 @@ const AddVehicle = () => {
             ? { Authorization: `Bearer ${token}` }
             : {}),
 
-          ...(!isOnboardingFlow && ownerAccessToken
+          ...(!isOnboardingFlow && !token && ownerAccessToken
             ? {
                 "x-owner-access-token": ownerAccessToken,
               }
