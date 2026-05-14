@@ -13,7 +13,6 @@ const AuthCallback = () => {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    
     const linkPendingReportToReporter = async (token: string) => {
       const pendingReportId = localStorage.getItem("pendingReportId") || "";
       if (!pendingReportId) return null;
@@ -49,6 +48,66 @@ const AuthCallback = () => {
       localStorage.removeItem("pendingPhone");
     };
 
+    const claimVehicleWithOwnerAccess = async ({
+      vehicleId,
+      ownerAccessToken,
+    }: {
+      vehicleId: string;
+      ownerAccessToken: string;
+    }) => {
+      if (!vehicleId || !ownerAccessToken) return null;
+
+      const claimResponse = await fetch(`${API_BASE_URL}/api/vehicles/claim`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-owner-access-token": ownerAccessToken,
+        },
+        body: JSON.stringify({
+          vehicleId,
+        }),
+      });
+
+      const claimResult = await claimResponse.json();
+      console.log("PHONE TOKEN CLAIM VEHICLE RESPONSE:", claimResult);
+
+      if (!claimResponse.ok) {
+        throw new Error(claimResult?.message || "Failed to claim vehicle");
+      }
+
+      return claimResult;
+    };
+
+    const claimVehicleWithAuthToken = async ({
+      vehicleId,
+      token,
+    }: {
+      vehicleId: string;
+      token: string;
+    }) => {
+      if (!vehicleId || !token) return null;
+
+      const claimResponse = await fetch(`${API_BASE_URL}/api/vehicles/claim`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          vehicleId,
+        }),
+      });
+
+      const claimResult = await claimResponse.json();
+      console.log("MAGIC LINK CLAIM VEHICLE RESPONSE:", claimResult);
+
+      if (!claimResponse.ok) {
+        throw new Error(claimResult?.message || "Failed to claim vehicle");
+      }
+
+      return claimResult;
+    };
+
     const run = async () => {
       try {
         const url = new URL(window.location.href);
@@ -57,35 +116,42 @@ const AuthCallback = () => {
         const phoneToken = url.searchParams.get("phone_token");
         const fromParam = url.searchParams.get("from");
 
-       if (phoneToken) {
-  const res = await fetch(
-    `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`
-  );
+        if (phoneToken) {
+          const res = await fetch(
+            `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`,
+          );
 
-  const data = await res.json();
+          const data = await res.json();
 
-  if (!res.ok || !data?.success) {
-    throw new Error(data?.message || "Phone verification failed");
-  }
+          if (!res.ok || !data?.success) {
+            throw new Error(data?.message || "Phone verification failed");
+          }
 
-  const phone = data?.data?.phone || "";
-  const vehicleId = data?.data?.vehicleId || "";
-  const ownerAccessToken = data?.data?.ownerAccessToken || "";
+          const phone = data?.data?.phone || "";
+          const vehicleId = data?.data?.vehicleId || "";
+          const ownerAccessToken = data?.data?.ownerAccessToken || "";
 
-  localStorage.setItem("role", "vehicle_owner");
-  localStorage.setItem("ownerAccess", "true");
-  localStorage.setItem("ownerPhone", phone);
-  localStorage.setItem("verifiedPhone", phone);
-  localStorage.setItem("vehicleId", vehicleId);
-  localStorage.setItem("ownerAccessToken", ownerAccessToken);
+          localStorage.setItem("role", "vehicle_owner");
+          localStorage.setItem("ownerAccess", "true");
+          localStorage.setItem("ownerPhone", phone);
+          localStorage.setItem("verifiedPhone", phone);
+          localStorage.setItem("vehicleId", vehicleId);
+          localStorage.setItem("ownerAccessToken", ownerAccessToken);
 
-  if (data?.data?.profile) {
-    localStorage.setItem("user", JSON.stringify(data.data.profile));
-  }
+          if (data?.data?.profile) {
+            localStorage.setItem("user", JSON.stringify(data.data.profile));
+          }
 
-  navigate("/app/vehicles", { replace: true });
-  return;
-}
+          if (vehicleId && ownerAccessToken) {
+            await claimVehicleWithOwnerAccess({
+              vehicleId,
+              ownerAccessToken,
+            });
+          }
+
+          navigate("/app/vehicles", { replace: true });
+          return;
+        }
 
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -121,6 +187,7 @@ const AuthCallback = () => {
         const pendingVerifiedPhone =
           localStorage.getItem("verifiedPhone") || "";
         const pendingVehicleId = localStorage.getItem("vehicleId") || "";
+
         const isPendingOwnerFlow = Boolean(
           pendingVerifiedPhone && pendingVehicleId,
         );
@@ -145,10 +212,10 @@ const AuthCallback = () => {
               "reporter";
 
             localStorage.setItem("role", pendingRole);
-
             navigate("/complete-profile", { replace: true });
             return;
           }
+
           localStorage.setItem("role", "reporter");
           localStorage.setItem("openIncidentsTab", "sent");
 
@@ -162,18 +229,26 @@ const AuthCallback = () => {
         }
 
         if (isPendingOwnerFlow) {
-  localStorage.setItem("role", "vehicle_owner");
+          try {
+            localStorage.setItem("role", "vehicle_owner");
 
-  clearOwnerPendingStorage();
+            await claimVehicleWithAuthToken({
+              vehicleId: pendingVehicleId,
+              token,
+            });
 
-  navigate("/app/vehicles", {
-    replace: true,
-  });
+            clearOwnerPendingStorage();
 
-  return;
-}
+            navigate("/app/vehicles", { replace: true });
+            return;
+          } catch (claimError) {
+            console.error("Claim vehicle error:", claimError);
+            alert("Vehicle verification succeeded but claim failed.");
+            navigate("/app/vehicles", { replace: true });
+            return;
+          }
+        }
 
-        // IMPORTANT: New user must complete profile first
         if (!profile) {
           localStorage.setItem("role", "reporter");
           navigate("/complete-profile", { replace: true });
