@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   CheckCircle2,
@@ -8,51 +8,80 @@ import {
   ShieldCheck,
   Mail,
   Info,
-} from 'lucide-react';
-import { supabase } from '../../supabase';
+} from "lucide-react";
+import { supabase } from "../../supabase";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const EditProfile = () => {
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [profileImage, setProfileImage] = useState('');
+  const [username, setUsername] = useState("");
+  const [currentProfileId, setCurrentProfileId] = useState("");
+  const [authUserId, setAuthUserId] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [profileImage, setProfileImage] = useState("");
 
   const [isTyping, setIsTyping] = useState(false);
   const [isUnique, setIsUnique] = useState<boolean | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [usernameError, setUsernameError] = useState('');
+  const [usernameError, setUsernameError] = useState("");
 
   const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
+  const [otpCode, setOtpCode] = useState("");
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
 
   const defaultAvatar =
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky&backgroundColor=b6e3f4';
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky&backgroundColor=b6e3f4";
 
   const normalizeUsername = (value: string) => value.trim().toLowerCase();
+
+  const getAuthHeaders = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const token = session?.access_token || localStorage.getItem("token");
+    const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+
+    if (token) {
+      localStorage.setItem("token", token);
+    }
+
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (ownerAccessToken) {
+      headers["x-owner-access-token"] = ownerAccessToken;
+    }
+
+    return {
+      token,
+      ownerAccessToken,
+      headers,
+    };
+  };
 
   const validateUsername = (value: string) => {
     const normalized = normalizeUsername(value);
 
-    if (!normalized) {
-      return 'Username is required';
-    }
+    if (!normalized) return "Username is required";
 
     if (normalized.length < 3 || normalized.length > 20) {
-      return 'Username must be between 3 and 20 characters';
+      return "Username must be between 3 and 20 characters";
     }
 
     if (!/^[a-z0-9_.]+$/.test(normalized)) {
-      return 'Use only letters, numbers, underscore, and dot';
+      return "Use only letters, numbers, underscore, and dot";
     }
 
-    return '';
+    return "";
   };
 
   useEffect(() => {
@@ -60,39 +89,50 @@ const EditProfile = () => {
       try {
         setIsLoadingProfile(true);
 
-        const {
-          data: { user: authUser },
-          error: authError,
-        } = await supabase.auth.getUser();
+        const { token, ownerAccessToken, headers } = await getAuthHeaders();
 
-        if (authError || !authUser) {
-          navigate('/auth');
+        if (!token && !ownerAccessToken) {
+          navigate("/auth");
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('auth_user_id', authUser.id)
-          .maybeSingle();
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          method: "GET",
+          headers,
+        });
 
-        if (profileError) {
-          throw profileError;
+        const result = await response.json();
+
+        if (!response.ok) {
+          console.error("Edit profile /me failed:", result);
+          navigate("/auth");
+          return;
         }
+
+        const authUser = result?.data?.auth;
+        const profile = result?.data?.profile;
 
         if (profile) {
-          setUsername(profile.username || profile.name || '');
-          setPhone(profile.phone || '');
-          setEmail(profile.email || authUser.email || '');
-          setProfileImage(profile.avatar_url || '');
+          setCurrentProfileId(profile.id || "");
+          setAuthUserId(profile.auth_user_id || authUser?.id || "");
+          setUsername(profile.username || profile.name || "");
+          setPhone(profile.phone || authUser?.phone || "");
+          setEmail(profile.email || authUser?.email || "");
+          setProfileImage(profile.avatar_url || profile.profileImage || "");
           setPhoneVerified(
-            Boolean(profile.is_vehicle_owner || profile.isVehicleOwner)
+            profile.role === "vehicle_owner" ||
+              Boolean(profile.is_vehicle_owner || profile.isVehicleOwner)
           );
+
+          localStorage.setItem("user", JSON.stringify(profile));
+          if (profile.id) localStorage.setItem("profileId", profile.id);
+          if (profile.role) localStorage.setItem("role", profile.role);
         } else {
-          setEmail(authUser.email || '');
+          setAuthUserId(authUser?.id || "");
+          setEmail(authUser?.email || "");
         }
       } catch (error) {
-        console.error('Load profile error:', error);
+        console.error("Load profile error:", error);
       } finally {
         setIsLoadingProfile(false);
       }
@@ -107,7 +147,7 @@ const EditProfile = () => {
 
       if (!username.trim()) {
         setIsUnique(null);
-        setUsernameError('');
+        setUsernameError("");
         setIsTyping(false);
         return;
       }
@@ -120,56 +160,45 @@ const EditProfile = () => {
       }
 
       try {
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser();
-
-        if (!authUser) {
-          setIsUnique(null);
-          setUsernameError('');
-          setIsTyping(false);
-          return;
-        }
-
         const normalized = normalizeUsername(username);
 
         const { data, error } = await supabase
-          .from('profiles')
-          .select('id, auth_user_id, username')
-          .ilike('username', normalized);
+          .from("profiles")
+          .select("id, auth_user_id, username")
+          .ilike("username", normalized);
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         const takenByAnotherUser = (data || []).some((item: any) => {
-          const profileOwnerId = item?.auth_user_id || item?.id;
-          return profileOwnerId !== authUser.id;
+          const sameProfile = currentProfileId && item?.id === currentProfileId;
+          const sameAuthUser = authUserId && item?.auth_user_id === authUserId;
+
+          return !sameProfile && !sameAuthUser;
         });
 
-        setUsernameError(takenByAnotherUser ? 'This username is already taken' : '');
+        setUsernameError(
+          takenByAnotherUser ? "This username is already taken" : ""
+        );
         setIsUnique(!takenByAnotherUser);
       } catch (error) {
-        console.error('Username check error:', error);
+        console.error("Username check error:", error);
         setIsUnique(null);
-        setUsernameError('');
+        setUsernameError("");
       } finally {
         setIsTyping(false);
       }
     };
 
-    const timer = setTimeout(() => {
-      checkUsername();
-    }, 500);
+    const timer = setTimeout(checkUsername, 500);
 
     return () => clearTimeout(timer);
-  }, [username]);
+  }, [username, currentProfileId, authUserId]);
 
   const isValid =
     username.trim().length >= 3 &&
     isUnique !== false &&
     !usernameError &&
-    (email || phone);
+    Boolean(email || phone);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,15 +206,6 @@ const EditProfile = () => {
 
     try {
       setIsSaving(true);
-
-      const {
-        data: { user: authUser },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !authUser) {
-        throw new Error('User not authenticated');
-      }
 
       const normalizedUsername = normalizeUsername(username);
       const validationMessage = validateUsername(username);
@@ -198,80 +218,84 @@ const EditProfile = () => {
       }
 
       const { data: existingUsers, error: existingUsersError } = await supabase
-        .from('profiles')
-        .select('id, auth_user_id, username')
-        .ilike('username', normalizedUsername);
+        .from("profiles")
+        .select("id, auth_user_id, username")
+        .ilike("username", normalizedUsername);
 
-      if (existingUsersError) {
-        throw existingUsersError;
-      }
+      if (existingUsersError) throw existingUsersError;
 
       const takenByAnotherUser = (existingUsers || []).some((item: any) => {
-        const profileOwnerId = item?.auth_user_id || item?.id;
-        return profileOwnerId !== authUser.id;
+        const sameProfile = currentProfileId && item?.id === currentProfileId;
+        const sameAuthUser = authUserId && item?.auth_user_id === authUserId;
+
+        return !sameProfile && !sameAuthUser;
       });
 
       if (takenByAnotherUser) {
-        setUsernameError('This username is already taken');
+        setUsernameError("This username is already taken");
         setIsUnique(false);
         setIsSaving(false);
         return;
       }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { token, ownerAccessToken, headers } = await getAuthHeaders();
 
-      const token = session?.access_token || localStorage.getItem('token');
-
-      if (!token) {
-        throw new Error('Missing authentication token');
+      if (!token && !ownerAccessToken) {
+        throw new Error("Missing authentication token");
       }
 
       const payload = {
-        role: phoneVerified ? 'vehicle_owner' : 'reporter',
-        verifiedPhone: phoneVerified ? phone.trim() : '',
-        vehicleId: localStorage.getItem('vehicleId') || '',
+        role: phoneVerified ? "vehicle_owner" : "reporter",
+        verifiedPhone: phoneVerified ? phone.trim() : "",
+        vehicleId: localStorage.getItem("vehicleId") || "",
         name: normalizedUsername,
         username: normalizedUsername,
-        email: email.trim() || authUser.email || '',
-        phone: phone.trim() || '',
-        profileImage: profileImage || '',
-        primaryContact: phoneVerified ? 'phone' : 'email',
+        email: email.trim() || "",
+        phone: phone.trim() || "",
+        profileImage: profileImage || "",
+        avatar_url: profileImage || "",
+        primaryContact: phoneVerified ? "phone" : "email",
       };
 
-      console.log('🔥 Edit profile payload:', payload);
-
       const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...headers,
         },
         body: JSON.stringify(payload),
       });
 
       const result = await response.json();
 
-      console.log('✅ Backend profile update:', result);
-
       if (!response.ok) {
-        throw new Error(result?.message || 'Failed to update profile');
+        throw new Error(result?.message || "Failed to update profile");
       }
 
-      navigate('/app/profile');
-    } catch (err: any) {
-      console.error('Update profile error FULL:', err);
-      console.error('Update profile error message:', err?.message);
-      console.error('Update profile error details:', err?.details);
-      console.error('Update profile error hint:', err?.hint);
-      console.error('Update profile error code:', err?.code);
+      const updatedProfile = result?.data?.profile;
 
-      if (err?.code === '23505' || err?.message?.toLowerCase()?.includes('duplicate')) {
-        setUsernameError('This username is already taken');
+      if (updatedProfile) {
+        localStorage.setItem("user", JSON.stringify(updatedProfile));
+        if (updatedProfile.id) {
+          localStorage.setItem("profileId", updatedProfile.id);
+        }
+        if (updatedProfile.role) {
+          localStorage.setItem("role", updatedProfile.role);
+        }
+      }
+
+      navigate("/app/profile");
+    } catch (err: any) {
+      console.error("Update profile error FULL:", err);
+
+      if (
+        err?.code === "23505" ||
+        err?.message?.toLowerCase()?.includes("duplicate")
+      ) {
+        setUsernameError("This username is already taken");
         setIsUnique(false);
       } else {
-        alert(err?.message || 'Failed to update profile');
+        alert(err?.message || "Failed to update profile");
       }
     } finally {
       setIsSaving(false);
@@ -295,13 +319,16 @@ const EditProfile = () => {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      setProfileImage(reader.result as string);
+    };
+
+    reader.readAsDataURL(file);
   };
 
   if (isLoadingProfile) {
@@ -320,7 +347,8 @@ const EditProfile = () => {
     <div className="relative flex h-full flex-col bg-[#F8FBFF] px-5 pt-10 pb-10">
       <header className="mb-8 flex items-center justify-between">
         <button
-          onClick={() => navigate('/app/profile')}
+          type="button"
+          onClick={() => navigate("/app/profile")}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#DCE6F2] bg-white text-[#0F172A] shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition-all active:scale-95"
         >
           <ChevronLeft size={18} strokeWidth={3} />
@@ -334,7 +362,11 @@ const EditProfile = () => {
       </header>
 
       <div className="scrollbar-hide flex-1 overflow-y-auto pb-44">
-        <form id="edit-profile" onSubmit={handleSave} className="flex flex-col gap-7">
+        <form
+          id="edit-profile"
+          onSubmit={handleSave}
+          className="flex flex-col gap-7"
+        >
           <section className="flex flex-col items-center pt-1">
             <div className="group relative">
               <div className="h-32 w-32 overflow-hidden rounded-[40px] border border-[#E2EAF3] bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.10)] transition-transform duration-300 group-hover:scale-[1.02]">
@@ -372,7 +404,7 @@ const EditProfile = () => {
                   {isUnique !== null && !isTyping && !usernameError && (
                     <span
                       className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.14em] ${
-                        isUnique ? 'text-emerald-500' : 'text-red-500'
+                        isUnique ? "text-emerald-500" : "text-red-500"
                       }`}
                     >
                       {isUnique ? (
@@ -380,7 +412,7 @@ const EditProfile = () => {
                       ) : (
                         <Info size={10} strokeWidth={3} />
                       )}
-                      {isUnique ? 'Available' : 'Taken'}
+                      {isUnique ? "Available" : "Taken"}
                     </span>
                   )}
                 </div>
@@ -416,6 +448,7 @@ const EditProfile = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="driver@example.com"
                   />
+
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]">
                     <Mail size={18} />
                   </div>
@@ -489,7 +522,7 @@ const EditProfile = () => {
                       disabled={otpCode.length < 6 || isVerifyingOtp}
                       className="h-[56px] rounded-[20px] bg-emerald-500 px-5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_12px_24px_rgba(16,185,129,0.28)] transition-all active:scale-95 disabled:opacity-50"
                     >
-                      {isVerifyingOtp ? '...' : 'Verify'}
+                      {isVerifyingOtp ? "..." : "Verify"}
                     </button>
                   </div>
                 </div>
@@ -520,7 +553,7 @@ const EditProfile = () => {
         <div className="mx-auto flex max-w-sm gap-3">
           <button
             type="button"
-            onClick={() => navigate('/app/profile')}
+            onClick={() => navigate("/app/profile")}
             className="h-14 flex-1 rounded-[18px] border border-[#DCE6F2] bg-white text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B] transition-all active:scale-[0.98]"
           >
             Cancel
@@ -532,7 +565,7 @@ const EditProfile = () => {
             disabled={!isValid || isSaving}
             className="h-14 flex-[2] rounded-[18px] bg-[#2563EB] px-5 text-[11px] font-black uppercase tracking-[0.16em] text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
