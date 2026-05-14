@@ -1,93 +1,114 @@
-import { useNavigate } from 'react-router-dom';
-import { useStore } from '../../utils/store';
+import { useNavigate } from "react-router-dom";
+import { useStore } from "../../utils/store";
 import {
   MdLocalFireDepartment,
   MdVerifiedUser,
   MdAdd,
   MdNotifications,
-} from 'react-icons/md';
+} from "react-icons/md";
 
 const homeText = {
   fr: {
-    communitySafety: 'Communauté Sécurisée',
-    greeting: 'Bonjour',
-    subtitle: 'Prêt à aider la communauté aujourd’hui ?',
-    currentStreak: 'Série actuelle',
-    days: 'Jours',
+    communitySafety: "Communauté Sécurisée",
+    greeting: "Bonjour",
+    subtitle: "Prêt à aider la communauté aujourd’hui ?",
+    currentStreak: "Série actuelle",
+    days: "Jours",
     streakDescription:
-      'Vous faites un excellent travail. Continuez à signaler et protéger.',
-    reportsMade: 'Signalements',
-    verifiedReports: 'Signalements vérifiés',
-    currentBadge: 'Badge actuel',
-    noBadge: 'Aucun badge',
-    weeklyLeaderboard: 'Classement Hebdomadaire',
-    viewAll: 'Voir tout',
-    reports: 'Signalements',
-    reportNow: 'Signaler maintenant',
-    you: 'Vous',
-    guest: 'Invité',
-    communityHero: 'Héros de la communauté',
-    topContributor: 'Meilleur contributeur',
-    climbingFast: 'Progression rapide',
+      "Vous faites un excellent travail. Continuez à signaler et protéger.",
+    reportsMade: "Signalements",
+    verifiedReports: "Signalements vérifiés",
+    currentBadge: "Badge actuel",
+    noBadge: "Aucun badge",
+    weeklyLeaderboard: "Classement Hebdomadaire",
+    viewAll: "Voir tout",
+    reports: "Signalements",
+    reportNow: "Signaler maintenant",
+    you: "Vous",
+    guest: "Invité",
+    communityHero: "Héros de la communauté",
+    topContributor: "Meilleur contributeur",
+    climbingFast: "Progression rapide",
   },
   en: {
-    communitySafety: 'Community Safety',
-    greeting: 'Hi',
-    subtitle: 'Ready to help the community today?',
-    currentStreak: 'Current Streak',
-    days: 'Days',
-    streakDescription:
-      "You're doing amazing. Keep reporting and protecting.",
-    reportsMade: 'Reports Made',
-    verifiedReports: 'Total verified reports',
-    currentBadge: 'Current Badge',
-    noBadge: 'No Badge Yet',
-    weeklyLeaderboard: 'Weekly Leaderboard',
-    viewAll: 'View All',
-    reports: 'Reports',
-    reportNow: 'New Report',
-    you: 'You',
-    guest: 'Guest',
-    communityHero: 'Community Hero',
-    topContributor: 'Top Contributor',
-    climbingFast: 'Climbing fast!',
+    communitySafety: "Community Safety",
+    greeting: "Hi",
+    subtitle: "Ready to help the community today?",
+    currentStreak: "Current Streak",
+    days: "Days",
+    streakDescription: "You're doing amazing. Keep reporting and protecting.",
+    reportsMade: "Reports Made",
+    verifiedReports: "Total verified reports",
+    currentBadge: "Current Badge",
+    noBadge: "No Badge Yet",
+    weeklyLeaderboard: "Weekly Leaderboard",
+    viewAll: "View All",
+    reports: "Reports",
+    reportNow: "New Report",
+    you: "You",
+    guest: "Guest",
+    communityHero: "Community Hero",
+    topContributor: "Top Contributor",
+    climbingFast: "Climbing fast!",
   },
+};
+
+const getSavedUser = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 };
 
 const Home = () => {
   const { user } = useStore();
   const navigate = useNavigate();
 
+  const savedUser = getSavedUser();
+
+  const activeUser = (user || savedUser) as any;
+
   const language =
-    (localStorage.getItem('language') as keyof typeof homeText) || 'fr';
+    (localStorage.getItem("language") as keyof typeof homeText) || "fr";
 
   const t = homeText[language] || homeText.fr;
 
   const firstName =
-    user?.username?.trim()?.split(' ')[0] ||
+    activeUser?.username?.trim()?.split(" ")[0] ||
+    activeUser?.name?.trim()?.split(" ")[0] ||
+    activeUser?.email?.split("@")?.[0] ||
     t.guest;
 
-  const streak = user?.streak ?? 12;
-  const reportsMade = user?.totalIncidentsReported ?? 48;
-  const coins = user?.coins ?? 840;
+  const streak = activeUser?.streak ?? 0;
+
+  const reportsMade =
+    activeUser?.totalIncidentsReported ??
+    activeUser?.reports_count ??
+    activeUser?.reportsCount ??
+    0;
+
+  const coins = activeUser?.coins ?? activeUser?.points ?? 0;
 
   const currentBadge =
-    user?.badges?.[user.badges.length - 1] || t.noBadge;
+    activeUser?.badges?.[activeUser.badges.length - 1] || t.noBadge;
 
   const avatar =
-    user?.profileImage ||
-    'https://api.dicebear.com/9.x/fun-emoji/svg?seed=A';
+    activeUser?.profileImage ||
+    activeUser?.avatar_url ||
+    "https://api.dicebear.com/9.x/fun-emoji/svg?seed=A";
 
   const leaders = [
     {
-      name: 'RoadWarrior_88',
+      name: "RoadWarrior_88",
       role: t.communityHero,
       reports: 42,
       points: 2450,
       highlight: false,
     },
     {
-      name: 'SarahDash',
+      name: "SarahDash",
       role: t.topContributor,
       reports: 35,
       points: 1920,
@@ -96,7 +117,7 @@ const Home = () => {
     {
       name: `${firstName} (${t.you})`,
       role: t.climbingFast,
-      reports: 12,
+      reports: reportsMade,
       points: coins,
       highlight: true,
     },
@@ -219,7 +240,7 @@ const Home = () => {
 
           <button
             type="button"
-            onClick={() => navigate('/app/leaderboard')}
+            onClick={() => navigate("/app/leaderboard")}
             className="shrink-0 text-[13px] font-black text-[#459DFF] transition-opacity hover:opacity-80"
           >
             {t.viewAll}
@@ -231,11 +252,11 @@ const Home = () => {
             <button
               key={i}
               type="button"
-              onClick={() => navigate('/app/leaderboard')}
+              onClick={() => navigate("/app/leaderboard")}
               className={`w-full rounded-[20px] p-4 text-left transition-all duration-300 hover:translate-y-[-1px] ${
                 item.highlight
-                  ? 'border-2 border-[#4098FF] bg-[#EAF3FF] shadow-[0_12px_24px_rgba(64,152,255,0.10)]'
-                  : 'border border-[#D2DEEF] bg-[#E1EAF6] shadow-[0_10px_20px_rgba(15,23,42,0.04)]'
+                  ? "border-2 border-[#4098FF] bg-[#EAF3FF] shadow-[0_12px_24px_rgba(64,152,255,0.10)]"
+                  : "border border-[#D2DEEF] bg-[#E1EAF6] shadow-[0_10px_20px_rgba(15,23,42,0.04)]"
               }`}
             >
               <div className="flex items-center justify-between gap-3">
@@ -246,9 +267,7 @@ const Home = () => {
 
                   <p
                     className={`mt-1 text-[13px] font-semibold ${
-                      item.highlight
-                        ? 'text-[#3F98FF]'
-                        : 'text-[#4B5C76]'
+                      item.highlight ? "text-[#3F98FF]" : "text-[#4B5C76]"
                     }`}
                   >
                     {item.role}
@@ -273,7 +292,7 @@ const Home = () => {
 
         <button
           type="button"
-          onClick={() => navigate('/app/reports')}
+          onClick={() => navigate("/app/reports")}
           className="mt-6 flex h-[68px] items-center justify-center gap-3 rounded-[24px] border-2 border-[#E0AA00] bg-[#F6F1DF] text-[#E0AA00] shadow-[0_14px_28px_rgba(224,170,0,0.12)] transition-all duration-300 hover:translate-y-[-1px] hover:shadow-[0_18px_34px_rgba(224,170,0,0.16)] active:scale-[0.99] sm:h-[72px] sm:rounded-[26px]"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E0AA00] text-white shadow-sm">

@@ -84,6 +84,7 @@ const Profile = () => {
       localStorage.removeItem("profileId");
       localStorage.removeItem("user");
       localStorage.removeItem("ownerAccess");
+      localStorage.removeItem("ownerAccessToken");
       localStorage.removeItem("verifiedPhone");
       localStorage.removeItem("pendingEmail");
       localStorage.removeItem("pendingPhone");
@@ -103,10 +104,16 @@ const Profile = () => {
 
         const {
           data: { session },
-          error: sessionError,
         } = await supabase.auth.getSession();
 
-        if (sessionError || !session?.access_token) {
+        const token = session?.access_token || localStorage.getItem("token");
+        const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+
+        if (token) {
+          localStorage.setItem("token", token);
+        }
+
+        if (!token && !ownerAccessToken) {
           if (isMounted) {
             setUser(null);
             setVehicles([]);
@@ -116,11 +123,15 @@ const Profile = () => {
           return;
         }
 
-        localStorage.setItem("token", session.access_token);
+        const headers: Record<string, string> = {};
 
-        const headers = {
-          Authorization: `Bearer ${session.access_token}`,
-        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        if (ownerAccessToken) {
+          headers["x-owner-access-token"] = ownerAccessToken;
+        }
 
         const meRes = await fetch(`${API_URL}/api/auth/me`, {
           method: "GET",
