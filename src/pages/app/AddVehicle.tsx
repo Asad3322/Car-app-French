@@ -20,9 +20,10 @@ const AddVehicle = () => {
   const location = useLocation();
   const { t } = useTranslation();
 
-  const isOnboardingFlow =
-    location.pathname.includes("add-vehicle") ||
-    location.pathname.includes("vehicle/add");
+  // IMPORTANT:
+  // /app/vehicles/add => authenticated garage vehicle
+  // public add vehicle/onboarding routes => onboarding vehicle
+  const isOnboardingFlow = !location.pathname.startsWith("/app");
 
   const [name, setName] = useState("");
   const [plate, setPlate] = useState("");
@@ -38,6 +39,7 @@ const AddVehicle = () => {
 
   const isFormValid =
     name.trim() !== "" && plate.trim() !== "" && images.length > 0;
+
   const canAddMoreImages = images.length < MAX_VEHICLE_IMAGES;
 
   useEffect(() => {
@@ -164,19 +166,19 @@ const AddVehicle = () => {
         throw new Error("User not authenticated. Please login again.");
       }
 
+      const headers: Record<string, string> = {};
+
+      if (!isOnboardingFlow && token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      if (!isOnboardingFlow && !token && ownerAccessToken) {
+        headers["x-owner-access-token"] = ownerAccessToken;
+      }
+
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          ...(!isOnboardingFlow && token
-            ? { Authorization: `Bearer ${token}` }
-            : {}),
-
-          ...(!isOnboardingFlow && !token && ownerAccessToken
-            ? {
-                "x-owner-access-token": ownerAccessToken,
-              }
-            : {}),
-        },
+        headers,
         body: formData,
       });
 
@@ -206,15 +208,14 @@ const AddVehicle = () => {
 
       if (isOnboardingFlow) {
         localStorage.setItem("role", "vehicle_owner");
-      }
 
-      if (isOnboardingFlow) {
         navigate("/verify", {
           state: {
             mode: "owner",
             vehicleId: savedVehicleId,
           },
         });
+
         return;
       }
 
