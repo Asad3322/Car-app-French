@@ -8,14 +8,12 @@ import fr from '../../i18n/fr';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const translations = {
-  en,
-  fr,
-};
+const translations = { en, fr };
 
 type BackendIncident = {
   id: string;
   licence_plate?: string;
+  normalized_plate?: string;
   description?: string;
   status?: string;
   created_at?: string;
@@ -36,12 +34,7 @@ type UiIncident = {
 
 const getLanguage = (): keyof typeof translations => {
   const savedLanguage = localStorage.getItem('language');
-
-  if (savedLanguage === 'en' || savedLanguage === 'fr') {
-    return savedLanguage;
-  }
-
-  return 'fr';
+  return savedLanguage === 'en' || savedLanguage === 'fr' ? savedLanguage : 'fr';
 };
 
 const normalizeStatus = (status?: string): Status => {
@@ -62,7 +55,7 @@ const normalizeStatus = (status?: string): Status => {
 
 const mapBackendIncident = (incident: BackendIncident): UiIncident => ({
   id: incident.id,
-  plate: incident.licence_plate || '',
+  plate: incident.normalized_plate || incident.licence_plate || '',
   description: incident.description || '',
   status: normalizeStatus(incident.status),
   date: incident.created_at || incident.updated_at || '',
@@ -85,6 +78,25 @@ const getInitialGroup = (): 'sent' | 'received' => {
   }
 
   return 'sent';
+};
+
+const buildAuthHeaders = (): HeadersInit => {
+  const token = localStorage.getItem('token');
+  const ownerAccessToken = localStorage.getItem('ownerAccessToken');
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (ownerAccessToken) {
+    headers['x-owner-access-token'] = ownerAccessToken;
+  }
+
+  return headers;
 };
 
 const Incidents = () => {
@@ -121,8 +133,6 @@ const Incidents = () => {
       try {
         setLoading(true);
 
-        const token = localStorage.getItem('token');
-
         const endpoint =
           activeGroup === 'sent'
             ? `${API_BASE_URL}/api/reports/sent`
@@ -130,10 +140,7 @@ const Incidents = () => {
 
         const response = await fetch(endpoint, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: buildAuthHeaders(),
         });
 
         const result = await response.json();
@@ -142,6 +149,8 @@ const Incidents = () => {
         console.log('Incidents fetch endpoint:', endpoint);
         console.log('Incidents fetch response:', result);
         console.log('Current user:', user);
+        console.log('token:', localStorage.getItem('token'));
+        console.log('ownerAccessToken:', localStorage.getItem('ownerAccessToken'));
 
         if (!response.ok) {
           console.error('Incidents fetch failed:', result);
@@ -227,12 +236,7 @@ const Incidents = () => {
                 : 'text-[#64748B]'
             }`}
           >
-            {group === 'sent' ? (
-              <Navigation size={14} />
-            ) : (
-              <FileText size={14} />
-            )}
-
+            {group === 'sent' ? <Navigation size={14} /> : <FileText size={14} />}
             {getGroupLabel(group)}
           </button>
         ))}
@@ -262,7 +266,6 @@ const Incidents = () => {
             <h3 className="text-[18px] font-black text-[#0F172A]">
               {t.loadingReports}
             </h3>
-
             <p className="mt-2 text-[14px] font-medium text-[#64748B]">
               {t.loadingSubtitle}
             </p>
@@ -272,7 +275,6 @@ const Incidents = () => {
             <h3 className="text-[18px] font-black text-[#0F172A]">
               {activeGroup === 'sent' ? t.noSentReports : t.noReceivedReports}
             </h3>
-
             <p className="mt-2 text-[14px] font-medium text-[#64748B]">
               {t.emptySubtitle}
             </p>
@@ -344,9 +346,7 @@ const Incidents = () => {
                   )}
 
                   <div className="shrink-0 text-[11px] font-semibold text-[#94A3B8]">
-                    {incident.date
-                      ? new Date(incident.date).toLocaleDateString()
-                      : ''}
+                    {incident.date ? new Date(incident.date).toLocaleDateString() : ''}
                   </div>
                 </div>
               </div>
