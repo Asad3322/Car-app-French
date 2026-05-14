@@ -203,7 +203,10 @@ const AddVehicle = () => {
       }
 
       localStorage.setItem("vehicleId", savedVehicleId);
-      localStorage.setItem("role", "vehicle_owner");
+
+      if (isOnboardingFlow) {
+        localStorage.setItem("role", "vehicle_owner");
+      }
 
       if (isOnboardingFlow) {
         navigate("/verify", {
