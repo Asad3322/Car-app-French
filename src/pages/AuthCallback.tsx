@@ -69,7 +69,10 @@ const AuthCallback = () => {
       });
 
       const claimResult = await claimResponse.json();
-      console.log("PHONE TOKEN CLAIM VEHICLE RESPONSE:", claimResult);
+      console.log(
+        "PHONE TOKEN CLAIM VEHICLE RESPONSE:",
+        JSON.stringify(claimResult, null, 2),
+      );
 
       if (!claimResponse.ok) {
         throw new Error(claimResult?.message || "Failed to claim vehicle");
