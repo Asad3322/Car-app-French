@@ -161,6 +161,11 @@ const AddVehicle = () => {
       const endpoint = isOnboardingFlow
         ? `${API_BASE_URL}/api/vehicles/onboarding`
         : `${API_BASE_URL}/api/vehicles`;
+      console.log("CURRENT PATH:", location.pathname);
+      console.log("IS ONBOARDING FLOW:", isOnboardingFlow);
+      console.log("Vehicle API endpoint:", endpoint);
+      console.log("TOKEN EXISTS:", Boolean(token));
+      console.log("OWNER ACCESS TOKEN EXISTS:", Boolean(ownerAccessToken));
 
       if (!isOnboardingFlow && !token && !ownerAccessToken) {
         throw new Error("User not authenticated. Please login again.");
