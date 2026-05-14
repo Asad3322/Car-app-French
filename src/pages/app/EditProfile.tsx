@@ -121,7 +121,7 @@ const EditProfile = () => {
           setProfileImage(profile.avatar_url || profile.profileImage || "");
           setPhoneVerified(
             profile.role === "vehicle_owner" ||
-              Boolean(profile.is_vehicle_owner || profile.isVehicleOwner)
+              Boolean(profile.is_vehicle_owner || profile.isVehicleOwner),
           );
 
           localStorage.setItem("user", JSON.stringify(profile));
@@ -177,7 +177,7 @@ const EditProfile = () => {
         });
 
         setUsernameError(
-          takenByAnotherUser ? "This username is already taken" : ""
+          takenByAnotherUser ? "This username is already taken" : "",
         );
         setIsUnique(!takenByAnotherUser);
       } catch (error) {
@@ -275,12 +275,29 @@ const EditProfile = () => {
       const updatedProfile = result?.data?.profile;
 
       if (updatedProfile) {
-        localStorage.setItem("user", JSON.stringify(updatedProfile));
-        if (updatedProfile.id) {
-          localStorage.setItem("profileId", updatedProfile.id);
+        const safeUpdatedProfile = {
+          ...updatedProfile,
+          username: updatedProfile.username || normalizedUsername,
+          name: updatedProfile.name || normalizedUsername,
+          profileImage:
+            updatedProfile.profileImage ||
+            updatedProfile.avatar_url ||
+            profileImage ||
+            "",
+          avatar_url:
+            updatedProfile.avatar_url ||
+            updatedProfile.profileImage ||
+            profileImage ||
+            "",
+        };
+
+        localStorage.setItem("user", JSON.stringify(safeUpdatedProfile));
+        if (safeUpdatedProfile.id) {
+          localStorage.setItem("profileId", safeUpdatedProfile.id);
         }
-        if (updatedProfile.role) {
-          localStorage.setItem("role", updatedProfile.role);
+
+        if (safeUpdatedProfile.role) {
+          localStorage.setItem("role", safeUpdatedProfile.role);
         }
       }
 

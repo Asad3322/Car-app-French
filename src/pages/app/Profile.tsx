@@ -68,11 +68,28 @@ const Profile = () => {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const handleLanguageChange = (lang: "en" | "fr") => {
-    i18n.changeLanguage(lang);
-    localStorage.setItem("language", lang);
-    setShowLangMenu(false);
-  };
+  const handleLanguageChange = async (lang: "en" | "fr") => {
+  i18n.changeLanguage(lang);
+  localStorage.setItem("language", lang);
+  setShowLangMenu(false);
+
+  try {
+    const rawUser = localStorage.getItem("user");
+    const savedUser = rawUser ? JSON.parse(rawUser) : null;
+
+    if (savedUser) {
+      const updatedUser = {
+        ...savedUser,
+        language: lang,
+      };
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    }
+  } catch (error) {
+    console.error("Language local update error:", error);
+  }
+};
 
   const handleLogout = async () => {
     try {
