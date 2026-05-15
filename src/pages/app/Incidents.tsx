@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useStore } from '../../utils/store';
-import { Navigation, FileText, ChevronRight } from 'lucide-react';
-import type { Status } from '../../utils/types';
-import en from '../../i18n/en';
-import fr from '../../i18n/fr';
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useStore } from "../../utils/store";
+import { Navigation, FileText, ChevronRight } from "lucide-react";
+import type { Status } from "../../utils/types";
+import en from "../../i18n/en";
+import fr from "../../i18n/fr";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -33,59 +33,61 @@ type UiIncident = {
 };
 
 const getLanguage = (): keyof typeof translations => {
-  const savedLanguage = localStorage.getItem('language');
-  return savedLanguage === 'en' || savedLanguage === 'fr' ? savedLanguage : 'fr';
+  const savedLanguage = localStorage.getItem("language");
+  return savedLanguage === "en" || savedLanguage === "fr"
+    ? savedLanguage
+    : "fr";
 };
 
 const normalizeStatus = (status?: string): Status => {
-  const value = String(status || '').toLowerCase();
+  const value = String(status || "").toLowerCase();
 
-  if (value === 'reported' || value === 'submitted' || value === 'delivered') {
-    return 'reported';
+  if (value === "reported" || value === "submitted" || value === "delivered") {
+    return "reported";
   }
 
-  if (value === 'seen') return 'seen';
+  if (value === "seen") return "seen";
 
-  if (value === 'resolved' || value === 'closed' || value === 'acknowledged') {
-    return 'resolved';
+  if (value === "resolved" || value === "closed" || value === "acknowledged") {
+    return "resolved";
   }
 
-  return 'reported';
+  return "reported";
 };
 
 const mapBackendIncident = (incident: BackendIncident): UiIncident => ({
   id: incident.id,
-  plate: incident.normalized_plate || incident.licence_plate || '',
-  description: incident.description || '',
+  plate: incident.normalized_plate || incident.licence_plate || "",
+  description: incident.description || "",
   status: normalizeStatus(incident.status),
-  date: incident.created_at || incident.updated_at || '',
-  reporterId: incident.reporter_id || '',
-  receiverId: incident.receiver_id || '',
+  date: incident.created_at || incident.updated_at || "",
+  reporterId: incident.reporter_id || "",
+  receiverId: incident.receiver_id || "",
 });
 
-const getInitialGroup = (): 'sent' | 'received' => {
-  const forceTab = localStorage.getItem('openIncidentsTab');
+const getInitialGroup = (): "sent" | "received" => {
+  const forceTab = localStorage.getItem("openIncidentsTab");
 
-  if (forceTab === 'sent' || forceTab === 'received') {
-    localStorage.removeItem('openIncidentsTab');
+  if (forceTab === "sent" || forceTab === "received") {
+    localStorage.removeItem("openIncidentsTab");
     return forceTab;
   }
 
-  const role = localStorage.getItem('role');
+  const role = localStorage.getItem("role");
 
-  if (role === 'vehicle_owner') {
-    return 'received';
+  if (role === "vehicle_owner") {
+    return "received";
   }
 
-  return 'sent';
+  return "sent";
 };
 
 const buildAuthHeaders = (): HeadersInit => {
-  const token = localStorage.getItem('token');
-  const ownerAccessToken = localStorage.getItem('ownerAccessToken');
+  const token = localStorage.getItem("token");
+  const ownerAccessToken = localStorage.getItem("ownerAccessToken");
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
   if (token) {
@@ -93,7 +95,7 @@ const buildAuthHeaders = (): HeadersInit => {
   }
 
   if (ownerAccessToken) {
-    headers['x-owner-access-token'] = ownerAccessToken;
+    headers["x-owner-access-token"] = ownerAccessToken;
   }
 
   return headers;
@@ -110,21 +112,21 @@ const Incidents = () => {
   const [incidents, setIncidents] = useState<UiIncident[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [activeGroup, setActiveGroup] = useState<'sent' | 'received'>(
-    (location.state as { filter?: 'sent' | 'received' } | null)?.filter ||
-      getInitialGroup()
+  const [activeGroup, setActiveGroup] = useState<"sent" | "received">(
+    (location.state as { filter?: "sent" | "received" } | null)?.filter ||
+      getInitialGroup(),
   );
 
-  const [activeFilter, setActiveFilter] = useState<Status | 'all'>('all');
+  const [activeFilter, setActiveFilter] = useState<Status | "all">("all");
 
   useEffect(() => {
     const stateFilter = (
-      location.state as { filter?: 'sent' | 'received' } | null
+      location.state as { filter?: "sent" | "received" } | null
     )?.filter;
 
-    if (stateFilter === 'sent' || stateFilter === 'received') {
+    if (stateFilter === "sent" || stateFilter === "received") {
       setActiveGroup(stateFilter);
-      setActiveFilter('all');
+      setActiveFilter("all");
     }
   }, [location.state]);
 
@@ -134,26 +136,29 @@ const Incidents = () => {
         setLoading(true);
 
         const endpoint =
-          activeGroup === 'sent'
+          activeGroup === "sent"
             ? `${API_BASE_URL}/api/reports/sent`
             : `${API_BASE_URL}/api/reports/received`;
 
         const response = await fetch(endpoint, {
-          method: 'GET',
+          method: "GET",
           headers: buildAuthHeaders(),
         });
 
         const result = await response.json();
 
-        console.log('Active report tab:', activeGroup);
-        console.log('Incidents fetch endpoint:', endpoint);
-        console.log('Incidents fetch response:', result);
-        console.log('Current user:', user);
-        console.log('token:', localStorage.getItem('token'));
-        console.log('ownerAccessToken:', localStorage.getItem('ownerAccessToken'));
+        console.log("Active report tab:", activeGroup);
+        console.log("Incidents fetch endpoint:", endpoint);
+        console.log("Incidents fetch response:", result);
+        console.log("Current user:", user);
+        console.log("token:", localStorage.getItem("token"));
+        console.log(
+          "ownerAccessToken:",
+          localStorage.getItem("ownerAccessToken"),
+        );
 
         if (!response.ok) {
-          console.error('Incidents fetch failed:', result);
+          console.error("Incidents fetch failed:", result);
           setIncidents([]);
           return;
         }
@@ -161,7 +166,7 @@ const Incidents = () => {
         const reports = Array.isArray(result?.data) ? result.data : [];
         setIncidents(reports.map(mapBackendIncident));
       } catch (error) {
-        console.error('Incidents fetch error:', error);
+        console.error("Incidents fetch error:", error);
         setIncidents([]);
       } finally {
         setLoading(false);
@@ -172,32 +177,32 @@ const Incidents = () => {
   }, [activeGroup, user]);
 
   const filtered =
-    activeFilter === 'all'
+    activeFilter === "all"
       ? incidents
       : incidents.filter((incident) => incident.status === activeFilter);
 
   const getStatusStyle = (status: Status) => {
     switch (status) {
-      case 'reported':
-        return 'border-sky-200 bg-sky-50 text-sky-600';
-      case 'seen':
-        return 'border-violet-200 bg-violet-50 text-violet-600';
-      case 'resolved':
-        return 'border-emerald-200 bg-emerald-50 text-emerald-600';
+      case "reported":
+        return "border-sky-200 bg-sky-50 text-sky-600";
+      case "seen":
+        return "border-violet-200 bg-violet-50 text-violet-600";
+      case "resolved":
+        return "border-emerald-200 bg-emerald-50 text-emerald-600";
       default:
-        return 'border-slate-200 bg-slate-50 text-slate-500';
+        return "border-slate-200 bg-slate-50 text-slate-500";
     }
   };
 
-  const getGroupLabel = (group: 'sent' | 'received') => {
-    return group === 'sent' ? t.sent : t.received;
+  const getGroupLabel = (group: "sent" | "received") => {
+    return group === "sent" ? t.sent : t.received;
   };
 
-  const getFilterLabel = (filter: Status | 'all') => {
-    if (filter === 'all') return t.all;
-    if (filter === 'reported') return t.reported;
-    if (filter === 'seen') return t.seen;
-    if (filter === 'resolved') return t.resolved;
+  const getFilterLabel = (filter: Status | "all") => {
+    if (filter === "all") return t.all;
+    if (filter === "reported") return t.reported;
+    if (filter === "seen") return t.seen;
+    if (filter === "resolved") return t.resolved;
     return filter;
   };
 
@@ -223,35 +228,39 @@ const Incidents = () => {
       </header>
 
       <div className="relative z-10 mb-6 flex rounded-[24px] border border-[#DCE6F2] bg-white/80 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-        {(['sent', 'received'] as const).map((group) => (
+        {(["sent", "received"] as const).map((group) => (
           <button
             key={group}
             onClick={() => {
               setActiveGroup(group);
-              setActiveFilter('all');
+              setActiveFilter("all");
             }}
             className={`flex flex-1 items-center justify-center gap-2 rounded-[20px] py-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
               activeGroup === group
-                ? 'bg-[#2563EB] text-white shadow-[0_10px_20px_rgba(37,99,235,0.20)]'
-                : 'text-[#64748B]'
+                ? "bg-[#2563EB] text-white shadow-[0_10px_20px_rgba(37,99,235,0.20)]"
+                : "text-[#64748B]"
             }`}
           >
-            {group === 'sent' ? <Navigation size={14} /> : <FileText size={14} />}
+            {group === "sent" ? (
+              <Navigation size={14} />
+            ) : (
+              <FileText size={14} />
+            )}
             {getGroupLabel(group)}
           </button>
         ))}
       </div>
 
-      {activeGroup === 'sent' && (
+      {(activeGroup === "sent" || activeGroup === "received") && (
         <div className="scrollbar-hide relative z-10 mb-6 flex gap-2 overflow-x-auto pb-1">
-          {(['all', 'reported', 'seen', 'resolved'] as const).map((filter) => (
+          {(["all", "reported", "seen", "resolved"] as const).map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={`whitespace-nowrap rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition-all ${
                 activeFilter === filter
-                  ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                  : 'border-[#DCE6F2] bg-white text-[#64748B]'
+                  ? "border-[#2563EB] bg-[#2563EB] text-white"
+                  : "border-[#DCE6F2] bg-white text-[#64748B]"
               }`}
             >
               {getFilterLabel(filter)}
@@ -273,7 +282,7 @@ const Incidents = () => {
         ) : filtered.length === 0 ? (
           <div className="mt-10 rounded-[28px] border border-[#DCE6F2] bg-white/85 p-10 text-center shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
             <h3 className="text-[18px] font-black text-[#0F172A]">
-              {activeGroup === 'sent' ? t.noSentReports : t.noReceivedReports}
+              {activeGroup === "sent" ? t.noSentReports : t.noReceivedReports}
             </h3>
             <p className="mt-2 text-[14px] font-medium text-[#64748B]">
               {t.emptySubtitle}
@@ -284,7 +293,11 @@ const Incidents = () => {
             {filtered.map((incident) => (
               <div
                 key={incident.id}
-                onClick={() => navigate(`/app/incidents/${incident.id}`)}
+                onClick={() =>
+                  navigate(`/app/incidents/${incident.id}`, {
+                    state: { group: activeGroup },
+                  })
+                }
                 className="group cursor-pointer rounded-[28px] border border-[#DCE6F2] bg-white/90 p-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all hover:-translate-y-[1px] hover:shadow-[0_16px_34px_rgba(15,23,42,0.10)] active:scale-[0.985]"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
@@ -299,10 +312,10 @@ const Incidents = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {activeGroup === 'sent' && (
+                    {(activeGroup === "sent" || activeGroup === "received") && (
                       <span
                         className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${getStatusStyle(
-                          incident.status
+                          incident.status,
                         )}`}
                       >
                         {getFilterLabel(incident.status)}
@@ -317,15 +330,15 @@ const Incidents = () => {
                 </div>
 
                 <h3 className="mb-2 line-clamp-1 text-[17px] font-black tracking-tight text-[#0F172A]">
-                  {incident.description?.split('.')?.[0] ?? ''}
+                  {incident.description?.split(".")?.[0] ?? ""}
                 </h3>
 
                 <p className="mb-4 line-clamp-2 text-[14px] font-medium leading-relaxed text-[#64748B]">
-                  {incident.description ?? ''}
+                  {incident.description ?? ""}
                 </p>
 
                 <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF5] pt-4">
-                  {activeGroup === 'received' ? (
+                  {activeGroup === "received" ? (
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={(e) => e.stopPropagation()}
@@ -346,7 +359,9 @@ const Incidents = () => {
                   )}
 
                   <div className="shrink-0 text-[11px] font-semibold text-[#94A3B8]">
-                    {incident.date ? new Date(incident.date).toLocaleDateString() : ''}
+                    {incident.date
+                      ? new Date(incident.date).toLocaleDateString()
+                      : ""}
                   </div>
                 </div>
               </div>

@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import {
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
 import {
   ChevronLeft,
   ShieldCheck,
@@ -10,14 +14,15 @@ import {
   AlertTriangle,
   Calendar,
   Info,
-} from 'lucide-react';
-import en from '../../i18n/en';
-import fr from '../../i18n/fr';
+} from "lucide-react";
+
+import en from "../../i18n/en";
+import fr from "../../i18n/fr";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const DEFAULT_CAR_IMAGE =
-  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=900';
+  "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=900";
 
 const translations = {
   en,
@@ -25,43 +30,73 @@ const translations = {
 };
 
 const getLanguage = (): keyof typeof translations => {
-  const savedLanguage = localStorage.getItem('language');
+  const savedLanguage = localStorage.getItem("language");
 
-  if (savedLanguage === 'en' || savedLanguage === 'fr') {
+  if (savedLanguage === "en" || savedLanguage === "fr") {
     return savedLanguage;
   }
 
-  return 'fr';
+  return "fr";
+};
+
+const buildAuthHeaders = (): HeadersInit => {
+  const token = localStorage.getItem("token");
+  const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (ownerAccessToken) {
+    headers["x-owner-access-token"] = ownerAccessToken;
+  }
+
+  return headers;
 };
 
 const IncidentDetails = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
+
+  const pageState = location.state as
+    | { group?: "sent" | "received" }
+    | null;
+
+  const isReceivedView =
+    pageState?.group === "received" ||
+    localStorage.getItem("role") === "vehicle_owner" ||
+    Boolean(localStorage.getItem("ownerAccessToken"));
 
   const language = getLanguage();
   const t = translations[language].incidentDetails;
 
   const [incident, setIncident] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [feedbackType, setFeedbackType] = useState<'thanks' | 'bad' | null>(
-    null
-  );
+
+  const [feedbackType, setFeedbackType] = useState<
+    "thanks" | "bad" | null
+  >(null);
 
   useEffect(() => {
     const fetchIncident = async () => {
       try {
         setLoading(true);
 
-        const token = localStorage.getItem('token');
-
-        const res = await fetch(`${API_BASE_URL}/api/reports/${id}`, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+        const res = await fetch(
+          `${API_BASE_URL}/api/reports/${id}`,
+          {
+            headers: buildAuthHeaders(),
+          }
+        );
 
         const result = await res.json();
-        console.log('Single incident:', result);
+
+        console.log("Single incident:", result);
 
         if (!res.ok) {
           setIncident(null);
@@ -70,7 +105,7 @@ const IncidentDetails = () => {
 
         setIncident(result.data);
       } catch (err) {
-        console.error('Single incident fetch error:', err);
+        console.error("Single incident fetch error:", err);
         setIncident(null);
       } finally {
         setLoading(false);
@@ -80,19 +115,47 @@ const IncidentDetails = () => {
     fetchIncident();
   }, [id]);
 
+  const updateStatus = async (
+    status: "seen" | "resolved"
+  ) => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/reports/${id}/status`,
+        {
+          method: "PATCH",
+          headers: buildAuthHeaders(),
+          body: JSON.stringify({ status }),
+        }
+      );
+
+      const result = await res.json();
+
+      console.log("Status update response:", result);
+
+      if (!res.ok) {
+        console.error("Status update failed:", result);
+        return;
+      }
+
+      setIncident(result.data);
+    } catch (error) {
+      console.error("Status update error:", error);
+    }
+  };
+
   const getFirstImageFromValue = (value: any): string => {
-    if (!value) return '';
+    if (!value) return "";
 
     if (Array.isArray(value)) {
-      return value[0] || '';
+      return value[0] || "";
     }
 
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       const trimmed = value.trim();
 
-      if (!trimmed) return '';
+      if (!trimmed) return "";
 
-      if (trimmed.startsWith('http')) {
+      if (trimmed.startsWith("http")) {
         return trimmed;
       }
 
@@ -100,18 +163,18 @@ const IncidentDetails = () => {
         const parsed = JSON.parse(trimmed);
 
         if (Array.isArray(parsed)) {
-          return parsed[0] || '';
+          return parsed[0] || "";
         }
 
-        if (typeof parsed === 'string') {
+        if (typeof parsed === "string") {
           return parsed;
         }
       } catch (err) {
-        console.error('Image parse error:', err);
+        console.error("Image parse error:", err);
       }
     }
 
-    return '';
+    return "";
   };
 
   const image =
@@ -124,17 +187,17 @@ const IncidentDetails = () => {
     DEFAULT_CAR_IMAGE;
 
   const urgencyLabel =
-    incident?.urgency === 'urgent'
+    incident?.urgency === "urgent"
       ? t.urgent
-      : incident?.urgency === 'medium'
-      ? t.medium
-      : incident?.urgency === 'not_urgent'
-      ? t.notUrgent
-      : t.report;
+      : incident?.urgency === "medium"
+        ? t.medium
+        : incident?.urgency === "not_urgent"
+          ? t.notUrgent
+          : t.report;
 
-  const statusLabel = incident?.status || 'reported';
+  const statusLabel = incident?.status || "reported";
 
-  const isUrgent = incident?.urgency === 'urgent';
+  const isUrgent = incident?.urgency === "urgent";
 
   if (loading) {
     return (
@@ -178,7 +241,9 @@ const IncidentDetails = () => {
           <ShieldCheck size={18} />
 
           <span className="text-[10px] font-black uppercase tracking-[0.16em]">
-            {feedbackType === 'thanks' ? t.thanksSent : t.reportFlagged}
+            {feedbackType === "thanks"
+              ? t.thanksSent
+              : t.reportFlagged}
           </span>
         </div>
       )}
@@ -214,10 +279,17 @@ const IncidentDetails = () => {
           <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between gap-3">
             <div
               className={`flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] shadow-lg ${
-                isUrgent ? 'bg-red-500 text-white' : 'bg-[#2563EB] text-white'
+                isUrgent
+                  ? "bg-red-500 text-white"
+                  : "bg-[#2563EB] text-white"
               }`}
             >
-              {isUrgent ? <AlertTriangle size={14} /> : <Clock size={14} />}
+              {isUrgent ? (
+                <AlertTriangle size={14} />
+              ) : (
+                <Clock size={14} />
+              )}
+
               {urgencyLabel}
             </div>
 
@@ -233,7 +305,7 @@ const IncidentDetails = () => {
               <div className="flex items-center gap-4">
                 <div className="rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                   <span className="font-mono text-[18px] font-black tracking-[0.18em] text-[#0F172A]">
-                    {incident.licence_plate || ''}
+                    {incident.licence_plate || ""}
                   </span>
                 </div>
 
@@ -275,11 +347,13 @@ const IncidentDetails = () => {
 
                     <p className="truncate text-[13px] font-black text-[#0F172A]">
                       {incident.created_at
-                        ? new Date(incident.created_at).toLocaleDateString([], {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
+                        ? new Date(
+                            incident.created_at
+                          ).toLocaleDateString([], {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
                           })
                         : t.notAvailable}
                     </p>
@@ -296,10 +370,41 @@ const IncidentDetails = () => {
 
             <div className="rounded-[28px] border border-[#DCE6F2] bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
               <p className="text-[15px] font-medium leading-7 text-[#475569]">
-                “{incident.description || ''}”
+                “{incident.description || ""}”
               </p>
             </div>
           </section>
+
+          {isReceivedView && (
+            <section className="rounded-[28px] border border-[#DCE6F2] bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
+              <label className="mb-4 block text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
+                Status Actions
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  disabled={
+                    incident.status === "seen" ||
+                    incident.status === "resolved"
+                  }
+                  onClick={() => updateStatus("seen")}
+                  className="min-h-[54px] rounded-[18px] bg-violet-600 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:bg-slate-300 active:scale-[0.97]"
+                >
+                  Mark as Seen
+                </button>
+
+                <button
+                  type="button"
+                  disabled={incident.status === "resolved"}
+                  onClick={() => updateStatus("resolved")}
+                  className="min-h-[54px] rounded-[18px] bg-emerald-600 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:bg-slate-300 active:scale-[0.97]"
+                >
+                  Mark as Resolved
+                </button>
+              </div>
+            </section>
+          )}
 
           <section className="relative overflow-hidden rounded-[28px] border border-[#DCE6F2] bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
             <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#DBEAFE] blur-3xl" />
@@ -329,11 +434,11 @@ const IncidentDetails = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setFeedbackType('thanks')}
+                    onClick={() => setFeedbackType("thanks")}
                     className={`flex min-h-[54px] items-center justify-center gap-2 rounded-[18px] border px-4 text-[11px] font-black uppercase tracking-[0.12em] transition-all active:scale-[0.97] ${
-                      feedbackType === 'thanks'
-                        ? 'border-[#2563EB] bg-[#2563EB] text-white shadow-[0_10px_20px_rgba(37,99,235,0.20)]'
-                        : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#2563EB]'
+                      feedbackType === "thanks"
+                        ? "border-[#2563EB] bg-[#2563EB] text-white shadow-[0_10px_20px_rgba(37,99,235,0.20)]"
+                        : "border-[#BFDBFE] bg-[#EFF6FF] text-[#2563EB]"
                     }`}
                   >
                     <ThumbsUp size={16} />
@@ -342,11 +447,11 @@ const IncidentDetails = () => {
 
                   <button
                     type="button"
-                    onClick={() => setFeedbackType('bad')}
+                    onClick={() => setFeedbackType("bad")}
                     className={`flex min-h-[54px] items-center justify-center gap-2 rounded-[18px] border px-4 text-[11px] font-black uppercase tracking-[0.12em] transition-all active:scale-[0.97] ${
-                      feedbackType === 'bad'
-                        ? 'border-red-500 bg-red-500 text-white shadow-[0_10px_20px_rgba(239,68,68,0.18)]'
-                        : 'border-red-200 bg-red-50 text-red-500'
+                      feedbackType === "bad"
+                        ? "border-red-500 bg-red-500 text-white shadow-[0_10px_20px_rgba(239,68,68,0.18)]"
+                        : "border-red-200 bg-red-50 text-red-500"
                     }`}
                   >
                     <ThumbsDown size={16} />
