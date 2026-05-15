@@ -67,7 +67,8 @@ type ApiResponse = {
 };
 
 const getLanguage = (): keyof typeof vehicleText => {
-  const savedLanguage = localStorage.getItem("language");
+  const savedLanguage =
+    localStorage.getItem("app_language") || localStorage.getItem("language");
   return savedLanguage === "en" || savedLanguage === "fr"
     ? savedLanguage
     : "fr";
@@ -194,8 +195,17 @@ const Vehicles = () => {
         const ownerAccessToken = localStorage.getItem("ownerAccessToken");
 
         if (!token && !ownerAccessToken) {
-  throw new Error("No valid authentication found");
-}
+          const pendingVehicleRaw = localStorage.getItem("pendingOwnerVehicle");
+
+          if (pendingVehicleRaw) {
+            const pendingVehicle = JSON.parse(pendingVehicleRaw);
+            setVehicles([normalizeVehicle(pendingVehicle)]);
+            setIsLoading(false);
+            return;
+          }
+
+          throw new Error("No valid authentication found");
+        }
 
         if (token) {
           localStorage.setItem("token", token);
@@ -205,15 +215,11 @@ const Vehicles = () => {
           "Content-Type": "application/json",
         };
 
-        const isOwnerAccessFlow =
-  localStorage.getItem("ownerAccess") === "true" &&
-  Boolean(ownerAccessToken);
-
-if (isOwnerAccessFlow && ownerAccessToken) {
-  headers["x-owner-access-token"] = ownerAccessToken;
-} else if (token) {
-  headers.Authorization = `Bearer ${token}`;
-}
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        } else if (ownerAccessToken) {
+          headers["x-owner-access-token"] = ownerAccessToken;
+        }
 
         const response = await fetch(`${API_URL}/api/vehicles`, {
           method: "GET",

@@ -20,9 +20,6 @@ const AddVehicle = () => {
   const location = useLocation();
   const { t } = useTranslation();
 
-  // IMPORTANT:
-  // /app/vehicles/add => authenticated garage vehicle
-  // public add vehicle/onboarding routes => onboarding vehicle
   const isOnboardingFlow = !location.pathname.startsWith("/app");
 
   const [name, setName] = useState("");
@@ -161,11 +158,6 @@ const AddVehicle = () => {
       const endpoint = isOnboardingFlow
         ? `${API_BASE_URL}/api/vehicles/onboarding`
         : `${API_BASE_URL}/api/vehicles`;
-      console.log("CURRENT PATH:", location.pathname);
-      console.log("IS ONBOARDING FLOW:", isOnboardingFlow);
-      console.log("Vehicle API endpoint:", endpoint);
-      console.log("TOKEN EXISTS:", Boolean(token));
-      console.log("OWNER ACCESS TOKEN EXISTS:", Boolean(ownerAccessToken));
 
       if (!isOnboardingFlow && !token && !ownerAccessToken) {
         throw new Error("User not authenticated. Please login again.");
@@ -204,12 +196,14 @@ const AddVehicle = () => {
       const savedVehicleId = result?.data?.id;
 
       if (!savedVehicleId) {
-        throw new Error(
-          "Vehicle registered but backend did not return vehicle ID",
-        );
+        throw new Error("Vehicle registered but backend did not return vehicle ID");
       }
 
       localStorage.setItem("vehicleId", savedVehicleId);
+
+      if (isOnboardingFlow && result?.data) {
+        localStorage.setItem("pendingOwnerVehicle", JSON.stringify(result.data));
+      }
 
       if (isOnboardingFlow) {
         localStorage.setItem("role", "vehicle_owner");
@@ -337,12 +331,6 @@ const AddVehicle = () => {
                       className="h-full w-full object-cover"
                     />
 
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.20)_100%)]" />
-
-                    <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#2563EB] shadow-sm">
-                      {t("vehicles.mainPhoto")}
-                    </div>
-
                     <button
                       type="button"
                       onClick={(event) => {
@@ -354,46 +342,6 @@ const AddVehicle = () => {
                     >
                       ×
                     </button>
-
-                    <div className="absolute bottom-3 left-3 right-3 flex gap-2 overflow-x-auto">
-                      {imagePreviews.map((preview, index) => (
-                        <button
-                          key={preview}
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-
-                            if (index === 0) return;
-
-                            setImages((prev) => {
-                              const next = [...prev];
-                              const selected = next[index];
-                              next.splice(index, 1);
-                              next.unshift(selected);
-                              return next;
-                            });
-
-                            setImagePreviews((prev) => {
-                              const next = [...prev];
-                              const selected = next[index];
-                              next.splice(index, 1);
-                              next.unshift(selected);
-                              return next;
-                            });
-                          }}
-                          className={`h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 ${
-                            index === 0 ? "border-[#2563EB]" : "border-white"
-                          } bg-white shadow-sm`}
-                          aria-label={`Vehicle image ${index + 1}`}
-                        >
-                          <img
-                            src={preview}
-                            alt={`Vehicle preview ${index + 1}`}
-                            className="h-full w-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 ) : (
                   <div className="relative h-52 w-full overflow-hidden rounded-[20px]">
@@ -402,8 +350,6 @@ const AddVehicle = () => {
                       alt="Default car"
                       className="h-full w-full object-cover opacity-40 grayscale transition-all duration-700 group-hover:opacity-55"
                     />
-
-                    <div className="absolute inset-0 bg-white/10" />
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                       <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-[#DCE6F2] bg-white/90 shadow-[0_10px_24px_rgba(15,23,42,0.10)]">
