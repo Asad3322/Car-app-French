@@ -88,6 +88,25 @@ const CompleteProfile = () => {
         setRole(storedRole);
         setVehicleId(storedVehicleId);
 
+        const isTemporaryOwnerFlow =
+          storedRole === "vehicle_owner" &&
+          !!storedVerifiedPhone &&
+          !!storedVehicleId;
+
+        if (isTemporaryOwnerFlow) {
+          setAuthUser({
+            id: `owner-${Date.now()}`,
+            email: "",
+            phone: storedVerifiedPhone,
+          });
+
+          setPhone(storedVerifiedPhone);
+          setEmail("");
+
+          setIsLoadingUser(false);
+          return;
+        }
+
         const { data: sessionData, error: sessionError } =
           await supabase.auth.getSession();
 
@@ -96,7 +115,7 @@ const CompleteProfile = () => {
         if (!sessionData?.session?.access_token) {
           navigate(
             `/auth?role=${storedRole === "vehicle_owner" ? "owner" : "reporter"}`,
-            { replace: true }
+            { replace: true },
           );
           return;
         }
@@ -122,7 +141,7 @@ const CompleteProfile = () => {
         setPhone(
           storedRole === "vehicle_owner"
             ? storedVerifiedPhone
-            : user.phone || ""
+            : user.phone || "",
         );
 
         const { data: profile } = await supabase
@@ -136,14 +155,14 @@ const CompleteProfile = () => {
           setPhone(profile.phone || storedVerifiedPhone || user.phone || "");
           setEmail(profile.email || user.email || "");
           setSelectedAvatar(
-            profile.profileImage || profile.avatar_url || avatars[0]
+            profile.profileImage || profile.avatar_url || avatars[0],
           );
         }
       } catch (err) {
         console.error("Load auth user error:", err);
         navigate(
           `/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`,
-          { replace: true }
+          { replace: true },
         );
       } finally {
         setIsLoadingUser(false);
@@ -264,7 +283,7 @@ const CompleteProfile = () => {
       return;
     }
 
-    if (!email.trim() && !authUser.email) {
+    if (!isOwner && !email.trim() && !authUser.email) {
       alert("Email is required");
       return;
     }
