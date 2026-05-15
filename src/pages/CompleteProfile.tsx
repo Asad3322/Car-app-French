@@ -329,6 +329,29 @@ const CompleteProfile = () => {
       };
 
       console.log("PROFILE PAYLOAD:", profilePayload);
+      if (isOwner) {
+        const localOwnerProfile = {
+          id: authUser.id,
+          name: normalizedUsername,
+          username: normalizedUsername,
+          email: "",
+          phone,
+          role: "vehicle_owner",
+          profileImage: selectedAvatar,
+          avatar_url: selectedAvatar,
+          isVehicleOwner: true,
+          is_vehicle_owner: true,
+        };
+
+        localStorage.setItem("role", "vehicle_owner");
+        localStorage.setItem("user", JSON.stringify(localOwnerProfile));
+        localStorage.setItem("ownerAccess", "true");
+        localStorage.setItem("ownerPhone", phone);
+        localStorage.setItem("verifiedPhone", phone);
+
+        navigate("/app/vehicles", { replace: true });
+        return;
+      }
 
       const savedProfile = await saveUserProfile(profilePayload);
 
