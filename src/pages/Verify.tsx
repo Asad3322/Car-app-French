@@ -11,31 +11,25 @@ type VerifyLocationState = {
   vehicleId?: string | null;
 };
 
-const formatFrenchInternational = (value: string): string => {
-  let digits = value.replace(/\D/g, "");
+const formatOwnerInternational = (value: string): string => {
+  let cleaned = value.replace(/[^\d+]/g, "").trim();
 
-  if (digits.startsWith("0")) {
-    digits = "33" + digits.slice(1);
+  if (!cleaned) return "";
+
+  if (!cleaned.startsWith("+")) {
+    cleaned = "+" + cleaned;
   }
 
-  if (!digits.startsWith("33")) {
-    digits = "33" + digits;
-  }
-
-  digits = digits.slice(0, 11);
-
-  return (
-    "+" +
-    digits
-      .replace(/^33/, "33 ")
-      .replace(/(\d{1})(?=\d{2})/, "$1 ")
-      .replace(/(\d{2})(?=\d)/g, "$1 ")
-      .trim()
-  );
+  return cleaned;
 };
 
-const isValidFrenchIntl = (num: string): boolean => {
-  return /^\+33\s?[67](\s?\d{2}){4}$/.test(num);
+const isValidOwnerIntl = (num: string): boolean => {
+  const cleaned = num.replace(/\s+/g, "");
+
+  const isFrench = /^\+33[67]\d{8}$/.test(cleaned);
+  const isPakistani = /^\+923\d{9}$/.test(cleaned);
+
+  return isFrench || isPakistani;
 };
 
 const Verify = () => {
@@ -60,19 +54,15 @@ const Verify = () => {
     null;
 
   const storageKey = isOwner ? "pendingPhone" : "pendingEmail";
-
   const storedContact = localStorage.getItem(storageKey) || "";
 
   const [contact, setContact] = useState<string>(storedContact);
-
   const [linkSent, setLinkSent] = useState<boolean>(false);
-
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOwner && !vehicleId) {
       console.error("❌ Missing vehicleId in owner verify flow");
-
       alert("Vehicle registration failed. Please add vehicle again.");
 
       navigate("/vehicle/add", {
@@ -94,9 +84,8 @@ const Verify = () => {
       return;
     }
 
-    if (isOwner && !isValidFrenchIntl(contact)) {
-      alert("Enter valid French number (e.g. +33 6 12 34 56 78)");
-
+    if (isOwner && !isValidOwnerIntl(contact)) {
+      alert("Enter valid phone number: +33 6 12 34 56 78 or +92 300 1234567");
       return;
     }
 
@@ -105,7 +94,6 @@ const Verify = () => {
 
       localStorage.setItem(storageKey, contact.trim());
 
-      // REPORTER FLOW
       if (!isOwner) {
         localStorage.setItem("role", "reporter");
 
@@ -114,26 +102,24 @@ const Verify = () => {
         setLinkSent(true);
 
         alert("Login link sent successfully. Please check your email.");
-
         return;
       }
 
-      // OWNER FLOW TEMPORARY DIRECT COMPLETE PROFILE
-
       localStorage.setItem("role", "vehicle_owner");
-
       localStorage.setItem("vehicleId", vehicleId || "");
-
-      localStorage.setItem("verifiedPhone", contact.trim());
-
       localStorage.setItem("pendingPhone", contact.trim());
+
+      await sendVerification({
+        contact: contact.trim(),
+        role: "vehicle_owner",
+        vehicleId,
+      });
 
       setLinkSent(true);
 
-      navigate("/complete-profile");
+      alert("Verification SMS sent successfully. Please check your phone.");
     } catch (error: any) {
       console.error("Send verification error:", error);
-
       alert(error?.message || "Failed to send verification");
     } finally {
       setLoading(false);
@@ -144,7 +130,6 @@ const Verify = () => {
     localStorage.removeItem(storageKey);
 
     setContact("");
-
     setLinkSent(false);
 
     if (isOwner) {
@@ -158,7 +143,7 @@ const Verify = () => {
     const value = e.target.value;
 
     if (isOwner) {
-      setContact(formatFrenchInternational(value));
+      setContact(formatOwnerInternational(value));
     } else {
       setContact(value);
     }
@@ -220,7 +205,9 @@ const Verify = () => {
                     value={contact}
                     onChange={handleInputChange}
                     placeholder={
-                      isOwner ? "+33 6 12 34 56 78" : "name@example.com"
+                      isOwner
+                        ? "+33 6 12 34 56 78 / +92 300 1234567"
+                        : "name@example.com"
                     }
                     autoComplete="off"
                     className="h-[58px] w-full rounded-[18px] border border-[#D9E5F1] bg-white pl-12 pr-4 text-[15px] outline-none"
