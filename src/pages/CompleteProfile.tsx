@@ -308,7 +308,7 @@ const CompleteProfile = () => {
             avatar_url: selectedAvatar,
             profileImage: selectedAvatar,
             phone,
-            vehicleId,
+            vehicleId: vehicleId || localStorage.getItem("vehicleId") || "",
           }),
         });
 
