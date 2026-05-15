@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  useNavigate,
-  useParams,
-  useLocation,
-} from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   ChevronLeft,
   ShieldCheck,
@@ -63,9 +59,7 @@ const IncidentDetails = () => {
   const location = useLocation();
   const { id } = useParams();
 
-  const pageState = location.state as
-    | { group?: "sent" | "received" }
-    | null;
+  const pageState = location.state as { group?: "sent" | "received" } | null;
 
   const isReceivedView =
     pageState?.group === "received" ||
@@ -78,21 +72,18 @@ const IncidentDetails = () => {
   const [incident, setIncident] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const [feedbackType, setFeedbackType] = useState<
-    "thanks" | "bad" | null
-  >(null);
+  const [feedbackType, setFeedbackType] = useState<"thanks" | "bad" | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchIncident = async () => {
       try {
         setLoading(true);
 
-        const res = await fetch(
-          `${API_BASE_URL}/api/reports/${id}`,
-          {
-            headers: buildAuthHeaders(),
-          }
-        );
+        const res = await fetch(`${API_BASE_URL}/api/reports/${id}`, {
+          headers: buildAuthHeaders(),
+        });
 
         const result = await res.json();
 
@@ -115,18 +106,13 @@ const IncidentDetails = () => {
     fetchIncident();
   }, [id]);
 
-  const updateStatus = async (
-    status: "seen" | "resolved"
-  ) => {
+  const updateStatus = async (status: "seen" | "resolved") => {
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/reports/${id}/status`,
-        {
-          method: "PATCH",
-          headers: buildAuthHeaders(),
-          body: JSON.stringify({ status }),
-        }
-      );
+      const res = await fetch(`${API_BASE_URL}/api/reports/${id}/status`, {
+        method: "PATCH",
+        headers: buildAuthHeaders(),
+        body: JSON.stringify({ status }),
+      });
 
       const result = await res.json();
 
@@ -140,6 +126,52 @@ const IncidentDetails = () => {
       setIncident(result.data);
     } catch (error) {
       console.error("Status update error:", error);
+    }
+  };
+
+  const thankReporter = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/reports/${id}/thank`, {
+        method: "PATCH",
+        headers: buildAuthHeaders(),
+      });
+
+      const result = await res.json();
+
+      console.log("Thank reporter response:", result);
+
+      if (!res.ok) {
+        console.error("Thank reporter failed:", result);
+        return;
+      }
+
+      setIncident(result.data);
+      setFeedbackType("thanks");
+    } catch (error) {
+      console.error("Thank reporter error:", error);
+    }
+  };
+
+  const reportBadReport = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/reports/${id}/bad-report`, {
+        method: "PATCH",
+        headers: buildAuthHeaders(),
+      });
+
+      const result = await res.json();
+
+      console.log("Bad report response:", result);
+
+      if (!res.ok) {
+        console.error("Bad report failed:", result);
+        return;
+      }
+
+      setIncident(result.data);
+      setFeedbackType("bad");
+    } catch (error) {
+      console.error("Bad report error:", error);
     }
   };
 
@@ -241,9 +273,7 @@ const IncidentDetails = () => {
           <ShieldCheck size={18} />
 
           <span className="text-[10px] font-black uppercase tracking-[0.16em]">
-            {feedbackType === "thanks"
-              ? t.thanksSent
-              : t.reportFlagged}
+            {feedbackType === "thanks" ? t.thanksSent : t.reportFlagged}
           </span>
         </div>
       )}
@@ -279,16 +309,10 @@ const IncidentDetails = () => {
           <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between gap-3">
             <div
               className={`flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] shadow-lg ${
-                isUrgent
-                  ? "bg-red-500 text-white"
-                  : "bg-[#2563EB] text-white"
+                isUrgent ? "bg-red-500 text-white" : "bg-[#2563EB] text-white"
               }`}
             >
-              {isUrgent ? (
-                <AlertTriangle size={14} />
-              ) : (
-                <Clock size={14} />
-              )}
+              {isUrgent ? <AlertTriangle size={14} /> : <Clock size={14} />}
 
               {urgencyLabel}
             </div>
@@ -347,9 +371,7 @@ const IncidentDetails = () => {
 
                     <p className="truncate text-[13px] font-black text-[#0F172A]">
                       {incident.created_at
-                        ? new Date(
-                            incident.created_at
-                          ).toLocaleDateString([], {
+                        ? new Date(incident.created_at).toLocaleDateString([], {
                             month: "short",
                             day: "numeric",
                             hour: "2-digit",
@@ -385,8 +407,7 @@ const IncidentDetails = () => {
                 <button
                   type="button"
                   disabled={
-                    incident.status === "seen" ||
-                    incident.status === "resolved"
+                    incident.status === "seen" || incident.status === "resolved"
                   }
                   onClick={() => updateStatus("seen")}
                   className="min-h-[54px] rounded-[18px] bg-violet-600 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:bg-slate-300 active:scale-[0.97]"
@@ -434,7 +455,7 @@ const IncidentDetails = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setFeedbackType("thanks")}
+                    onClick={thankReporter}
                     className={`flex min-h-[54px] items-center justify-center gap-2 rounded-[18px] border px-4 text-[11px] font-black uppercase tracking-[0.12em] transition-all active:scale-[0.97] ${
                       feedbackType === "thanks"
                         ? "border-[#2563EB] bg-[#2563EB] text-white shadow-[0_10px_20px_rgba(37,99,235,0.20)]"
@@ -447,7 +468,7 @@ const IncidentDetails = () => {
 
                   <button
                     type="button"
-                    onClick={() => setFeedbackType("bad")}
+                    onClick={reportBadReport}
                     className={`flex min-h-[54px] items-center justify-center gap-2 rounded-[18px] border px-4 text-[11px] font-black uppercase tracking-[0.12em] transition-all active:scale-[0.97] ${
                       feedbackType === "bad"
                         ? "border-red-500 bg-red-500 text-white shadow-[0_10px_20px_rgba(239,68,68,0.18)]"
