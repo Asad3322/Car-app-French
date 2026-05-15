@@ -65,6 +65,14 @@ const Profile = () => {
   );
   const [isLoading, setIsLoading] = useState(true);
 
+  const [gamification, setGamification] = useState({
+    coins: 0,
+    points: 0,
+    streak: 0,
+    reportsCount: 0,
+    currentBadge: "Rookie Reporter",
+  });
+
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -90,6 +98,7 @@ const Profile = () => {
     } catch (error) {
       console.error("Language local update error:", error);
     }
+
     window.location.reload();
   };
 
@@ -224,20 +233,25 @@ const Profile = () => {
           });
         }
 
-        const [vehiclesRes, sentRes, receivedRes] = await Promise.allSettled([
-          fetch(`${API_URL}/api/vehicles`, {
-            method: "GET",
-            headers,
-          }),
-          fetch(`${API_URL}/api/reports/sent`, {
-            method: "GET",
-            headers,
-          }),
-          fetch(`${API_URL}/api/reports/received`, {
-            method: "GET",
-            headers,
-          }),
-        ]);
+        const [vehiclesRes, sentRes, receivedRes, gamificationRes] =
+          await Promise.allSettled([
+            fetch(`${API_URL}/api/vehicles`, {
+              method: "GET",
+              headers,
+            }),
+            fetch(`${API_URL}/api/reports/sent`, {
+              method: "GET",
+              headers,
+            }),
+            fetch(`${API_URL}/api/reports/received`, {
+              method: "GET",
+              headers,
+            }),
+            fetch(`${API_URL}/api/gamification/me`, {
+              method: "GET",
+              headers,
+            }),
+          ]);
 
         if (!isMounted) return;
 
@@ -289,6 +303,32 @@ const Profile = () => {
             receivedRes.reason,
           );
           setReceivedIncidents([]);
+        }
+
+        if (gamificationRes.status === "fulfilled") {
+          const response = gamificationRes.value;
+          const result = await response.json();
+
+          if (response.ok) {
+            const badges = Array.isArray(result?.data?.badges)
+              ? result.data.badges
+              : [];
+
+            setGamification({
+              coins: Number(result?.data?.coins || 0),
+              points: Number(result?.data?.points || 0),
+              streak: Number(result?.data?.streak || 0),
+              reportsCount: Number(result?.data?.reportsCount || 0),
+              currentBadge: badges[badges.length - 1] || "Rookie Reporter",
+            });
+          } else {
+            console.error("Gamification fetch failed:", result);
+          }
+        } else {
+          console.error(
+            "Gamification request error:",
+            gamificationRes.reason,
+          );
         }
       } catch (error) {
         console.error("Profile fetch error:", error);
@@ -500,6 +540,47 @@ const Profile = () => {
               <p className="text-[10px] text-[#6F8194]">
                 {t("profile.received", "Received")}
               </p>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-2 gap-3">
+            <div className="rounded-[24px] border bg-[#EEF4F8] p-4 text-center">
+              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400">
+                🪙
+              </div>
+              <p className="text-[20px] font-black">{gamification.coins}</p>
+              <p className="text-[10px] text-[#6F8194]">Coins</p>
+            </div>
+
+            <div className="rounded-[24px] border bg-[#EEF4F8] p-4 text-center">
+              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500 text-white">
+                ⭐
+              </div>
+              <p className="text-[20px] font-black">{gamification.points}</p>
+              <p className="text-[10px] text-[#6F8194]">Points</p>
+            </div>
+          </section>
+
+          <section className="rounded-[24px] border bg-[#EEF4F8] p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[#6F8194]">
+                  Current Badge
+                </p>
+
+                <h3 className="mt-1 text-[18px] font-black text-[#0B1A2B]">
+                  {gamification.currentBadge}
+                </h3>
+
+                <p className="mt-1 text-[11px] font-semibold text-[#6F8194]">
+                  🔥 {gamification.streak} day streak ·{" "}
+                  {gamification.reportsCount} reports
+                </p>
+              </div>
+
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E8F2FC] text-[24px]">
+                🏆
+              </div>
             </div>
           </section>
 
