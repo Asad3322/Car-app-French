@@ -90,6 +90,7 @@ const Profile = () => {
     } catch (error) {
       console.error("Language local update error:", error);
     }
+    window.location.reload();
   };
 
   const handleLogout = async () => {
@@ -169,8 +170,16 @@ const Profile = () => {
         const authUser = meResult?.data?.auth;
         const profile = meResult?.data?.profile;
 
-        if (profile?.language === "en" || profile?.language === "fr") {
+        const savedLanguage =
+          localStorage.getItem("app_language") ||
+          localStorage.getItem("language");
+
+        if (
+          !savedLanguage &&
+          (profile?.language === "en" || profile?.language === "fr")
+        ) {
           i18n.changeLanguage(profile.language);
+
           localStorage.setItem("app_language", profile.language);
           localStorage.setItem("language", profile.language);
         }
