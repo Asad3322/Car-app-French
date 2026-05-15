@@ -219,46 +219,6 @@ const CompleteProfile = () => {
     return () => clearTimeout(timer);
   }, [username, authUser]);
 
-  const claimVehicleAfterProfile = async (savedVehicleId?: string) => {
-    const token = localStorage.getItem("token");
-
-    const pendingVehicleId =
-      savedVehicleId || vehicleId || localStorage.getItem("vehicleId");
-
-    console.log("CLAIM VEHICLE ID:", pendingVehicleId);
-
-    if (!pendingVehicleId) {
-      console.warn("No pending vehicleId found to claim");
-      return;
-    }
-
-    if (!token) {
-      console.warn("No token found to claim vehicle");
-      return;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/vehicles/claim`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        vehicleId: pendingVehicleId,
-      }),
-    });
-
-    const result = await response.json();
-
-    console.log("CLAIM VEHICLE RESPONSE:", result);
-
-    if (!response.ok) {
-      throw new Error(result?.message || "Failed to claim vehicle");
-    }
-
-    return result;
-  };
-
   const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -330,24 +290,45 @@ const CompleteProfile = () => {
 
       console.log("PROFILE PAYLOAD:", profilePayload);
       if (isOwner) {
-        const localOwnerProfile = {
-          id: authUser.id,
-          name: normalizedUsername,
-          username: normalizedUsername,
-          email: "",
-          phone,
-          role: "vehicle_owner",
-          profileImage: selectedAvatar,
-          avatar_url: selectedAvatar,
-          isVehicleOwner: true,
-          is_vehicle_owner: true,
-        };
+        const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+
+        if (!ownerAccessToken) {
+          throw new Error("Owner access token missing");
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/owner-profile`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-owner-access-token": ownerAccessToken,
+          },
+          body: JSON.stringify({
+            username: normalizedUsername,
+            name: normalizedUsername,
+            avatar_url: selectedAvatar,
+            profileImage: selectedAvatar,
+            phone,
+            vehicleId,
+          }),
+        });
+
+        const result = await response.json();
+
+        console.log("OWNER PROFILE UPDATE:", result);
+
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.message || "Failed to update owner profile");
+        }
 
         localStorage.setItem("role", "vehicle_owner");
-        localStorage.setItem("user", JSON.stringify(localOwnerProfile));
-        localStorage.setItem("ownerAccess", "true");
-        localStorage.setItem("ownerPhone", phone);
-        localStorage.setItem("verifiedPhone", phone);
+
+        if (result?.data?.profile) {
+          localStorage.setItem("user", JSON.stringify(result.data.profile));
+        }
+
+        localStorage.removeItem("verifiedPhone");
+        localStorage.removeItem("ownerAccess");
+        localStorage.removeItem("ownerPhone");
 
         navigate("/app/vehicles", { replace: true });
         return;
@@ -356,24 +337,6 @@ const CompleteProfile = () => {
       const savedProfile = await saveUserProfile(profilePayload);
 
       console.log("SAVED PROFILE:", savedProfile);
-
-      if (isOwner) {
-        localStorage.setItem("role", "vehicle_owner");
-
-        if (savedProfile?.profile) {
-          localStorage.setItem("user", JSON.stringify(savedProfile.profile));
-        }
-
-        await claimVehicleAfterProfile(vehicleId);
-
-        localStorage.removeItem("verifiedPhone");
-        localStorage.removeItem("vehicleId");
-        localStorage.removeItem("ownerAccess");
-        localStorage.removeItem("ownerPhone");
-
-        navigate("/app/vehicles", { replace: true });
-        return;
-      }
 
       localStorage.setItem("role", "reporter");
 

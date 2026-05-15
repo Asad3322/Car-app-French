@@ -48,38 +48,7 @@ const AuthCallback = () => {
       localStorage.removeItem("pendingPhone");
     };
 
-    const claimVehicleWithOwnerAccess = async ({
-      vehicleId,
-      ownerAccessToken,
-    }: {
-      vehicleId: string;
-      ownerAccessToken: string;
-    }) => {
-      if (!vehicleId || !ownerAccessToken) return null;
-
-      const claimResponse = await fetch(`${API_BASE_URL}/api/vehicles/claim`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-owner-access-token": ownerAccessToken,
-        },
-        body: JSON.stringify({
-          vehicleId,
-        }),
-      });
-
-      const claimResult = await claimResponse.json();
-      console.log(
-        "PHONE TOKEN CLAIM VEHICLE RESPONSE:",
-        JSON.stringify(claimResult, null, 2),
-      );
-
-      if (!claimResponse.ok) {
-        throw new Error(claimResult?.message || "Failed to claim vehicle");
-      }
-
-      return claimResult;
-    };
+    
 
     const claimVehicleWithAuthToken = async ({
       vehicleId,
@@ -145,14 +114,9 @@ const AuthCallback = () => {
             localStorage.setItem("user", JSON.stringify(data.data.profile));
           }
 
-          if (vehicleId && ownerAccessToken) {
-            await claimVehicleWithOwnerAccess({
-              vehicleId,
-              ownerAccessToken,
-            });
-          }
+          
 
-          window.location.href = "/app/vehicles";
+          window.location.href = "/complete-profile";
           return;
         }
 
