@@ -69,27 +69,28 @@ const Profile = () => {
   const [imageError, setImageError] = useState(false);
 
   const handleLanguageChange = async (lang: "en" | "fr") => {
-  i18n.changeLanguage(lang);
-  localStorage.setItem("language", lang);
-  setShowLangMenu(false);
+    i18n.changeLanguage(lang);
+    localStorage.setItem("app_language", lang);
+    localStorage.setItem("language", lang);
+    setShowLangMenu(false);
 
-  try {
-    const rawUser = localStorage.getItem("user");
-    const savedUser = rawUser ? JSON.parse(rawUser) : null;
+    try {
+      const rawUser = localStorage.getItem("user");
+      const savedUser = rawUser ? JSON.parse(rawUser) : null;
 
-    if (savedUser) {
-      const updatedUser = {
-        ...savedUser,
-        language: lang,
-      };
+      if (savedUser) {
+        const updatedUser = {
+          ...savedUser,
+          language: lang,
+        };
 
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      }
+    } catch (error) {
+      console.error("Language local update error:", error);
     }
-  } catch (error) {
-    console.error("Language local update error:", error);
-  }
-};
+  };
 
   const handleLogout = async () => {
     try {
@@ -146,7 +147,7 @@ const Profile = () => {
           headers.Authorization = `Bearer ${token}`;
         }
 
-        if (ownerAccessToken) {
+        if (!token && ownerAccessToken) {
           headers["x-owner-access-token"] = ownerAccessToken;
         }
 
@@ -170,6 +171,7 @@ const Profile = () => {
 
         if (profile?.language === "en" || profile?.language === "fr") {
           i18n.changeLanguage(profile.language);
+          localStorage.setItem("app_language", profile.language);
           localStorage.setItem("language", profile.language);
         }
 
