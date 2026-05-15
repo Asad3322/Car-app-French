@@ -238,6 +238,16 @@ const Vehicles = () => {
           .map(normalizeVehicle)
           .filter((vehicle) => vehicle.id);
 
+        if (normalizedVehicles.length === 0) {
+          const pendingVehicleRaw = localStorage.getItem("pendingOwnerVehicle");
+
+          if (pendingVehicleRaw) {
+            const pendingVehicle = JSON.parse(pendingVehicleRaw);
+            setVehicles([normalizeVehicle(pendingVehicle)]);
+            return;
+          }
+        }
+
         setVehicles(normalizedVehicles);
       } catch (error) {
         console.error("Fetch vehicles error:", error);
