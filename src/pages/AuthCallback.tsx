@@ -89,37 +89,42 @@ const AuthCallback = () => {
         const fromParam = url.searchParams.get("from");
 
         if (phoneToken) {
-          const res = await fetch(
-            `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`,
-          );
+  const res = await fetch(
+    `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`,
+  );
 
-          const data = await res.json();
+  const data = await res.json();
 
-          if (!res.ok || !data?.success) {
-            throw new Error(data?.message || "Phone verification failed");
-          }
+  console.log("PHONE VERIFY RESPONSE:", data);
 
-          const phone = data?.data?.phone || "";
-          const vehicleId = data?.data?.vehicleId || "";
-          const ownerAccessToken = data?.data?.ownerAccessToken || "";
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Phone verification failed");
+  }
 
-          localStorage.setItem("role", "vehicle_owner");
-          localStorage.setItem("ownerAccess", "true");
-          localStorage.setItem("ownerPhone", phone);
-          localStorage.setItem("verifiedPhone", phone);
-          localStorage.setItem("vehicleId", vehicleId);
-          localStorage.setItem("ownerAccessToken", ownerAccessToken);
+  const phone = data?.data?.phone || "";
+  const vehicleId = data?.data?.vehicleId || "";
+  const ownerAccessToken = data?.data?.ownerAccessToken || "";
+  const needsCompleteProfile = Boolean(data?.data?.needsCompleteProfile);
 
-          if (data?.data?.profile) {
-            localStorage.setItem("user", JSON.stringify(data.data.profile));
-          }
+  localStorage.setItem("role", "vehicle_owner");
+  localStorage.setItem("ownerAccess", "true");
+  localStorage.setItem("ownerPhone", phone);
+  localStorage.setItem("verifiedPhone", phone);
+  localStorage.setItem("vehicleId", vehicleId);
+  localStorage.setItem("ownerAccessToken", ownerAccessToken);
 
-          
+  if (data?.data?.profile) {
+    localStorage.setItem("user", JSON.stringify(data.data.profile));
+  }
 
-          window.location.href = "/complete-profile";
-          return;
-        }
+  if (needsCompleteProfile) {
+    window.location.href = "/complete-profile";
+    return;
+  }
 
+  window.location.href = "/app/vehicles";
+  return;
+}
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
