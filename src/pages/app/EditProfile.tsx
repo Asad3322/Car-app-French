@@ -342,18 +342,53 @@ const EditProfile = () => {
     }, 1000);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadAvatarToSupabase = async (file: File) => {
+    const fileExt = file.name.split(".").pop();
+
+    const fileName = `avatars/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+
+    return data.publicUrl;
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
 
     if (!file) return;
 
-    const reader = new FileReader();
+    try {
+      if (!file.type.startsWith("image/")) {
+        alert("Please select a valid image file");
+        return;
+      }
 
-    reader.onloadend = () => {
-      setProfileImage(reader.result as string);
-    };
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size must be less than 5MB");
+        return;
+      }
 
-    reader.readAsDataURL(file);
+      const publicUrl = await uploadAvatarToSupabase(file);
+
+      setProfileImage(publicUrl);
+
+      window.dispatchEvent(new Event("profileUpdated"));
+    } catch (error: any) {
+      console.error("Avatar upload error:", error);
+
+      alert(error?.message || "Failed to upload avatar");
+    }
   };
 
   if (isLoadingProfile) {
