@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -76,6 +76,203 @@ const Profile = () => {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const fetchProfileData = useCallback(async () => {
+    let isActive = true;
+
+    try {
+      setIsLoading(true);
+      setImageError(false);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const token = session?.access_token || localStorage.getItem("token");
+      const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+
+      if (token) {
+        localStorage.setItem("token", token);
+      }
+
+      if (!token && !ownerAccessToken) {
+        if (isActive) {
+          setUser(null);
+          setVehicles([]);
+          setSentIncidents([]);
+          setReceivedIncidents([]);
+        }
+        return;
+      }
+
+      const headers: Record<string, string> = {};
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      if (!token && ownerAccessToken) {
+        headers["x-owner-access-token"] = ownerAccessToken;
+      }
+
+      const meRes = await fetch(`${API_URL}/api/auth/me`, {
+        method: "GET",
+        headers,
+      });
+
+      const meResult = await meRes.json();
+
+      if (!meRes.ok) {
+        console.error("Profile /me fetch failed:", meResult);
+        if (isActive) setUser(null);
+        return;
+      }
+
+      const authUser = meResult?.data?.auth;
+      const profile = meResult?.data?.profile;
+
+      const savedLanguage =
+        localStorage.getItem("app_language") ||
+        localStorage.getItem("language");
+
+      if (
+        !savedLanguage &&
+        (profile?.language === "en" || profile?.language === "fr")
+      ) {
+        i18n.changeLanguage(profile.language);
+        localStorage.setItem("app_language", profile.language);
+        localStorage.setItem("language", profile.language);
+      }
+
+      const fallbackProfile: ProfileUser = {
+        id: authUser?.id || "",
+        auth_user_id: authUser?.id || "",
+        email: authUser?.email || "",
+        username:
+          profile?.username?.trim() ||
+          profile?.name?.trim() ||
+          authUser?.email?.split("@")?.[0] ||
+          "User",
+        name:
+          profile?.username?.trim() ||
+          profile?.name?.trim() ||
+          authUser?.email?.split("@")?.[0] ||
+          "User",
+        phone: authUser?.phone || "",
+        avatar_url: DEFAULT_AVATAR,
+        role: "reporter",
+        is_vehicle_owner: false,
+      };
+
+      const mergedProfile: ProfileUser = {
+        ...fallbackProfile,
+        ...(profile || {}),
+        id: profile?.id || authUser?.id || fallbackProfile.id,
+        auth_user_id: profile?.auth_user_id || authUser?.id || "",
+        username:
+          profile?.username ||
+          profile?.name ||
+          fallbackProfile.username ||
+          "User",
+        name:
+          profile?.name || profile?.username || fallbackProfile.name || "User",
+        email: profile?.email || authUser?.email || "",
+        phone: profile?.phone || authUser?.phone || "",
+        profileImage: profile?.profileImage || profile?.avatar_url || "",
+        avatar_url:
+          profile?.avatar_url || profile?.profileImage || DEFAULT_AVATAR,
+      };
+
+      if (isActive) {
+        setUser(mergedProfile);
+        localStorage.setItem("user", JSON.stringify(mergedProfile));
+        if (mergedProfile.id)
+          localStorage.setItem("profileId", mergedProfile.id);
+        if (mergedProfile.role)
+          localStorage.setItem("role", mergedProfile.role);
+      }
+
+      const [vehiclesRes, sentRes, receivedRes, gamificationRes] =
+        await Promise.allSettled([
+          fetch(`${API_URL}/api/vehicles`, { method: "GET", headers }),
+          fetch(`${API_URL}/api/reports/sent`, { method: "GET", headers }),
+          fetch(`${API_URL}/api/reports/received`, { method: "GET", headers }),
+          fetch(`${API_URL}/api/gamification/me`, { method: "GET", headers }),
+        ]);
+
+      if (!isActive) return;
+
+      if (vehiclesRes.status === "fulfilled") {
+        const response = vehiclesRes.value;
+        const result = await response.json();
+        setVehicles(
+          response.ok && Array.isArray(result?.data) ? result.data : [],
+        );
+      } else {
+        console.error("Vehicles request error:", vehiclesRes.reason);
+        setVehicles([]);
+      }
+
+      if (sentRes.status === "fulfilled") {
+        const response = sentRes.value;
+        const result = await response.json();
+        setSentIncidents(
+          response.ok && Array.isArray(result?.data) ? result.data : [],
+        );
+      } else {
+        console.error("Sent incidents request error:", sentRes.reason);
+        setSentIncidents([]);
+      }
+
+      if (receivedRes.status === "fulfilled") {
+        const response = receivedRes.value;
+        const result = await response.json();
+        setReceivedIncidents(
+          response.ok && Array.isArray(result?.data) ? result.data : [],
+        );
+      } else {
+        console.error("Received incidents request error:", receivedRes.reason);
+        setReceivedIncidents([]);
+      }
+
+      if (gamificationRes.status === "fulfilled") {
+        const response = gamificationRes.value;
+        const result = await response.json();
+
+        if (response.ok) {
+          const badges = Array.isArray(result?.data?.badges)
+            ? result.data.badges
+            : [];
+
+          setGamification({
+            coins: Number(result?.data?.coins || 0),
+            points: Number(result?.data?.points || 0),
+            streak: Number(result?.data?.streak || 0),
+            reportsCount: Number(
+              result?.data?.reportsCount || result?.data?.reports_count || 0,
+            ),
+            currentBadge: badges[badges.length - 1] || "Rookie Reporter",
+          });
+        }
+      } else {
+        console.error("Gamification request error:", gamificationRes.reason);
+      }
+    } catch (error) {
+      console.error("Profile fetch error:", error);
+      if (isActive) {
+        setUser(null);
+        setVehicles([]);
+        setSentIncidents([]);
+        setReceivedIncidents([]);
+      }
+    } finally {
+      if (isActive) setIsLoading(false);
+    }
+
+    return () => {
+      isActive = false;
+    };
+  }, [i18n]);
+
   const handleLanguageChange = async (lang: "en" | "fr") => {
     i18n.changeLanguage(lang);
     localStorage.setItem("app_language", lang);
@@ -87,19 +284,14 @@ const Profile = () => {
       const savedUser = rawUser ? JSON.parse(rawUser) : null;
 
       if (savedUser) {
-        const updatedUser = {
-          ...savedUser,
-          language: lang,
-        };
-
+        const updatedUser = { ...savedUser, language: lang };
         localStorage.setItem("user", JSON.stringify(updatedUser));
         setUser(updatedUser);
+        window.dispatchEvent(new Event("profileUpdated"));
       }
     } catch (error) {
       console.error("Language local update error:", error);
     }
-
-    window.location.reload();
   };
 
   const handleLogout = async () => {
@@ -124,228 +316,14 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    fetchProfileData();
 
-    const fetchProfileData = async () => {
-      try {
-        setIsLoading(true);
-
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        const token = session?.access_token || localStorage.getItem("token");
-        const ownerAccessToken = localStorage.getItem("ownerAccessToken");
-
-        if (token) {
-          localStorage.setItem("token", token);
-        }
-
-        if (!token && !ownerAccessToken) {
-          if (isMounted) {
-            setUser(null);
-            setVehicles([]);
-            setSentIncidents([]);
-            setReceivedIncidents([]);
-          }
-          return;
-        }
-
-        const headers: Record<string, string> = {};
-
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
-
-        if (!token && ownerAccessToken) {
-          headers["x-owner-access-token"] = ownerAccessToken;
-        }
-
-        const meRes = await fetch(`${API_URL}/api/auth/me`, {
-          method: "GET",
-          headers,
-        });
-
-        const meResult = await meRes.json();
-
-        if (!meRes.ok) {
-          console.error("Profile /me fetch failed:", meResult);
-          if (isMounted) {
-            setUser(null);
-          }
-          return;
-        }
-
-        const authUser = meResult?.data?.auth;
-        const profile = meResult?.data?.profile;
-
-        const savedLanguage =
-          localStorage.getItem("app_language") ||
-          localStorage.getItem("language");
-
-        if (
-          !savedLanguage &&
-          (profile?.language === "en" || profile?.language === "fr")
-        ) {
-          i18n.changeLanguage(profile.language);
-
-          localStorage.setItem("app_language", profile.language);
-          localStorage.setItem("language", profile.language);
-        }
-
-        const fallbackProfile: ProfileUser = {
-          id: authUser?.id || "",
-          auth_user_id: authUser?.id || "",
-          email: authUser?.email || "",
-          username:
-            profile?.username?.trim() ||
-            profile?.name?.trim() ||
-            authUser?.email?.split("@")?.[0] ||
-            "User",
-          name:
-            profile?.username?.trim() ||
-            profile?.name?.trim() ||
-            authUser?.email?.split("@")?.[0] ||
-            "User",
-          phone: authUser?.phone || "",
-          avatar_url: DEFAULT_AVATAR,
-          role: "reporter",
-          is_vehicle_owner: false,
-        };
-
-        if (isMounted) {
-          setUser({
-            ...fallbackProfile,
-            ...(profile || {}),
-            id: authUser?.id || profile?.auth_user_id || fallbackProfile.id,
-            username:
-              profile?.username ||
-              profile?.name ||
-              fallbackProfile.username ||
-              "User",
-            name:
-              profile?.name ||
-              profile?.username ||
-              fallbackProfile.name ||
-              "User",
-            email: profile?.email || authUser?.email || "",
-            phone: profile?.phone || authUser?.phone || "",
-          });
-        }
-
-        const [vehiclesRes, sentRes, receivedRes, gamificationRes] =
-          await Promise.allSettled([
-            fetch(`${API_URL}/api/vehicles`, {
-              method: "GET",
-              headers,
-            }),
-            fetch(`${API_URL}/api/reports/sent`, {
-              method: "GET",
-              headers,
-            }),
-            fetch(`${API_URL}/api/reports/received`, {
-              method: "GET",
-              headers,
-            }),
-            fetch(`${API_URL}/api/gamification/me`, {
-              method: "GET",
-              headers,
-            }),
-          ]);
-
-        if (!isMounted) return;
-
-        if (vehiclesRes.status === "fulfilled") {
-          const response = vehiclesRes.value;
-          const result = await response.json();
-
-          if (response.ok) {
-            setVehicles(Array.isArray(result?.data) ? result.data : []);
-          } else {
-            console.error("Vehicles fetch failed:", result);
-            setVehicles([]);
-          }
-        } else {
-          console.error("Vehicles request error:", vehiclesRes.reason);
-          setVehicles([]);
-        }
-
-        if (sentRes.status === "fulfilled") {
-          const response = sentRes.value;
-          const result = await response.json();
-
-          if (response.ok) {
-            setSentIncidents(Array.isArray(result?.data) ? result.data : []);
-          } else {
-            console.error("Sent incidents fetch failed:", result);
-            setSentIncidents([]);
-          }
-        } else {
-          console.error("Sent incidents request error:", sentRes.reason);
-          setSentIncidents([]);
-        }
-
-        if (receivedRes.status === "fulfilled") {
-          const response = receivedRes.value;
-          const result = await response.json();
-
-          if (response.ok) {
-            setReceivedIncidents(
-              Array.isArray(result?.data) ? result.data : [],
-            );
-          } else {
-            console.error("Received incidents fetch failed:", result);
-            setReceivedIncidents([]);
-          }
-        } else {
-          console.error(
-            "Received incidents request error:",
-            receivedRes.reason,
-          );
-          setReceivedIncidents([]);
-        }
-
-        if (gamificationRes.status === "fulfilled") {
-          const response = gamificationRes.value;
-          const result = await response.json();
-
-          if (response.ok) {
-            const badges = Array.isArray(result?.data?.badges)
-              ? result.data.badges
-              : [];
-
-            setGamification({
-              coins: Number(result?.data?.coins || 0),
-              points: Number(result?.data?.points || 0),
-              streak: Number(result?.data?.streak || 0),
-              reportsCount: Number(result?.data?.reportsCount || 0),
-              currentBadge: badges[badges.length - 1] || "Rookie Reporter",
-            });
-          } else {
-            console.error("Gamification fetch failed:", result);
-          }
-        } else {
-          console.error(
-            "Gamification request error:",
-            gamificationRes.reason,
-          );
-        }
-      } catch (error) {
-        console.error("Profile fetch error:", error);
-        if (isMounted) {
-          setUser(null);
-          setVehicles([]);
-          setSentIncidents([]);
-          setReceivedIncidents([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+    const refreshProfile = () => {
+      fetchProfileData();
     };
 
-    fetchProfileData();
+    window.addEventListener("profileUpdated", refreshProfile);
+    window.addEventListener("focus", refreshProfile);
 
     const {
       data: { subscription },
@@ -356,21 +334,29 @@ const Profile = () => {
         setSentIncidents([]);
         setReceivedIncidents([]);
       }
+
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        fetchProfileData();
+      }
     });
 
     return () => {
-      isMounted = false;
+      window.removeEventListener("profileUpdated", refreshProfile);
+      window.removeEventListener("focus", refreshProfile);
       subscription.unsubscribe();
     };
-  }, [i18n]);
+  }, [fetchProfileData]);
 
   const sentCount = sentIncidents.length;
   const receivedCount = receivedIncidents.length;
 
-  const avatarSrc =
-    !imageError && (user?.profileImage || user?.avatar_url)
-      ? (user?.profileImage || user?.avatar_url)!
-      : DEFAULT_AVATAR;
+  const rawAvatar = user?.profileImage || user?.avatar_url || DEFAULT_AVATAR;
+
+  const avatarSrc = !imageError
+    ? rawAvatar.includes("?")
+      ? `${rawAvatar}&t=${Date.now()}`
+      : `${rawAvatar}?t=${Date.now()}`
+    : DEFAULT_AVATAR;
 
   const isOwner =
     user?.role === "vehicle_owner" ||

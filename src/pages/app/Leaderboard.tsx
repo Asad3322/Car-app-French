@@ -99,10 +99,7 @@ const DUMMY_USERS: LeaderboardEntry[] = [
   },
 ];
 
-const getBadgeTitle = (
-  player: LeaderboardEntry,
-  t: typeof en.leaderboard
-) => {
+const getBadgeTitle = (player: LeaderboardEntry, t: typeof en.leaderboard) => {
   if (player.currentBadge) return player.currentBadge;
   if (player.reportsCount >= 10) return t.expertContributor;
   if (player.reportsCount >= 5) return t.risingStar;
@@ -118,7 +115,7 @@ const Leaderboard = () => {
 
   const [apiData, setApiData] = useState<LeaderboardEntry[]>([]);
   const [selectedUser, setSelectedUser] = useState<LeaderboardEntry | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
 
@@ -143,13 +140,15 @@ const Leaderboard = () => {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
+        setLoading(true);
+
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/gamification/leaderboard`,
+          `${import.meta.env.VITE_API_URL}/api/gamification/leaderboard?t=${Date.now()}`,
           {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }
+          },
         );
 
         const result = await res.json();
@@ -167,6 +166,17 @@ const Leaderboard = () => {
     };
 
     fetchLeaderboard();
+
+    // ✅ LIVE REFRESH
+    window.addEventListener("profileUpdated", fetchLeaderboard);
+
+    window.addEventListener("focus", fetchLeaderboard);
+
+    return () => {
+      window.removeEventListener("profileUpdated", fetchLeaderboard);
+
+      window.removeEventListener("focus", fetchLeaderboard);
+    };
   }, []);
 
   const data = useMemo(() => {
@@ -201,9 +211,7 @@ const Leaderboard = () => {
             <ArrowLeft size={23} />
           </button>
 
-          <h1 className="text-[24px] font-black tracking-tight">
-            {t.title}
-          </h1>
+          <h1 className="text-[24px] font-black tracking-tight">{t.title}</h1>
 
           <button className="p-2">
             <Search size={23} />
@@ -223,9 +231,13 @@ const Leaderboard = () => {
 
                   <img
                     src={
-                      displayUser.avatarUrl ||
-                      displayUser.profileImage ||
-                      DEFAULT_AVATAR
+                      (
+                        displayUser.avatarUrl ||
+                        displayUser.profileImage ||
+                        DEFAULT_AVATAR
+                      ).includes("?")
+                        ? `${displayUser.avatarUrl || displayUser.profileImage || DEFAULT_AVATAR}&t=${Date.now()}`
+                        : `${displayUser.avatarUrl || displayUser.profileImage || DEFAULT_AVATAR}?t=${Date.now()}`
                     }
                     alt={displayUser.username}
                     className="relative h-full w-full rounded-full border-[6px] border-[#EEF2FF] bg-white object-cover"
@@ -282,9 +294,7 @@ const Leaderboard = () => {
             )}
 
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-[25px] font-black">
-                {t.weekLeaderboard}
-              </h3>
+              <h3 className="text-[25px] font-black">{t.weekLeaderboard}</h3>
 
               <span className="text-[13px] font-black uppercase tracking-[0.25em] text-[#8B95A5]">
                 {t.global}
@@ -294,8 +304,7 @@ const Leaderboard = () => {
             <div className="space-y-4">
               {data.map((player) => {
                 const isYou = player.profileId === localProfileId;
-                const isSelected =
-                  displayUser?.profileId === player.profileId;
+                const isSelected = displayUser?.profileId === player.profileId;
 
                 const avatar =
                   player.avatarUrl || player.profileImage || DEFAULT_AVATAR;
@@ -327,7 +336,11 @@ const Leaderboard = () => {
                     </div>
 
                     <img
-                      src={avatar}
+                      src={
+                        avatar.includes("?")
+                          ? `${avatar}&t=${Date.now()}`
+                          : `${avatar}?t=${Date.now()}`
+                      }
                       alt={player.username}
                       className="mr-4 h-[58px] w-[58px] shrink-0 rounded-full bg-[#EEF2F7] object-cover"
                     />

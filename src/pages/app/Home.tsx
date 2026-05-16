@@ -1,11 +1,13 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "../../utils/store";
 import {
   MdLocalFireDepartment,
   MdVerifiedUser,
   MdAdd,
   MdNotifications,
 } from "react-icons/md";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const homeText = {
   fr: {
@@ -53,27 +55,116 @@ const homeText = {
   },
 };
 
-const getSavedUser = () => {
-  try {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+const DEFAULT_AVATAR = "https://api.dicebear.com/9.x/fun-emoji/svg?seed=A";
 
 const Home = () => {
-  const { user } = useStore();
   const navigate = useNavigate();
 
-  const savedUser = getSavedUser();
-
-  const activeUser = (user || savedUser) as any;
+  const [activeUser, setActiveUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const language =
     (localStorage.getItem("language") as keyof typeof homeText) || "fr";
 
   const t = homeText[language] || homeText.fr;
+
+  const fetchHomeData = async () => {
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem("token");
+      const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+
+      const headers: Record<string, string> = {};
+
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (!token && ownerAccessToken) {
+        headers["x-owner-access-token"] = ownerAccessToken;
+      }
+
+      if (!token && !ownerAccessToken) {
+        setActiveUser(null);
+        return;
+      }
+
+      const [meRes, gamificationRes] = await Promise.all([
+        fetch(`${API_URL}/api/auth/me`, { headers }),
+        fetch(`${API_URL}/api/gamification/me`, { headers }),
+      ]);
+
+      const meData = await meRes.json();
+      const gamificationData = await gamificationRes.json();
+
+      const profile = meData?.data?.profile || {};
+      const auth = meData?.data?.auth || {};
+      const game = gamificationData?.data || {};
+
+      const latestUser = {
+        ...profile,
+        id: profile?.id || auth?.id,
+        username:
+          profile?.username ||
+          profile?.name ||
+          auth?.email?.split("@")?.[0] ||
+          "Guest",
+        name:
+          profile?.name ||
+          profile?.username ||
+          auth?.email?.split("@")?.[0] ||
+          "Guest",
+        email: profile?.email || auth?.email || "",
+        phone: profile?.phone || auth?.phone || "",
+        avatar_url: profile?.avatar_url || profile?.profileImage || DEFAULT_AVATAR,
+        coins: Number(game?.coins || profile?.coins || 0),
+        points: Number(game?.points || profile?.points || 0),
+        streak: Number(game?.streak || profile?.streak || 0),
+        reportsCount: Number(
+          game?.reportsCount ||
+            game?.reports_count ||
+            profile?.reportsCount ||
+            profile?.reports_count ||
+            0
+        ),
+        badges: Array.isArray(game?.badges)
+          ? game.badges
+          : Array.isArray(profile?.badges)
+          ? profile.badges
+          : [],
+      };
+
+      localStorage.setItem("user", JSON.stringify(latestUser));
+      if (latestUser.id) localStorage.setItem("profileId", latestUser.id);
+
+      setActiveUser(latestUser);
+    } catch (error) {
+      console.error("Home fetch error:", error);
+
+      try {
+        const rawUser = localStorage.getItem("user");
+        setActiveUser(rawUser ? JSON.parse(rawUser) : null);
+      } catch {
+        setActiveUser(null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHomeData();
+
+    const refreshHome = () => {
+      fetchHomeData();
+    };
+
+    window.addEventListener("profileUpdated", refreshHome);
+    window.addEventListener("focus", refreshHome);
+
+    return () => {
+      window.removeEventListener("profileUpdated", refreshHome);
+      window.removeEventListener("focus", refreshHome);
+    };
+  }, []);
 
   const firstName =
     activeUser?.username?.trim()?.split(" ")[0] ||
@@ -84,9 +175,9 @@ const Home = () => {
   const streak = activeUser?.streak ?? 0;
 
   const reportsMade =
-    activeUser?.totalIncidentsReported ??
-    activeUser?.reports_count ??
     activeUser?.reportsCount ??
+    activeUser?.reports_count ??
+    activeUser?.totalIncidentsReported ??
     0;
 
   const coins = activeUser?.coins ?? activeUser?.points ?? 0;
@@ -94,10 +185,12 @@ const Home = () => {
   const currentBadge =
     activeUser?.badges?.[activeUser.badges.length - 1] || t.noBadge;
 
-  const avatar =
-    activeUser?.profileImage ||
-    activeUser?.avatar_url ||
-    "https://api.dicebear.com/9.x/fun-emoji/svg?seed=A";
+  const rawAvatar =
+    activeUser?.profileImage || activeUser?.avatar_url || DEFAULT_AVATAR;
+
+  const avatar = rawAvatar.includes("?")
+    ? `${rawAvatar}&t=${Date.now()}`
+    : `${rawAvatar}?t=${Date.now()}`;
 
   const leaders = [
     {
@@ -157,7 +250,7 @@ const Home = () => {
 
         <div className="mt-5">
           <h2 className="break-words text-[24px] font-black leading-[1.05] text-[#0D1633] sm:text-[27px]">
-            {t.greeting}, {firstName}! 👋
+            {loading ? `${t.greeting}...` : `${t.greeting}, ${firstName}! 👋`}
           </h2>
 
           <p className="mt-1.5 text-[14px] font-medium leading-6 text-[#51627D]">
@@ -188,10 +281,7 @@ const Home = () => {
             </div>
 
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white/12 ring-1 ring-white/10 sm:h-[74px] sm:w-[74px]">
-              <MdLocalFireDepartment
-                size={36}
-                className="text-white sm:text-[40px]"
-              />
+              <MdLocalFireDepartment size={36} className="text-white sm:text-[40px]" />
             </div>
           </div>
         </div>
@@ -220,10 +310,7 @@ const Home = () => {
 
             <div className="mt-4 flex flex-col items-center justify-center">
               <div className="flex h-[54px] w-[54px] items-center justify-center rounded-full bg-white/12 sm:h-[56px] sm:w-[56px]">
-                <MdVerifiedUser
-                  size={28}
-                  className="text-white sm:text-[30px]"
-                />
+                <MdVerifiedUser size={28} className="text-white sm:text-[30px]" />
               </div>
 
               <p className="mt-3 text-center text-[11px] font-black uppercase leading-4 tracking-[0.04em] text-white">

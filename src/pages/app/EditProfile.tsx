@@ -244,19 +244,23 @@ const EditProfile = () => {
         throw new Error("Missing authentication token");
       }
 
+      const existingRole = localStorage.getItem("role") || "reporter";
+      const isExistingOwner = existingRole === "vehicle_owner";
+
       const payload = {
-        role: phoneVerified ? "vehicle_owner" : "reporter",
-        verifiedPhone: phoneVerified ? phone.trim() : "",
-        vehicleId: localStorage.getItem("vehicleId") || "",
+        role: existingRole,
+        verifiedPhone: "",
+        vehicleId: isExistingOwner
+          ? localStorage.getItem("vehicleId") || ""
+          : "",
         name: normalizedUsername,
         username: normalizedUsername,
         email: email.trim() || "",
         phone: phone.trim() || "",
         profileImage: profileImage || "",
         avatar_url: profileImage || "",
-        primaryContact: phoneVerified ? "phone" : "email",
+        primaryContact: isExistingOwner ? "phone" : "email",
       };
-
       const response = await fetch(`${API_BASE_URL}/api/auth/create-profile`, {
         method: "POST",
         headers: {
@@ -292,6 +296,7 @@ const EditProfile = () => {
         };
 
         localStorage.setItem("user", JSON.stringify(safeUpdatedProfile));
+
         if (safeUpdatedProfile.id) {
           localStorage.setItem("profileId", safeUpdatedProfile.id);
         }
@@ -299,6 +304,9 @@ const EditProfile = () => {
         if (safeUpdatedProfile.role) {
           localStorage.setItem("role", safeUpdatedProfile.role);
         }
+
+        // ✅ IMPORTANT FIX
+        window.dispatchEvent(new Event("profileUpdated"));
       }
 
       navigate("/app/profile");
