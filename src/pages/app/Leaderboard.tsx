@@ -114,9 +114,6 @@ const Leaderboard = () => {
   const t = translations[language].leaderboard;
 
   const [apiData, setApiData] = useState<LeaderboardEntry[]>([]);
-  const [selectedUser, setSelectedUser] = useState<LeaderboardEntry | null>(
-    null,
-  );
   const [loading, setLoading] = useState(true);
 
   const localProfileId = useMemo(() => {
@@ -167,14 +164,11 @@ const Leaderboard = () => {
 
     fetchLeaderboard();
 
-    // ✅ LIVE REFRESH
     window.addEventListener("profileUpdated", fetchLeaderboard);
-
     window.addEventListener("focus", fetchLeaderboard);
 
     return () => {
       window.removeEventListener("profileUpdated", fetchLeaderboard);
-
       window.removeEventListener("focus", fetchLeaderboard);
     };
   }, []);
@@ -185,9 +179,11 @@ const Leaderboard = () => {
     const sorted = merged
       .sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
+
         if (b.reportsCount !== a.reportsCount) {
           return b.reportsCount - a.reportsCount;
         }
+
         return b.coins - a.coins;
       })
       .map((item, index) => ({
@@ -199,53 +195,51 @@ const Leaderboard = () => {
   }, [apiData]);
 
   const currentLoggedInUser = useMemo(() => {
-  const fromLeaderboard = data.find(
-    (item) => item.profileId === localProfileId
-  );
+    const fromLeaderboard = data.find(
+      (item) => item.profileId === localProfileId,
+    );
 
-  if (fromLeaderboard) return fromLeaderboard;
+    if (fromLeaderboard) return fromLeaderboard;
 
-  try {
-    const rawUser = localStorage.getItem("user");
-    const savedUser = rawUser ? JSON.parse(rawUser) : null;
+    try {
+      const rawUser = localStorage.getItem("user");
+      const savedUser = rawUser ? JSON.parse(rawUser) : null;
 
-    if (!savedUser) return null;
+      if (!savedUser) return null;
 
-    return {
-      rank: 0,
-      profileId: savedUser.id || savedUser.profileId || localProfileId,
-      username:
-        savedUser.username ||
-        savedUser.name ||
-        savedUser.email?.split("@")?.[0] ||
-        "You",
-      avatarUrl: savedUser.avatar_url || savedUser.profileImage || null,
-      profileImage: savedUser.profileImage || savedUser.avatar_url || null,
-      points: Number(savedUser.points || 0),
-      reportsCount: Number(
-        savedUser.reportsCount ||
-          savedUser.reports_count ||
-          savedUser.totalIncidentsReported ||
-          0
-      ),
-      coins: Number(savedUser.coins || 0),
-      streak: Number(savedUser.streak || 0),
-      currentBadge:
-        Array.isArray(savedUser.badges) && savedUser.badges.length
-          ? savedUser.badges[savedUser.badges.length - 1]
-          : savedUser.role === "vehicle_owner"
-            ? "Vehicle Owner"
-            : "Rookie Reporter",
-    };
-  } catch {
-    return null;
-  }
-}, [data, localProfileId]);
+      return {
+        rank: 0,
+        profileId: savedUser.id || savedUser.profileId || localProfileId,
+        username:
+          savedUser.username ||
+          savedUser.name ||
+          savedUser.email?.split("@")?.[0] ||
+          "You",
+        avatarUrl: savedUser.avatar_url || savedUser.profileImage || null,
+        profileImage: savedUser.profileImage || savedUser.avatar_url || null,
+        points: Number(savedUser.points || 0),
+        reportsCount: Number(
+          savedUser.reportsCount ||
+            savedUser.reports_count ||
+            savedUser.totalIncidentsReported ||
+            0,
+        ),
+        coins: Number(savedUser.coins || 0),
+        streak: Number(savedUser.streak || 0),
+        currentBadge:
+          Array.isArray(savedUser.badges) && savedUser.badges.length
+            ? savedUser.badges[savedUser.badges.length - 1]
+            : savedUser.role === "vehicle_owner"
+              ? "Vehicle Owner"
+              : "Rookie Reporter",
+      };
+    } catch {
+      return null;
+    }
+  }, [data, localProfileId]);
 
-const displayUser = selectedUser
-  ? data.find((item) => item.profileId === selectedUser.profileId) ||
-    selectedUser
-  : currentLoggedInUser || data[0];
+  // ✅ Top card will always show current logged-in user only
+  const displayUser = currentLoggedInUser || data[0];
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] px-4 pb-24 pt-4 text-[#101B35]">
@@ -280,8 +274,16 @@ const displayUser = selectedUser
                         displayUser.profileImage ||
                         DEFAULT_AVATAR
                       ).includes("?")
-                        ? `${displayUser.avatarUrl || displayUser.profileImage || DEFAULT_AVATAR}&t=${Date.now()}`
-                        : `${displayUser.avatarUrl || displayUser.profileImage || DEFAULT_AVATAR}?t=${Date.now()}`
+                        ? `${
+                            displayUser.avatarUrl ||
+                            displayUser.profileImage ||
+                            DEFAULT_AVATAR
+                          }&t=${Date.now()}`
+                        : `${
+                            displayUser.avatarUrl ||
+                            displayUser.profileImage ||
+                            DEFAULT_AVATAR
+                          }?t=${Date.now()}`
                     }
                     alt={displayUser.username}
                     className="relative h-full w-full rounded-full border-[6px] border-[#EEF2FF] bg-white object-cover"
@@ -298,7 +300,9 @@ const displayUser = selectedUser
 
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
                   <span className="rounded-full bg-[#EEF0F7] px-3 py-1 text-[12px] font-black uppercase text-[#222B55]">
-                    {t.rank} #{displayUser.rank}
+                    {displayUser.rank > 0
+                      ? `${t.rank} #${displayUser.rank}`
+                      : t.you}
                   </span>
 
                   <span className="text-[14px] font-semibold text-[#6B7280]">
@@ -348,21 +352,17 @@ const displayUser = selectedUser
             <div className="space-y-4">
               {data.map((player) => {
                 const isYou = player.profileId === localProfileId;
-                const isSelected = displayUser?.profileId === player.profileId;
 
                 const avatar =
                   player.avatarUrl || player.profileImage || DEFAULT_AVATAR;
 
                 return (
-                  <button
+                  <div
                     key={player.profileId}
-                    onClick={() => setSelectedUser(player)}
-                    className={`flex w-full items-center rounded-[26px] px-4 py-4 text-left transition active:scale-[0.98] ${
-                      isSelected
-                        ? "border border-[#2F93F6] bg-[#EEF8FF]"
-                        : isYou
-                          ? "border border-[#2F93F6] bg-[#F7FBFF]"
-                          : "bg-white"
+                    className={`flex w-full cursor-default items-center rounded-[26px] px-4 py-4 text-left ${
+                      isYou
+                        ? "border border-[#2F93F6] bg-[#F7FBFF]"
+                        : "bg-white"
                     } shadow-[0_10px_28px_rgba(15,35,64,0.07)]`}
                   >
                     <div
@@ -414,7 +414,7 @@ const displayUser = selectedUser
                         {player.coins} {t.coinsLower}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
