@@ -48,8 +48,6 @@ const AuthCallback = () => {
       localStorage.removeItem("pendingPhone");
     };
 
-    
-
     const claimVehicleWithAuthToken = async ({
       vehicleId,
       token,
@@ -87,44 +85,56 @@ const AuthCallback = () => {
         const code = url.searchParams.get("code");
         const phoneToken = url.searchParams.get("phone_token");
         const fromParam = url.searchParams.get("from");
+        const reportId = url.searchParams.get("reportId");
 
         if (phoneToken) {
-  const res = await fetch(
-    `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`,
-  );
+          const res = await fetch(
+            `${API_BASE_URL}/api/auth/verify-phone-link?phone_token=${phoneToken}`,
+          );
 
-  const data = await res.json();
+          const data = await res.json();
 
-  console.log("PHONE VERIFY RESPONSE:", data);
+          console.log("PHONE VERIFY RESPONSE:", data);
 
-  if (!res.ok || !data?.success) {
-    throw new Error(data?.message || "Phone verification failed");
-  }
+          if (!res.ok || !data?.success) {
+            throw new Error(data?.message || "Phone verification failed");
+          }
 
-  const phone = data?.data?.phone || "";
-  const vehicleId = data?.data?.vehicleId || "";
-  const ownerAccessToken = data?.data?.ownerAccessToken || "";
-  const needsCompleteProfile = Boolean(data?.data?.needsCompleteProfile);
+          const phone = data?.data?.phone || "";
+          const vehicleId = data?.data?.vehicleId || "";
+          const ownerAccessToken = data?.data?.ownerAccessToken || "";
+          const needsCompleteProfile = Boolean(
+            data?.data?.needsCompleteProfile,
+          );
 
-  localStorage.setItem("role", "vehicle_owner");
-  localStorage.setItem("ownerAccess", "true");
-  localStorage.setItem("ownerPhone", phone);
-  localStorage.setItem("verifiedPhone", phone);
-  localStorage.setItem("vehicleId", vehicleId);
-  localStorage.setItem("ownerAccessToken", ownerAccessToken);
+          localStorage.setItem("role", "vehicle_owner");
+          localStorage.setItem("ownerAccess", "true");
+          localStorage.setItem("ownerPhone", phone);
+          localStorage.setItem("verifiedPhone", phone);
+          localStorage.setItem("vehicleId", vehicleId);
+          localStorage.setItem("ownerAccessToken", ownerAccessToken);
 
-  if (data?.data?.profile) {
-    localStorage.setItem("user", JSON.stringify(data.data.profile));
-  }
+          if (data?.data?.profile) {
+            localStorage.setItem("user", JSON.stringify(data.data.profile));
+          }
 
-  if (needsCompleteProfile) {
-    window.location.href = "/complete-profile";
-    return;
-  }
+          if (needsCompleteProfile) {
+            if (reportId) {
+              localStorage.setItem("redirectReportId", reportId);
+            }
 
-  window.location.href = "/app/vehicles";
-  return;
-}
+            window.location.href = "/complete-profile";
+            return;
+          }
+
+          if (reportId) {
+            window.location.href = `/app/history/${reportId}`;
+            return;
+          }
+
+          window.location.href = "/app/vehicles";
+          return;
+        }
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;

@@ -349,11 +349,26 @@ const CompleteProfile = () => {
           }
 
           if (result.data.profile.auth_user_id) {
-            localStorage.setItem("authUserId", result.data.profile.auth_user_id);
+            localStorage.setItem(
+              "authUserId",
+              result.data.profile.auth_user_id,
+            );
           }
         }
 
         window.dispatchEvent(new Event("profileUpdated"));
+
+        const redirectReportId = localStorage.getItem("redirectReportId") || "";
+
+        if (redirectReportId) {
+          localStorage.removeItem("redirectReportId");
+
+          navigate(`/app/history/${redirectReportId}`, {
+            replace: true,
+          });
+
+          return;
+        }
 
         navigate("/app/vehicles", { replace: true });
         return;
