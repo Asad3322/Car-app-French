@@ -128,7 +128,7 @@ const AuthCallback = () => {
           }
 
           if (reportId) {
-            window.location.href = `/app/history/${reportId}`;
+            window.location.href = `/app/incidents/${reportId}`;
             return;
           }
 

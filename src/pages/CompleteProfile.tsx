@@ -363,10 +363,9 @@ const CompleteProfile = () => {
         if (redirectReportId) {
           localStorage.removeItem("redirectReportId");
 
-          navigate(`/app/history/${redirectReportId}`, {
+          navigate(`/app/incidents/${redirectReportId}`, {
             replace: true,
           });
-
           return;
         }
 
