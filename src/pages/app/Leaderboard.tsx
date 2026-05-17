@@ -36,68 +36,56 @@ const getLanguage = (): keyof typeof translations => {
   return "fr";
 };
 
-const DUMMY_USERS: LeaderboardEntry[] = [
-  {
-    rank: 0,
-    profileId: "dummy-sarah",
-    username: "Sarah Williams",
-    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Sarah",
-    points: 120,
-    reportsCount: 12,
-    coins: 500,
-    streak: 5,
-    currentBadge: "Expert Contributor",
-    isDummy: true,
-  },
-  {
-    rank: 0,
-    profileId: "dummy-michael",
-    username: "Michael Chen",
-    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Michael",
-    points: 95,
-    reportsCount: 9,
-    coins: 420,
-    streak: 4,
-    currentBadge: "Rising Star",
-    isDummy: true,
-  },
-  {
-    rank: 0,
-    profileId: "dummy-jessica",
-    username: "Jessica Moore",
-    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Jessica",
-    points: 80,
-    reportsCount: 8,
-    coins: 360,
-    streak: 3,
-    currentBadge: "Active Reporter",
-    isDummy: true,
-  },
-  {
-    rank: 0,
-    profileId: "dummy-david",
-    username: "David Smith",
-    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=David",
-    points: 60,
-    reportsCount: 6,
-    coins: 280,
-    streak: 2,
-    currentBadge: "Contributor",
-    isDummy: true,
-  },
-  {
-    rank: 0,
-    profileId: "dummy-emma",
-    username: "Emma Wilson",
-    avatarUrl: "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Emma",
-    points: 45,
-    reportsCount: 4,
-    coins: 210,
-    streak: 1,
-    currentBadge: "New Helper",
-    isDummy: true,
-  },
-];
+const getCurrentWeekSeed = () => {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const diffMs = now.getTime() - startOfYear.getTime();
+
+  return Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+};
+
+const getWeeklyDummyUsers = (): LeaderboardEntry[] => {
+  const weekSeed = getCurrentWeekSeed();
+
+  const names = [
+    "Sarah Williams",
+    "Michael Chen",
+    "Jessica Moore",
+    "David Smith",
+    "Emma Wilson",
+  ];
+
+  return names.map((name, index) => {
+    const base = weekSeed + index * 11;
+
+    const reportsCount = 3 + ((base * 7) % 12);
+    const points = reportsCount * 10 + ((base * 13) % 40);
+    const coins = points * 3 + ((base * 17) % 90);
+    const streak = 1 + ((base * 5) % 7);
+
+    return {
+      rank: 0,
+      profileId: `dummy-${name.toLowerCase().replace(/\s+/g, "-")}`,
+      username: name,
+      avatarUrl: `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${encodeURIComponent(
+        `${name}-${weekSeed}`,
+      )}`,
+      points,
+      reportsCount,
+      coins,
+      streak,
+      currentBadge:
+        reportsCount >= 10
+          ? "Expert Contributor"
+          : reportsCount >= 7
+            ? "Rising Star"
+            : reportsCount >= 4
+              ? "Active Reporter"
+              : "New Helper",
+      isDummy: true,
+    };
+  });
+};
 
 const getBadgeTitle = (player: LeaderboardEntry, t: typeof en.leaderboard) => {
   if (player.currentBadge) return player.currentBadge;
@@ -174,7 +162,8 @@ const Leaderboard = () => {
   }, []);
 
   const data = useMemo(() => {
-    const merged = [...apiData, ...DUMMY_USERS];
+  const weeklyDummyUsers = getWeeklyDummyUsers();
+  const merged = [...apiData, ...weeklyDummyUsers];
 
     const sorted = merged
       .sort((a, b) => {
