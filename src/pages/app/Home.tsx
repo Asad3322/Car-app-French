@@ -22,15 +22,13 @@ const homeText = {
     verifiedReports: "Signalements vérifiés",
     currentBadge: "Badge actuel",
     noBadge: "Aucun badge",
-    weeklyLeaderboard: "Classement Hebdomadaire",
-    viewAll: "Voir tout",
-    reports: "Signalements",
     reportNow: "Signaler maintenant",
-    you: "Vous",
     guest: "Invité",
-    communityHero: "Héros de la communauté",
-    topContributor: "Meilleur contributeur",
-    climbingFast: "Progression rapide",
+    quickActions: "Actions rapides",
+    myIncidents: "Mes incidents",
+    incidentsDesc: "Voir les signalements envoyés et reçus",
+    myProfile: "Mon profil",
+    profileDesc: "Modifier votre compte et avatar",
   },
   en: {
     communitySafety: "Community Safety",
@@ -43,15 +41,13 @@ const homeText = {
     verifiedReports: "Total verified reports",
     currentBadge: "Current Badge",
     noBadge: "No Badge Yet",
-    weeklyLeaderboard: "Weekly Leaderboard",
-    viewAll: "View All",
-    reports: "Reports",
     reportNow: "New Report",
-    you: "You",
     guest: "Guest",
-    communityHero: "Community Hero",
-    topContributor: "Top Contributor",
-    climbingFast: "Climbing fast!",
+    quickActions: "Quick Actions",
+    myIncidents: "My Incidents",
+    incidentsDesc: "View sent and received reports",
+    myProfile: "My Profile",
+    profileDesc: "Edit your account and avatar",
   },
 };
 
@@ -114,7 +110,8 @@ const Home = () => {
           "Guest",
         email: profile?.email || auth?.email || "",
         phone: profile?.phone || auth?.phone || "",
-        avatar_url: profile?.avatar_url || profile?.profileImage || DEFAULT_AVATAR,
+        avatar_url:
+          profile?.avatar_url || profile?.profileImage || DEFAULT_AVATAR,
         coins: Number(game?.coins || profile?.coins || 0),
         points: Number(game?.points || profile?.points || 0),
         streak: Number(game?.streak || profile?.streak || 0),
@@ -128,8 +125,8 @@ const Home = () => {
         badges: Array.isArray(game?.badges)
           ? game.badges
           : Array.isArray(profile?.badges)
-          ? profile.badges
-          : [],
+            ? profile.badges
+            : [],
       };
 
       localStorage.setItem("user", JSON.stringify(latestUser));
@@ -180,8 +177,6 @@ const Home = () => {
     activeUser?.totalIncidentsReported ??
     0;
 
-  const coins = activeUser?.coins ?? activeUser?.points ?? 0;
-
   const currentBadge =
     activeUser?.badges?.[activeUser.badges.length - 1] || t.noBadge;
 
@@ -191,30 +186,6 @@ const Home = () => {
   const avatar = rawAvatar.includes("?")
     ? `${rawAvatar}&t=${Date.now()}`
     : `${rawAvatar}?t=${Date.now()}`;
-
-  const leaders = [
-    {
-      name: "RoadWarrior_88",
-      role: t.communityHero,
-      reports: 42,
-      points: 2450,
-      highlight: false,
-    },
-    {
-      name: "SarahDash",
-      role: t.topContributor,
-      reports: 35,
-      points: 1920,
-      highlight: false,
-    },
-    {
-      name: `${firstName} (${t.you})`,
-      role: t.climbingFast,
-      reports: reportsMade,
-      points: coins,
-      highlight: true,
-    },
-  ];
 
   return (
     <div className="min-h-full w-full overflow-x-hidden bg-[#F3F7FB]">
@@ -281,7 +252,10 @@ const Home = () => {
             </div>
 
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white/12 ring-1 ring-white/10 sm:h-[74px] sm:w-[74px]">
-              <MdLocalFireDepartment size={36} className="text-white sm:text-[40px]" />
+              <MdLocalFireDepartment
+                size={36}
+                className="text-white sm:text-[40px]"
+              />
             </div>
           </div>
         </div>
@@ -310,7 +284,10 @@ const Home = () => {
 
             <div className="mt-4 flex flex-col items-center justify-center">
               <div className="flex h-[54px] w-[54px] items-center justify-center rounded-full bg-white/12 sm:h-[56px] sm:w-[56px]">
-                <MdVerifiedUser size={28} className="text-white sm:text-[30px]" />
+                <MdVerifiedUser
+                  size={28}
+                  className="text-white sm:text-[30px]"
+                />
               </div>
 
               <p className="mt-3 text-center text-[11px] font-black uppercase leading-4 tracking-[0.04em] text-white">
@@ -320,61 +297,44 @@ const Home = () => {
           </div>
         </div>
 
-        <div className="mt-7 flex items-center justify-between gap-3">
-          <p className="text-[12px] font-black uppercase tracking-[0.08em] text-[#95A1B4]">
-            {t.weeklyLeaderboard}
+        <div className="mt-7 rounded-[26px] border border-[#D2DEEF] bg-white p-5 shadow-[0_12px_26px_rgba(15,23,42,0.06)]">
+          <p className="text-[12px] font-black uppercase tracking-[0.12em] text-[#95A1B4]">
+            {t.quickActions}
           </p>
 
-          <button
-            type="button"
-            onClick={() => navigate("/app/leaderboard")}
-            className="shrink-0 text-[13px] font-black text-[#459DFF] transition-opacity hover:opacity-80"
-          >
-            {t.viewAll}
-          </button>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3">
-          {leaders.map((item, i) => (
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <button
-              key={i}
               type="button"
-              onClick={() => navigate("/app/leaderboard")}
-              className={`w-full rounded-[20px] p-4 text-left transition-all duration-300 hover:translate-y-[-1px] ${
-                item.highlight
-                  ? "border-2 border-[#4098FF] bg-[#EAF3FF] shadow-[0_12px_24px_rgba(64,152,255,0.10)]"
-                  : "border border-[#D2DEEF] bg-[#E1EAF6] shadow-[0_10px_20px_rgba(15,23,42,0.04)]"
-              }`}
+              onClick={() => navigate("/app/incidents")}
+              className="rounded-[20px] bg-[#EAF3FF] p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-[15px] font-black leading-tight text-[#111A34] sm:text-[16px]">
-                    {item.name}
-                  </h3>
+              <p className="text-[24px]">🚨</p>
 
-                  <p
-                    className={`mt-1 text-[13px] font-semibold ${
-                      item.highlight ? "text-[#3F98FF]" : "text-[#4B5C76]"
-                    }`}
-                  >
-                    {item.role}
-                  </p>
+              <p className="mt-2 text-[13px] font-black text-[#111A34]">
+                {t.myIncidents}
+              </p>
 
-                  <p className="mt-1 text-[12px] font-medium text-[#6C7A92]">
-                    {item.reports} {t.reports}
-                  </p>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <span className="text-[15px] text-[#D18B4A]">◉</span>
-
-                  <p className="text-[15px] font-black text-[#4A9CFF] sm:text-[16px]">
-                    {item.points}
-                  </p>
-                </div>
-              </div>
+              <p className="mt-1 text-[11px] leading-5 text-[#6C7A92]">
+                {t.incidentsDesc}
+              </p>
             </button>
-          ))}
+
+            <button
+              type="button"
+              onClick={() => navigate("/app/profile")}
+              className="rounded-[20px] bg-[#F6F1DF] p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <p className="text-[24px]">👤</p>
+
+              <p className="mt-2 text-[13px] font-black text-[#111A34]">
+                {t.myProfile}
+              </p>
+
+              <p className="mt-1 text-[11px] leading-5 text-[#6C7A92]">
+                {t.profileDesc}
+              </p>
+            </button>
+          </div>
         </div>
 
         <button

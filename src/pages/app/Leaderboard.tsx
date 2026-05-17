@@ -198,10 +198,54 @@ const Leaderboard = () => {
     return sorted;
   }, [apiData]);
 
-  const displayUser = selectedUser
-    ? data.find((item) => item.profileId === selectedUser.profileId) ||
-      selectedUser
-    : data[0];
+  const currentLoggedInUser = useMemo(() => {
+  const fromLeaderboard = data.find(
+    (item) => item.profileId === localProfileId
+  );
+
+  if (fromLeaderboard) return fromLeaderboard;
+
+  try {
+    const rawUser = localStorage.getItem("user");
+    const savedUser = rawUser ? JSON.parse(rawUser) : null;
+
+    if (!savedUser) return null;
+
+    return {
+      rank: 0,
+      profileId: savedUser.id || savedUser.profileId || localProfileId,
+      username:
+        savedUser.username ||
+        savedUser.name ||
+        savedUser.email?.split("@")?.[0] ||
+        "You",
+      avatarUrl: savedUser.avatar_url || savedUser.profileImage || null,
+      profileImage: savedUser.profileImage || savedUser.avatar_url || null,
+      points: Number(savedUser.points || 0),
+      reportsCount: Number(
+        savedUser.reportsCount ||
+          savedUser.reports_count ||
+          savedUser.totalIncidentsReported ||
+          0
+      ),
+      coins: Number(savedUser.coins || 0),
+      streak: Number(savedUser.streak || 0),
+      currentBadge:
+        Array.isArray(savedUser.badges) && savedUser.badges.length
+          ? savedUser.badges[savedUser.badges.length - 1]
+          : savedUser.role === "vehicle_owner"
+            ? "Vehicle Owner"
+            : "Rookie Reporter",
+    };
+  } catch {
+    return null;
+  }
+}, [data, localProfileId]);
+
+const displayUser = selectedUser
+  ? data.find((item) => item.profileId === selectedUser.profileId) ||
+    selectedUser
+  : currentLoggedInUser || data[0];
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] px-4 pb-24 pt-4 text-[#101B35]">
