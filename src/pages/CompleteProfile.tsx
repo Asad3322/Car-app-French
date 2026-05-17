@@ -82,6 +82,7 @@ const CompleteProfile = () => {
 
         const storedRole =
           (localStorage.getItem("role") as FlowRole | null) || "reporter";
+
         const storedVerifiedPhone = localStorage.getItem("verifiedPhone") || "";
         const storedVehicleId = localStorage.getItem("vehicleId") || "";
 
@@ -102,7 +103,6 @@ const CompleteProfile = () => {
 
           setPhone(storedVerifiedPhone);
           setEmail("");
-
           setIsLoadingUser(false);
           return;
         }
@@ -160,8 +160,12 @@ const CompleteProfile = () => {
         }
       } catch (err) {
         console.error("Load auth user error:", err);
+
+        const storedRole =
+          (localStorage.getItem("role") as FlowRole | null) || "reporter";
+
         navigate(
-          `/auth?role=${role === "vehicle_owner" ? "owner" : "reporter"}`,
+          `/auth?role=${storedRole === "vehicle_owner" ? "owner" : "reporter"}`,
           { replace: true },
         );
       } finally {
@@ -170,7 +174,7 @@ const CompleteProfile = () => {
     };
 
     loadUser();
-  }, [navigate, role]);
+  }, [navigate]);
 
   useEffect(() => {
     const normalized = normalizeUsername(username);
@@ -289,8 +293,12 @@ const CompleteProfile = () => {
       };
 
       console.log("PROFILE PAYLOAD:", profilePayload);
+
       if (isOwner) {
         const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+        const finalVehicleId =
+          vehicleId || localStorage.getItem("vehicleId") || "";
+        const finalPhone = phone || localStorage.getItem("verifiedPhone") || "";
 
         if (!ownerAccessToken) {
           throw new Error("Owner access token missing");
@@ -307,8 +315,8 @@ const CompleteProfile = () => {
             name: normalizedUsername,
             avatar_url: selectedAvatar,
             profileImage: selectedAvatar,
-            phone,
-            vehicleId: vehicleId || localStorage.getItem("vehicleId") || "",
+            phone: finalPhone,
+            vehicleId: finalVehicleId,
           }),
         });
 
@@ -321,14 +329,31 @@ const CompleteProfile = () => {
         }
 
         localStorage.setItem("role", "vehicle_owner");
+        localStorage.setItem("profileCompleted", "true");
+        localStorage.setItem("ownerAccess", "true");
+
+        if (finalPhone) {
+          localStorage.setItem("verifiedPhone", finalPhone);
+          localStorage.setItem("ownerPhone", finalPhone);
+        }
+
+        if (finalVehicleId) {
+          localStorage.setItem("vehicleId", finalVehicleId);
+        }
 
         if (result?.data?.profile) {
           localStorage.setItem("user", JSON.stringify(result.data.profile));
+
+          if (result.data.profile.id) {
+            localStorage.setItem("profileId", result.data.profile.id);
+          }
+
+          if (result.data.profile.auth_user_id) {
+            localStorage.setItem("authUserId", result.data.profile.auth_user_id);
+          }
         }
 
-        localStorage.removeItem("verifiedPhone");
-        localStorage.removeItem("ownerAccess");
-        localStorage.removeItem("ownerPhone");
+        window.dispatchEvent(new Event("profileUpdated"));
 
         navigate("/app/vehicles", { replace: true });
         return;
@@ -339,15 +364,26 @@ const CompleteProfile = () => {
       console.log("SAVED PROFILE:", savedProfile);
 
       localStorage.setItem("role", "reporter");
+      localStorage.setItem("profileCompleted", "true");
 
       if (savedProfile?.profile) {
         localStorage.setItem("user", JSON.stringify(savedProfile.profile));
+
+        if (savedProfile.profile.id) {
+          localStorage.setItem("profileId", savedProfile.profile.id);
+        }
+
+        if (savedProfile.profile.auth_user_id) {
+          localStorage.setItem("authUserId", savedProfile.profile.auth_user_id);
+        }
       }
 
       localStorage.setItem("openIncidentsTab", "sent");
 
       localStorage.removeItem("pendingReportId");
       localStorage.removeItem("fromReportFlow");
+
+      window.dispatchEvent(new Event("profileUpdated"));
 
       navigate("/app/history", {
         replace: true,
