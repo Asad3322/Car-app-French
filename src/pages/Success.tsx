@@ -28,22 +28,15 @@ const Success = () => {
     }
   }, [location.state]);
 
-  const reward =
-    rewardData?.reward || "+10 Coins";
+  const reward = rewardData?.reward || "+10 Coins";
 
-  const points =
-    rewardData?.points ?? 10;
+  const points = rewardData?.points ?? 10;
 
-  const badge =
-    rewardData?.badge ||
-    "Rookie Reporter";
+  const badge = rewardData?.badge || "Rookie Reporter";
 
-  const streak =
-    rewardData?.streak ?? 1;
+  const streak = rewardData?.streak ?? 1;
 
-  const handleClaim = (
-    e: React.MouseEvent
-  ) => {
+  const handleClaim = (e: React.MouseEvent) => {
     e.preventDefault();
 
     if (isSubmitting) return;
@@ -51,30 +44,33 @@ const Success = () => {
     setIsSubmitting(true);
 
     localStorage.removeItem("authFlow");
-    localStorage.removeItem(
-      "redirectAfterAuth"
-    );
-    localStorage.removeItem(
-      "pendingAuthRole"
-    );
-    localStorage.removeItem(
-      "afterMagicLinkRedirect"
-    );
-    localStorage.removeItem(
-      "afterMagicLinkFilter"
-    );
-
-    localStorage.setItem(
-      "fromReportFlow",
-      "true"
-    );
+    localStorage.removeItem("redirectAfterAuth");
+    localStorage.removeItem("pendingAuthRole");
+    localStorage.removeItem("afterMagicLinkRedirect");
+    localStorage.removeItem("afterMagicLinkFilter");
 
     setTimeout(() => {
       setIsSubmitting(false);
 
-      navigate(
-        "/auth?role=reporter&from=report"
-      );
+      const isLoggedInReporter =
+        Boolean(localStorage.getItem("token")) ||
+        Boolean(location.state?.fromLoggedInReporter);
+
+      if (isLoggedInReporter) {
+        localStorage.removeItem("fromReportFlow");
+        localStorage.setItem("openIncidentsTab", "sent");
+
+        navigate("/app/history", {
+          replace: true,
+          state: { filter: "sent" },
+        });
+
+        return;
+      }
+
+      localStorage.setItem("fromReportFlow", "true");
+
+      navigate("/auth?role=reporter&from=report");
     }, 1200);
   };
 
@@ -102,10 +98,8 @@ const Success = () => {
 
           <p className="mt-4 max-w-[320px] text-[15px] font-bold text-[#6B7A90]">
             🎉 {t("success.youEarned")}{" "}
-            <span className="text-[#F4B400]">
-              {reward}
-            </span>
-            . {t("success.reportDifference")}
+            <span className="text-[#F4B400]">{reward}</span>.{" "}
+            {t("success.reportDifference")}
           </p>
 
           <div className="mt-10 w-full max-w-[320px]">
@@ -134,8 +128,7 @@ const Success = () => {
                     <Flame className="mx-auto text-orange-500" />
 
                     <p className="text-[9px] uppercase text-[#9AA8BC]">
-                      {streak}{" "}
-                      {t("success.day")}
+                      {streak} {t("success.day")}
                     </p>
                   </div>
 
@@ -163,9 +156,7 @@ const Success = () => {
               disabled={isSubmitting}
               className="h-[66px] rounded-[22px] bg-[#F4B400] text-white"
             >
-              {isSubmitting
-                ? t("success.loading")
-                : t("success.claimReward")}
+              {isSubmitting ? t("success.loading") : t("success.claimReward")}
             </button>
 
             <Link

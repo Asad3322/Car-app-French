@@ -319,7 +319,7 @@ const Home = () => {
                   return;
                 }
 
-                navigate("/app/incidents");
+                navigate("/app/history");
               }}
               className="rounded-[20px] bg-[#EAF3FF] p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
