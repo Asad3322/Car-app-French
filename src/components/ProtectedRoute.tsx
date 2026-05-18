@@ -8,6 +8,7 @@ type ProtectedRouteProps = {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
+
   const [loading, setLoading] = useState(true);
   const [valid, setValid] = useState(false);
 
@@ -28,10 +29,21 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     const deny = () => {
       if (!isMounted) return;
 
+      const ownerAccess = localStorage.getItem("ownerAccess");
+
+      const ownerAccessToken =
+        localStorage.getItem("ownerAccessToken") ||
+        localStorage.getItem("ownerAccess");
+
+      // ✅ Keep owner session alive
+      if (ownerAccess === "true" && ownerAccessToken) {
+        setValid(true);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Only remove invalid reporter token
       localStorage.removeItem("token");
-      localStorage.removeItem("ownerAccess");
-      localStorage.removeItem("ownerPhone");
-      localStorage.removeItem("ownerAccessToken");
 
       setValid(false);
       setLoading(false);
@@ -40,18 +52,18 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     const checkAuth = async () => {
       try {
         const ownerAccess = localStorage.getItem("ownerAccess");
-        const ownerAccessToken = localStorage.getItem("ownerAccessToken");
-        const role = localStorage.getItem("role");
 
-        if (
-          ownerAccess === "true" &&
-          ownerAccessToken &&
-          role === "vehicle_owner"
-        ) {
+        const ownerAccessToken =
+          localStorage.getItem("ownerAccessToken") ||
+          localStorage.getItem("ownerAccess");
+
+        // ✅ Owner access flow
+        if (ownerAccess === "true" && ownerAccessToken) {
           allow();
           return;
         }
 
+        // ✅ Reporter token flow
         const localToken = localStorage.getItem("token");
 
         if (localToken) {
@@ -59,6 +71,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           return;
         }
 
+        // ✅ Supabase fallback
         const {
           data: { session },
           error,
