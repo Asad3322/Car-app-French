@@ -192,7 +192,9 @@ const Vehicles = () => {
         } = await supabase.auth.getSession();
 
         const token = session?.access_token;
-        const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+        const ownerAccessToken =
+          localStorage.getItem("ownerAccessToken") ||
+          localStorage.getItem("ownerAccess");
 
         if (!token && !ownerAccessToken) {
           const pendingVehicleRaw = localStorage.getItem("pendingOwnerVehicle");
@@ -215,10 +217,10 @@ const Vehicles = () => {
           "Content-Type": "application/json",
         };
 
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        } else if (ownerAccessToken) {
+        if (ownerAccessToken) {
           headers["x-owner-access-token"] = ownerAccessToken;
+        } else if (token) {
+          headers.Authorization = `Bearer ${token}`;
         }
 
         const response = await fetch(`${API_URL}/api/vehicles`, {

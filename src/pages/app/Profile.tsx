@@ -88,7 +88,9 @@ const Profile = () => {
       } = await supabase.auth.getSession();
 
       const token = session?.access_token || localStorage.getItem("token");
-      const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+      const ownerAccessToken =
+        localStorage.getItem("ownerAccessToken") ||
+        localStorage.getItem("ownerAccess");
 
       if (token) {
         localStorage.setItem("token", token);
@@ -106,12 +108,10 @@ const Profile = () => {
 
       const headers: Record<string, string> = {};
 
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      if (!token && ownerAccessToken) {
+      if (ownerAccessToken) {
         headers["x-owner-access-token"] = ownerAccessToken;
+      } else if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const meRes = await fetch(`${API_URL}/api/auth/me`, {
