@@ -367,7 +367,11 @@ const Home = () => {
 
         <button
           type="button"
-          onClick={() => navigate("/app/reports")}
+          onClick={() =>
+            navigate("/app/reports", {
+              state: { fromHomeReport: true },
+            })
+          }
           className="mt-6 flex h-[68px] items-center justify-center gap-3 rounded-[24px] border-2 border-[#E0AA00] bg-[#F6F1DF] text-[#E0AA00] shadow-[0_14px_28px_rgba(224,170,0,0.12)] transition-all duration-300 hover:translate-y-[-1px] hover:shadow-[0_18px_34px_rgba(224,170,0,0.16)] active:scale-[0.99] sm:h-[72px] sm:rounded-[26px]"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E0AA00] text-white shadow-sm">

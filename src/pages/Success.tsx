@@ -52,9 +52,7 @@ const Success = () => {
     setTimeout(() => {
       setIsSubmitting(false);
 
-      const isLoggedInReporter =
-        Boolean(localStorage.getItem("token")) ||
-        Boolean(location.state?.fromLoggedInReporter);
+      const isLoggedInReporter = Boolean(location.state?.fromLoggedInReporter);
 
       if (isLoggedInReporter) {
         localStorage.removeItem("fromReportFlow");

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   HelpCircle,
@@ -11,6 +11,8 @@ import type { Urgency } from "../utils/types";
 
 const ReportDetails = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [description, setDescription] = useState("");
@@ -238,7 +240,9 @@ const ReportDetails = () => {
         JSON.stringify(gamificationData),
       );
 
-      const isLoggedInReporter = Boolean(token);
+      const isLoggedInReporter = Boolean(
+        token && location.state?.fromHomeReport === true,
+      );
 
       if (result?.data?.id && !isLoggedInReporter) {
         localStorage.setItem("pendingReportId", result.data.id);
