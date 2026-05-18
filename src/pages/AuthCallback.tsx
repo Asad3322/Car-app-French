@@ -141,12 +141,12 @@ const AuthCallback = () => {
           }
 
           if (reportId) {
-            window.location.href = `/app/incidents/${reportId}`;
-            return;
+           navigate(`/app/incidents/${reportId}`, { replace: true });
+return;
           }
 
-          window.location.href = "/app/vehicles";
-          return;
+          navigate("/app/vehicles", { replace: true });
+return;
         }
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);

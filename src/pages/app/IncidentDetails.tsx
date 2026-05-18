@@ -257,7 +257,20 @@ const IncidentDetails = () => {
         </h2>
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            if (isReceivedView) {
+              navigate("/app/incidents", {
+                replace: true,
+                state: { group: "received" },
+              });
+              return;
+            }
+
+            navigate("/app/history", {
+              replace: true,
+              state: { filter: "sent" },
+            });
+          }}
           className="relative z-10 mt-5 rounded-[16px] bg-[#111827] px-5 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-white shadow-[0_14px_28px_rgba(15,23,42,0.16)] transition-all active:scale-95"
         >
           {t.goBack}
