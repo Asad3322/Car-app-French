@@ -85,7 +85,13 @@ const AuthCallback = () => {
         const code = url.searchParams.get("code");
         const phoneToken = url.searchParams.get("phone_token");
         const fromParam = url.searchParams.get("from");
-        const reportId = url.searchParams.get("reportId");
+        const reportId =
+          url.searchParams.get("reportId") ||
+          url.searchParams.get("report_id") ||
+          url.searchParams.get("incidentId") ||
+          localStorage.getItem("redirectReportId") ||
+          localStorage.getItem("pendingReportId") ||
+          "";
 
         if (phoneToken) {
           const res = await fetch(
@@ -121,6 +127,13 @@ const AuthCallback = () => {
           if (needsCompleteProfile) {
             if (reportId) {
               localStorage.setItem("redirectReportId", reportId);
+              window.location.href = "/complete-profile";
+              return;
+            }
+
+            if (data?.data?.profile || ownerAccessToken) {
+              window.location.href = "/app/vehicles";
+              return;
             }
 
             window.location.href = "/complete-profile";
