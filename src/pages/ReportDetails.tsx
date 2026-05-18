@@ -238,7 +238,9 @@ const ReportDetails = () => {
         JSON.stringify(gamificationData),
       );
 
-      if (result?.data?.id) {
+      const isLoggedInReporter = Boolean(token);
+
+      if (result?.data?.id && !isLoggedInReporter) {
         localStorage.setItem("pendingReportId", result.data.id);
         localStorage.setItem("fromReportFlow", "true");
       }
@@ -246,6 +248,7 @@ const ReportDetails = () => {
       navigate("/success", {
         state: {
           gamification: gamificationData,
+          fromLoggedInReporter: isLoggedInReporter,
         },
       });
     } catch (error: any) {
