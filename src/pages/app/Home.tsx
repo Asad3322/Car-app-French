@@ -69,7 +69,9 @@ const Home = () => {
       setLoading(true);
 
       const token = localStorage.getItem("token");
-      const ownerAccessToken = localStorage.getItem("ownerAccessToken");
+      const ownerAccessToken =
+        localStorage.getItem("ownerAccessToken") ||
+        localStorage.getItem("ownerAccess");
 
       const headers: Record<string, string> = {};
 
@@ -120,7 +122,7 @@ const Home = () => {
             game?.reports_count ||
             profile?.reportsCount ||
             profile?.reports_count ||
-            0
+            0,
         ),
         badges: Array.isArray(game?.badges)
           ? game.badges
@@ -305,7 +307,20 @@ const Home = () => {
           <div className="mt-4 grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => navigate("/app/incidents")}
+              onClick={() => {
+                const token = localStorage.getItem("token");
+
+                const ownerAccessToken =
+                  localStorage.getItem("ownerAccessToken") ||
+                  localStorage.getItem("ownerAccess");
+
+                if (!token && !ownerAccessToken) {
+                  navigate("/auth?role=reporter");
+                  return;
+                }
+
+                navigate("/app/incidents");
+              }}
               className="rounded-[20px] bg-[#EAF3FF] p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <p className="text-[24px]">🚨</p>
@@ -321,7 +336,20 @@ const Home = () => {
 
             <button
               type="button"
-              onClick={() => navigate("/app/profile")}
+              onClick={() => {
+                const token = localStorage.getItem("token");
+
+                const ownerAccessToken =
+                  localStorage.getItem("ownerAccessToken") ||
+                  localStorage.getItem("ownerAccess");
+
+                if (!token && !ownerAccessToken) {
+                  navigate("/auth?role=reporter");
+                  return;
+                }
+
+                navigate("/app/profile");
+              }}
               className="rounded-[20px] bg-[#F6F1DF] p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <p className="text-[24px]">👤</p>
