@@ -19,6 +19,7 @@ const EditProfile = () => {
   const [currentProfileId, setCurrentProfileId] = useState("");
   const [authUserId, setAuthUserId] = useState("");
   const [phone, setPhone] = useState("");
+  const [verifiedPhone, setVerifiedPhone] = useState("");
   const [email, setEmail] = useState("");
   const [profileImage, setProfileImage] = useState("");
 
@@ -27,6 +28,12 @@ const EditProfile = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
 
   const defaultAvatar =
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky&backgroundColor=b6e3f4";
@@ -43,9 +50,7 @@ const EditProfile = () => {
       localStorage.getItem("ownerAccessToken") ||
       localStorage.getItem("ownerAccess");
 
-    if (token) {
-      localStorage.setItem("token", token);
-    }
+    if (token) localStorage.setItem("token", token);
 
     const headers: Record<string, string> = {};
 
@@ -55,22 +60,16 @@ const EditProfile = () => {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    return {
-      token,
-      ownerAccessToken,
-      headers,
-    };
+    return { token, ownerAccessToken, headers };
   };
 
   const validateUsername = (value: string) => {
     const normalized = normalizeUsername(value);
 
     if (!normalized) return "Username is required";
-
     if (normalized.length < 3 || normalized.length > 20) {
       return "Username must be between 3 and 20 characters";
     }
-
     if (!/^[a-z0-9_.]+$/.test(normalized)) {
       return "Use only letters, numbers, underscore, and dot";
     }
@@ -107,10 +106,14 @@ const EditProfile = () => {
         const profile = result?.data?.profile;
 
         if (profile) {
+          const existingPhone = profile.phone || authUser?.phone || "";
+
           setCurrentProfileId(profile.id || "");
           setAuthUserId(profile.auth_user_id || authUser?.id || "");
           setUsername(profile.username || profile.name || "");
-          setPhone(profile.phone || authUser?.phone || "");
+          setPhone(existingPhone);
+          setVerifiedPhone(existingPhone);
+          setOtpVerified(Boolean(existingPhone));
           setEmail(profile.email || authUser?.email || "");
           setProfileImage(profile.avatar_url || profile.profileImage || "");
 
@@ -180,22 +183,124 @@ const EditProfile = () => {
     };
 
     const timer = setTimeout(checkUsername, 500);
-
     return () => clearTimeout(timer);
   }, [username, currentProfileId, authUserId]);
 
   const existingRole = localStorage.getItem("role") || "reporter";
   const isExistingOwner = existingRole === "vehicle_owner";
 
+  const reporterPhoneChanged =
+    !isExistingOwner && phone.trim() && phone.trim() !== verifiedPhone.trim();
+
+  const isReporterPhoneValid =
+    isExistingOwner || !phone.trim() || !reporterPhoneChanged || otpVerified;
+
   const isValid =
     username.trim().length >= 3 &&
     isUnique !== false &&
     !usernameError &&
-    Boolean(email || phone);
+    Boolean(email || phone) &&
+    isReporterPhoneValid;
+
+  const handleSendOtp = async () => {
+    try {
+      if (!phone.trim() || phone.trim().length < 5) {
+        alert("Please enter a valid phone number");
+        return;
+      }
+
+      setIsSendingOtp(true);
+
+      const { headers } = await getAuthHeaders();
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/send-phone-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to send OTP");
+      }
+
+      setOtpSent(true);
+      setOtpVerified(false);
+      alert("OTP sent successfully");
+    } catch (error: any) {
+      console.error("Send OTP error:", error);
+      alert(error?.message || "Failed to send OTP");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      if (!phone.trim() || otpCode.trim().length < 6) {
+        alert("Please enter the 6-digit OTP");
+        return;
+      }
+
+      setIsVerifyingOtp(true);
+
+      const { headers } = await getAuthHeaders();
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-phone-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify({
+          phone: phone.trim(),
+          otp: otpCode.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.message || "Failed to verify OTP");
+      }
+
+      const updatedProfile = result?.data?.profile;
+      const verified = result?.data?.phone || phone.trim();
+
+      setVerifiedPhone(verified);
+      setPhone(verified);
+      setOtpVerified(true);
+      setOtpSent(false);
+      setOtpCode("");
+
+      if (updatedProfile) {
+        localStorage.setItem("user", JSON.stringify(updatedProfile));
+        if (updatedProfile.id) localStorage.setItem("profileId", updatedProfile.id);
+        if (updatedProfile.role) localStorage.setItem("role", updatedProfile.role);
+      }
+
+      window.dispatchEvent(new Event("profileUpdated"));
+      alert("Phone verified successfully");
+    } catch (error: any) {
+      console.error("Verify OTP error:", error);
+      alert(error?.message || "Failed to verify OTP");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid) {
+      if (!isReporterPhoneValid) {
+        alert("Please verify your phone number before saving");
+      }
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -239,14 +344,14 @@ const EditProfile = () => {
 
       const payload = {
         role: existingRole,
-        verifiedPhone: "",
+        verifiedPhone: isExistingOwner ? "" : verifiedPhone || "",
         vehicleId: isExistingOwner
           ? localStorage.getItem("vehicleId") || ""
           : "",
         name: normalizedUsername,
         username: normalizedUsername,
         email: email.trim() || "",
-        phone: phone.trim() || "",
+        phone: isExistingOwner ? phone.trim() || "" : verifiedPhone || "",
         profileImage: profileImage || "",
         avatar_url: profileImage || "",
         primaryContact: isExistingOwner ? "phone" : "email",
@@ -328,12 +433,9 @@ const EditProfile = () => {
         upsert: true,
       });
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-
     return data.publicUrl;
   };
 
@@ -529,19 +631,68 @@ const EditProfile = () => {
                       Add Phone Number
                     </h3>
                     <p className="mt-0.5 text-[12px] font-medium leading-relaxed text-[#64748B]">
-                      Add your phone to link your previously registered
-                      vehicles.
+                      Verify your phone to link previously registered vehicles.
                     </p>
                   </div>
                 </div>
 
-                <input
-                  type="tel"
-                  className="h-[56px] w-full rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 text-[15px] font-semibold text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
-                  placeholder="+33 6 12 34 56 78"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    className="h-[56px] flex-1 rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 text-[15px] font-semibold text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#93C5FD] focus:bg-white focus:ring-4 focus:ring-[#DBEAFE]"
+                    placeholder="+33 6 12 34 56 78"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setOtpSent(false);
+                      setOtpCode("");
+                      setOtpVerified(false);
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={isSendingOtp || !phone.trim() || phone.trim().length < 5}
+                    className="h-[56px] rounded-[20px] bg-[#2563EB] px-5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_12px_24px_rgba(37,99,235,0.28)] transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {isSendingOtp ? "..." : "Send"}
+                  </button>
+                </div>
+
+                {otpSent && !otpVerified && (
+                  <div className="mt-4 flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      className="h-[56px] flex-1 rounded-[20px] border border-[#DCE6F2] bg-[#F8FBFF] px-4 text-center text-[15px] font-black tracking-[0.35rem] text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition-all focus:border-[#86EFAC] focus:bg-white focus:ring-4 focus:ring-[#DCFCE7]"
+                      placeholder="000000"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={isVerifyingOtp || otpCode.trim().length < 6}
+                      className="h-[56px] rounded-[20px] bg-emerald-500 px-5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_12px_24px_rgba(16,185,129,0.28)] transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {isVerifyingOtp ? "..." : "Verify"}
+                    </button>
+                  </div>
+                )}
+
+                {otpVerified && (
+                  <p className="mt-3 rounded-[18px] bg-emerald-50 px-4 py-3 text-[12px] font-black text-emerald-600">
+                    Phone verified successfully
+                  </p>
+                )}
+
+                {!isReporterPhoneValid && (
+                  <p className="mt-3 text-[11px] font-semibold text-red-500">
+                    Please verify this phone number before saving.
+                  </p>
+                )}
               </>
             )}
           </section>
