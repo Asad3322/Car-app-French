@@ -141,12 +141,12 @@ const AuthCallback = () => {
           }
 
           if (reportId) {
-           navigate(`/app/incidents/${reportId}`, { replace: true });
-return;
+            navigate(`/app/incidents/${reportId}`, { replace: true });
+            return;
           }
 
           navigate("/app/vehicles", { replace: true });
-return;
+          return;
         }
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -200,26 +200,34 @@ return;
           localStorage.removeItem("afterMagicLinkRedirect");
           localStorage.removeItem("afterMagicLinkFilter");
 
-          if (!profile) {
-            const pendingRole =
-              localStorage.getItem("role") ||
-              localStorage.getItem("pendingAuthRole") ||
-              "reporter";
-
-            localStorage.setItem("role", pendingRole);
-            navigate("/complete-profile", { replace: true });
+          // Existing owner
+          if (profile?.role === "vehicle_owner") {
+            localStorage.setItem("role", "vehicle_owner");
+            navigate("/app/vehicles", { replace: true });
             return;
           }
 
+          // Existing reporter
+          if (profile?.role === "reporter") {
+            localStorage.setItem("role", "reporter");
+            localStorage.setItem("openIncidentsTab", "sent");
+
+            try {
+              await linkPendingReportToReporter(token);
+            } catch (error) {
+              console.error("Pending report link failed:", error);
+            }
+
+            navigate("/app/history", {
+              replace: true,
+              state: { filter: "sent" },
+            });
+            return;
+          }
+
+          // New user
           localStorage.setItem("role", "reporter");
-          localStorage.setItem("openIncidentsTab", "sent");
-
-          await linkPendingReportToReporter(token);
-
-          navigate("/app/history", {
-            replace: true,
-            state: { filter: "sent" },
-          });
+          navigate("/complete-profile", { replace: true });
           return;
         }
 
