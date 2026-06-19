@@ -200,34 +200,27 @@ const AuthCallback = () => {
           localStorage.removeItem("afterMagicLinkRedirect");
           localStorage.removeItem("afterMagicLinkFilter");
 
-          // Existing owner
+          // Existing owner old logic safe
           if (profile?.role === "vehicle_owner") {
             localStorage.setItem("role", "vehicle_owner");
             navigate("/app/vehicles", { replace: true });
             return;
           }
 
-          // Existing reporter
-          if (profile?.role === "reporter") {
-            localStorage.setItem("role", "reporter");
-            localStorage.setItem("openIncidentsTab", "sent");
+          // Reporter/report flow: link report first so points/thank-you logic stays safe
+          localStorage.setItem("role", "reporter");
+          localStorage.setItem("openIncidentsTab", "sent");
 
-            try {
-              await linkPendingReportToReporter(token);
-            } catch (error) {
-              console.error("Pending report link failed:", error);
-            }
-
-            navigate("/app/history", {
-              replace: true,
-              state: { filter: "sent" },
-            });
-            return;
+          try {
+            await linkPendingReportToReporter(token);
+          } catch (error) {
+            console.error("Pending report link failed:", error);
           }
 
-          // New user
-          localStorage.setItem("role", "reporter");
-          navigate("/complete-profile", { replace: true });
+          navigate("/app/history", {
+            replace: true,
+            state: { filter: "sent" },
+          });
           return;
         }
 

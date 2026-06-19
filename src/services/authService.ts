@@ -61,7 +61,7 @@ export const sendVerification = async (payload: SendVerificationPayload) => {
   const { error } = await supabase.auth.signInWithOtp({
     email: finalPayload.contact.trim(),
     options: {
-      emailRedirectTo: 'https://car-app-french.vercel.app/auth/callback',
+      emailRedirectTo: `${window.location.origin}/auth/callback?from=report`,
     },
   });
 
@@ -107,15 +107,11 @@ export const handleMagicLinkLogin = async () => {
 
     const profile = result?.data?.profile || null;
 
-    const isProfileComplete =
-      !!profile &&
-      !!profile.id &&
-      !!profile.username &&
-      profile.username.trim() !== '';
+   
 
     return {
       session,
-      profile: isProfileComplete ? profile : null,
+      profile,
     };
   } catch (error) {
     console.error('handleMagicLinkLogin error:', error);
