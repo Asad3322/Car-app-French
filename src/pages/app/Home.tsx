@@ -208,7 +208,7 @@ const Home = () => {
               </p>
 
               <h1 className="truncate text-[22px] font-black tracking-tight text-[#4A9CFF] sm:text-[24px]">
-                CARAPP
+                WazAlert
               </h1>
             </div>
           </div>

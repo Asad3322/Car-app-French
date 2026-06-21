@@ -1,6 +1,6 @@
 const en = {
   common: {
-    appName: "CARAPP",
+    appName: "WazAlert",
     save: "Save",
     cancel: "Cancel",
     logout: "Logout",
